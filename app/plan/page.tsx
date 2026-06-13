@@ -64,6 +64,8 @@ export default function PlannerPage() {
   // Live GPS position + whether the map keeps it centered as the user moves.
   const [pos, setPos] = useState<Pt | null>(null);
   const [follow, setFollow] = useState(false);
+  // Compass heading in degrees (0 = north, clockwise) for the direction cone.
+  const [heading, setHeading] = useState<number | null>(null);
   const [vias, setVias] = useState<Pt[]>([]);
   const [pinnedIds, setPinnedIds] = useState<number[]>([]);
   const [clickMode, setClickMode] = useState<"start" | "via">("start");
@@ -123,7 +125,13 @@ export default function PlannerPage() {
   useEffect(() => {
     if (!follow) return;
     const id = navigator.geolocation.watchPosition(
-      (p) => setPos({ lat: p.coords.latitude, lon: p.coords.longitude }),
+      (p) => {
+        setPos({ lat: p.coords.latitude, lon: p.coords.longitude });
+        // GPS heading is only meaningful while moving; use as compass fallback.
+        if (p.coords.heading != null && !Number.isNaN(p.coords.heading)) {
+          setHeading(p.coords.heading);
+        }
+      },
       (e) => {
         setErr(`Location: ${e.message}`);
         setFollow(false);
@@ -133,13 +141,45 @@ export default function PlannerPage() {
     return () => navigator.geolocation.clearWatch(id);
   }, [follow]);
 
-  function toggleFollow() {
+  // Device compass — works even while standing still, unlike GPS heading.
+  useEffect(() => {
+    if (!follow) return;
+    const handler = (e: DeviceOrientationEvent) => {
+      const iosHeading = (e as DeviceOrientationEvent & { webkitCompassHeading?: number })
+        .webkitCompassHeading;
+      let h: number | null = null;
+      if (typeof iosHeading === "number") h = iosHeading; // iOS: clockwise from north
+      else if (e.absolute && e.alpha != null) h = 360 - e.alpha; // standard absolute
+      if (h != null) setHeading(((h % 360) + 360) % 360);
+    };
+    const evt = "ondeviceorientationabsolute" in window ? "deviceorientationabsolute" : "deviceorientation";
+    window.addEventListener(evt, handler, true);
+    return () => window.removeEventListener(evt, handler, true);
+  }, [follow]);
+
+  async function toggleFollow() {
     setErr(null);
-    if (!follow && !navigator.geolocation) {
+    if (follow) {
+      setFollow(false);
+      setHeading(null);
+      return;
+    }
+    if (!navigator.geolocation) {
       setErr("Geolocation not available on this device.");
       return;
     }
-    setFollow((f) => !f);
+    // iOS 13+ gates the compass behind a permission prompt that needs a gesture.
+    const DOE = window.DeviceOrientationEvent as unknown as {
+      requestPermission?: () => Promise<string>;
+    };
+    if (typeof DOE?.requestPermission === "function") {
+      try {
+        await DOE.requestPermission();
+      } catch {
+        // Compass denied — fall back to GPS heading only.
+      }
+    }
+    setFollow(true);
   }
 
   // Marks the user pins, resolved to fountains and forced into the route.
@@ -412,6 +452,7 @@ export default function PlannerPage() {
         markers={[...markers, ...viaMarkers, ...startMarker]}
         line={line}
         userPos={pos ? [pos.lat, pos.lon] : null}
+        userHeading={follow ? heading : null}
         onMapClick={handleMapClick}
         onUserPan={() => setFollow(false)}
         className="absolute inset-0 h-full w-full"
