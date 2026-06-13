@@ -108,11 +108,14 @@ export async function closeChangeset(token: string, id: number): Promise<void> {
     method: "PUT",
     headers: auth(token),
   });
-  // Non-fatal: an unclosed changeset auto-closes server-side after idle. Log so
-  // a persistent failure is visible rather than silently swallowed.
-  if (!res.ok) {
-    console.error(`close changeset ${id} failed ${res.status}: ${await res.text()}`);
-  }
+  // Throw so the finish flow can surface the failure. Edits already PUT are
+  // safe regardless, and an unclosed changeset auto-closes server-side.
+  if (!res.ok) throw new OsmApiError(res.status, "close changeset", await res.text());
+}
+
+// Web (not API) URL for a changeset, for linking the user to their edits.
+export function changesetUrl(id: number): string {
+  return `${OAUTH_BASE}/changeset/${id}`;
 }
 
 // ---- node ----
