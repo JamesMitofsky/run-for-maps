@@ -15,7 +15,8 @@ export type PlanNode = { lat: number; lon: number; fountain?: Fountain };
 export type PlanInput = {
   start: Pt;
   candidates: Fountain[];
-  vias?: Pt[]; // mandatory pass-through points
+  vias?: Pt[]; // mandatory pass-through points (not survey targets)
+  pinned?: Fountain[]; // marks the user requires in the route (survey targets)
   targetM: number; // desired run distance (street meters)
   loop: boolean;
 };
@@ -48,11 +49,15 @@ function twoOpt(start: Pt, nodes: PlanNode[], loop: boolean): PlanNode[] {
   return best;
 }
 
-export function planRoute({ start, candidates, vias = [], targetM, loop }: PlanInput): PlanResult {
+export function planRoute({ start, candidates, vias = [], pinned = [], targetM, loop }: PlanInput): PlanResult {
   const budget = targetM / DETOUR_FACTOR;
-  // Via-points are always included, even if they alone blow the budget.
-  const order: PlanNode[] = vias.map((v) => ({ lat: v.lat, lon: v.lon }));
-  const remaining = candidates.slice();
+  // Via-points and pinned marks are always included, even if they alone blow the budget.
+  const order: PlanNode[] = [
+    ...vias.map((v) => ({ lat: v.lat, lon: v.lon })),
+    ...pinned.map((f) => ({ lat: f.lat, lon: f.lon, fountain: f })),
+  ];
+  const pinnedIds = new Set(pinned.map((f) => f.id));
+  const remaining = candidates.filter((c) => !pinnedIds.has(c.id));
   let cur: Pt = order.length ? order[order.length - 1] : start;
 
   while (remaining.length > 0) {
