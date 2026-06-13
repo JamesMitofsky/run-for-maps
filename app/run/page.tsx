@@ -189,10 +189,10 @@ export default function RunPage() {
           <li>Removed: {(counts.removed || 0) + (counts.delete || 0)}</li>
           <li>Skipped: {counts.skipped || 0}</li>
         </ul>
+        <ExportButton className="w-full" />
         <button onClick={finish} className="w-full rounded bg-neutral-900 py-3 font-semibold text-white">
           Close changeset & finish
         </button>
-        <ExportButton className="w-full" />
       </main>
     );
   }
