@@ -36,10 +36,10 @@ export default function RunPage() {
   const { status: osm, refresh } = useOsmStatus();
 
   const [pos, setPos] = useState<Pt | null>(null);
-  const [arrived, setArrived] = useState(false);
+  const [manualArrived, setManualArrived] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [hydrating, setHydrating] = useState(true);
+  const [hydrating, setHydrating] = useState(() => !useRun.getState().hasPlan);
   // Last successful per-tap write, shown until the next action.
   const [lastSaved, setLastSaved] = useState<{
     nodeId: number;
@@ -54,10 +54,7 @@ export default function RunPage() {
 
   // Hydrate from saved run if store empty (reload / direct nav).
   useEffect(() => {
-    if (run.hasPlan) {
-      setHydrating(false);
-      return;
-    }
+    if (run.hasPlan) return; // hydrating already false (lazy init)
     fetch("/api/run")
       .then((r) => r.json())
       .then((plan) => {
@@ -86,10 +83,9 @@ export default function RunPage() {
   const distToTarget = pos && target ? haversine(pos, target) : null;
   const bearingTo = pos && target ? bearing(pos, target) : 0;
 
-  // Auto-arm "arrived" within 30 m.
-  useEffect(() => {
-    if (distToTarget != null && distToTarget < 30) setArrived(true);
-  }, [distToTarget]);
+  // Derived: armed manually ("I'm here") or auto within 30 m. No effect, so no
+  // cascading-render setState.
+  const arrived = manualArrived || (distToTarget != null && distToTarget < 30);
 
   async function persist(nextIndex: number, changesetId?: number) {
     await fetch("/api/run", {
@@ -112,7 +108,7 @@ export default function RunPage() {
   function advance() {
     const ni = index + 1;
     run.setIndex(ni);
-    setArrived(false);
+    setManualArrived(false);
     persist(ni);
   }
 
@@ -340,7 +336,7 @@ export default function RunPage() {
 
             {!arrived ? (
               <button
-                onClick={() => setArrived(true)}
+                onClick={() => setManualArrived(true)}
                 className="rounded bg-neutral-900 py-3 font-semibold text-white"
               >
                 I&apos;m here — inspect
