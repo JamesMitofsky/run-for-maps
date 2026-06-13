@@ -1,430 +1,384 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { MapPinIcon, CrosshairIcon, PathIcon, MagnifyingGlassIcon, FlagIcon, PushPinIcon, XIcon } from "@phosphor-icons/react";
-import { planRoute } from "@/lib/plan";
-import { fmtDist, milesToMeters, type Pt } from "@/lib/geo";
-import type { Fountain } from "@/lib/schemas";
-import { useRun, type RunStop } from "@/store/run";
-import type { MapMarker } from "@/components/MapView";
-import OsmStatusBar from "@/components/OsmStatus";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import {
+  ArrowRightIcon,
+  MapTrifoldIcon,
+  PathIcon,
+  PersonSimpleRunIcon,
+  PencilSimpleLineIcon,
+  GlobeHemisphereWestIcon,
+  CompassIcon,
+  CheckCircleIcon,
+} from "@phosphor-icons/react";
 
-const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
+/* ------------------------------------------------------------------ */
+/* Decorative topographic contour field for dark sections.            */
+/* ------------------------------------------------------------------ */
+function Contours({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 1200 600"
+      fill="none"
+      preserveAspectRatio="xMidYMid slice"
+      aria-hidden
+    >
+      {Array.from({ length: 9 }).map((_, i) => {
+        const o = i * 26;
+        return (
+          <path
+            key={i}
+            d={`M-50 ${120 + o}
+                C 200 ${60 + o}, 360 ${220 + o}, 560 ${180 + o}
+                S 920 ${60 + o}, 1260 ${160 + o}`}
+            stroke="currentColor"
+            strokeWidth={1}
+            opacity={0.5 - i * 0.04}
+          />
+        );
+      })}
+      {Array.from({ length: 7 }).map((_, i) => {
+        const o = i * 30;
+        return (
+          <path
+            key={`b-${i}`}
+            d={`M-50 ${420 + o}
+                C 180 ${360 + o}, 420 ${520 + o}, 640 ${440 + o}
+                S 980 ${360 + o}, 1260 ${480 + o}`}
+            stroke="currentColor"
+            strokeWidth={1}
+            opacity={0.42 - i * 0.05}
+          />
+        );
+      })}
+    </svg>
+  );
+}
 
-const TAG_PRESETS = [
-  { label: "Drinking water (amenity=drinking_water)", key: "amenity", value: "drinking_water" },
-  { label: "Fountain (amenity=fountain)", key: "amenity", value: "fountain" },
-  { label: "Water point (amenity=water_point)", key: "amenity", value: "water_point" },
-  { label: "Spring (natural=spring)", key: "natural", value: "spring" },
-  { label: "Bench (amenity=bench)", key: "amenity", value: "bench" },
-  { label: "Waste basket (amenity=waste_basket)", key: "amenity", value: "waste_basket" },
+/* ------------------------------------------------------------------ */
+/* Animated route line that draws itself across the hero.             */
+/* ------------------------------------------------------------------ */
+function RouteTrace() {
+  const path =
+    "M40 300 C 180 120, 300 360, 470 250 S 760 80, 900 240 S 1080 420, 1160 200";
+  const nodes = [
+    [40, 300],
+    [300, 282],
+    [620, 188],
+    [900, 240],
+    [1160, 200],
+  ];
+  return (
+    <svg
+      className="h-full w-full"
+      viewBox="0 0 1200 480"
+      fill="none"
+      preserveAspectRatio="xMidYMid meet"
+      aria-hidden
+    >
+      <motion.path
+        d={path}
+        stroke="var(--color-volt)"
+        strokeWidth={3}
+        strokeLinecap="round"
+        strokeDasharray="1 14"
+        initial={{ pathLength: 0, opacity: 0 }}
+        animate={{ pathLength: 1, opacity: 1 }}
+        transition={{ duration: 2.2, ease: "easeInOut" }}
+      />
+      {nodes.map(([x, y], i) => (
+        <motion.g
+          key={i}
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.5 + i * 0.32, type: "spring", stiffness: 240, damping: 14 }}
+        >
+          <circle cx={x} cy={y} r={14} fill="var(--color-volt)" opacity={0.18} />
+          <circle cx={x} cy={y} r={6} fill="var(--color-volt)" />
+          <circle cx={x} cy={y} r={6} fill="none" stroke="var(--color-ink)" strokeWidth={2} />
+        </motion.g>
+      ))}
+    </svg>
+  );
+}
+
+const fadeUp = {
+  initial: { opacity: 0, y: 24 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, margin: "-80px" },
+  transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] as const },
+};
+
+const STEPS = [
+  {
+    icon: MapTrifoldIcon,
+    n: "01",
+    title: "Pin the unknowns",
+    body:
+      "Drop a start point and pull every matching OpenStreetMap feature in range — drinking water, benches, springs, any tag you want to ground-check.",
+  },
+  {
+    icon: PathIcon,
+    n: "02",
+    title: "Plan an honest route",
+    body:
+      "Tell it how far you want to go. It threads a real running route past as many points as fit — loop or one-way, your call.",
+  },
+  {
+    icon: PersonSimpleRunIcon,
+    n: "03",
+    title: "Run it down",
+    body:
+      "A phone-first view points you to the next node with live distance and a compass arrow. No staring at a map mid-stride.",
+  },
+  {
+    icon: PencilSimpleLineIcon,
+    n: "04",
+    title: "Write it back",
+    body:
+      "At each point mark it working, broken, or gone. Edits land in OpenStreetMap under one clean changeset — the map gets truer the second you finish.",
+  },
 ];
 
-export default function PlannerPage() {
-  const router = useRouter();
-  const setPlan = useRun((s) => s.setPlan);
+const TICKER = [
+  "check_date",
+  "amenity=drinking_water",
+  "disused:",
+  "natural=spring",
+  "verified ✓",
+  "amenity=bench",
+  "abandoned:",
+  "one changeset",
+  "ground truth",
+];
 
-  const [center, setCenter] = useState<Pt | null>(null);
-  const [vias, setVias] = useState<Pt[]>([]);
-  const [pinnedIds, setPinnedIds] = useState<number[]>([]);
-  const [clickMode, setClickMode] = useState<"start" | "via">("start");
-  const [recenterKey, setRecenterKey] = useState("init");
-  const [addr, setAddr] = useState("");
-  const [radiusMi, setRadiusMi] = useState(3);
-  const [targetMi, setTargetMi] = useState(3);
-  const [loop, setLoop] = useState(true);
-  const [tagSel, setTagSel] = useState(TAG_PRESETS[0].label);
-
-  const [fountains, setFountains] = useState<Fountain[]>([]);
-  const [stops, setStops] = useState<Fountain[]>([]);
-  const [line, setLine] = useState<[number, number][]>([]);
-  const [distanceM, setDistanceM] = useState(0);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [err, setErr] = useState<string | null>(null);
-
-  const tag = useMemo(() => {
-    const preset = TAG_PRESETS.find((p) => p.label === tagSel);
-    if (preset) return { key: preset.key, value: preset.value };
-    const [k, v] = tagSel.split("=").map((s) => s.trim());
-    return { key: k || "amenity", value: v || "drinking_water" };
-  }, [tagSel]);
-
-  function recenter(p: Pt) {
-    setCenter(p);
-    setRecenterKey(`${p.lat},${p.lon},${Date.now()}`);
-  }
-
-  // Marks the user pins, resolved to fountains and forced into the route.
-  const pinned = useMemo(
-    () => fountains.filter((f) => pinnedIds.includes(f.id)),
-    [fountains, pinnedIds],
-  );
-
-  function handleMapClick(lat: number, lon: number) {
-    if (clickMode === "via" && center) {
-      setVias((v) => [...v, { lat, lon }]);
-    } else {
-      recenter({ lat, lon });
-    }
-  }
-
-  function togglePin(id: number) {
-    setPinnedIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
-  }
-
-  function markLabel(f: Fountain) {
-    return f.tags.name ?? `mark #${f.id}`;
-  }
-
-  function geolocate() {
-    setErr(null);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => recenter({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-      (e) => setErr(`Geolocation failed: ${e.message}`),
-    );
-  }
-
-  async function searchAddr() {
-    if (!addr.trim()) return;
-    setBusy("search");
-    setErr(null);
-    try {
-      const r = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(addr)}`,
-      );
-      const j = (await r.json()) as { lat: string; lon: string }[];
-      if (j[0]) recenter({ lat: Number(j[0].lat), lon: Number(j[0].lon) });
-      else setErr("Address not found");
-    } catch (e) {
-      setErr((e as Error).message);
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function findPoints() {
-    if (!center) return;
-    setBusy("find");
-    setErr(null);
-    setStops([]);
-    setLine([]);
-    setPinnedIds([]);
-    try {
-      const r = await fetch("/api/fountains", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...center, radiusM: milesToMeters(radiusMi), tag }),
-      });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error?.formErrors?.join(", ") || j.error || "fetch failed");
-      setFountains(j.fountains);
-      if (j.fountains.length === 0) setErr("No matching points in radius.");
-    } catch (e) {
-      setErr((e as Error).message);
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function makeRoute() {
-    if (!center || fountains.length === 0) return;
-    setBusy("route");
-    setErr(null);
-    try {
-      const { ordered } = planRoute({
-        start: center,
-        candidates: fountains,
-        vias,
-        pinned,
-        targetM: milesToMeters(targetMi),
-        loop,
-      });
-      const chosen = ordered.filter((n) => n.fountain).map((n) => n.fountain!);
-      if (ordered.length === 0) {
-        setErr("No points fit that distance. Increase target distance or add via-points.");
-        setBusy(null);
-        return;
-      }
-      setStops(chosen);
-      const points = [center, ...ordered.map((n) => ({ lat: n.lat, lon: n.lon }))];
-      const r = await fetch("/api/route", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ points, loop }),
-      });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error || "routing failed");
-      setLine((j.coords as [number, number][]).map(([lon, lat]) => [lat, lon]));
-      setDistanceM(j.distanceM);
-    } catch (e) {
-      setErr((e as Error).message);
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function startRun() {
-    if (!center || stops.length === 0) return;
-    const runStops: RunStop[] = stops.map((f) => ({ ...f, status: "pending" }));
-    const plan = {
-      start: center,
-      loop,
-      tagKey: tag.key,
-      stops: runStops,
-      vias,
-      routeCoords: line.map(([lat, lon]) => [lon, lat] as [number, number]),
-      distanceM,
-    };
-    setPlan(plan);
-    await fetch("/api/run", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...plan, index: 0 }),
-    });
-    router.push("/run");
-  }
-
-  const markers: MapMarker[] = useMemo(() => {
-    const chosenIds = new Map(stops.map((s, i) => [s.id, i + 1]));
-    const pinnedSet = new Set(pinnedIds);
-    return fountains.map((f) => {
-      const n = chosenIds.get(f.id);
-      const isPinned = pinnedSet.has(f.id);
-      // green numbered = chosen; amber star = pinned (forced); gray = available.
-      const color = n ? "#16a34a" : isPinned ? "#f59e0b" : "#9ca3af";
-      return {
-        id: f.id,
-        lat: f.lat,
-        lon: f.lon,
-        color,
-        label: n ? String(n) : isPinned ? "★" : undefined,
-        onClick: () => togglePin(f.id),
-      };
-    });
-  }, [fountains, stops, pinnedIds]);
-
-  const startMarker: MapMarker[] = center
-    ? [{ id: "start", lat: center.lat, lon: center.lon, color: "#2563eb", label: "S" }]
-    : [];
-
-  const viaMarkers: MapMarker[] = vias.map((v, i) => ({
-    id: `via-${i}`,
-    lat: v.lat,
-    lon: v.lon,
-    color: "#7c3aed",
-    label: "✦",
-    onClick: () => setVias((arr) => arr.filter((_, j) => j !== i)),
-  }));
-
+export default function LandingPage() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-6xl flex-col gap-4 p-4 md:p-6">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold">Fountain Run Planner</h1>
-          <p className="text-sm text-neutral-500">Map a running route past OSM points to verify them.</p>
-        </div>
-        <OsmStatusBar />
+    <main className="bg-ink font-body text-cream">
+      {/* NAV */}
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-ink/80 backdrop-blur-md">
+        <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
+          <Link href="/" className="flex items-center gap-2 font-display text-lg font-bold tracking-tight">
+            <span className="inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-volt" />
+            GROUNDTRUTH
+          </Link>
+          <Link
+            href="/plan"
+            className="group flex items-center gap-1.5 rounded-full bg-volt px-4 py-2 text-sm font-semibold text-ink transition hover:gap-2.5"
+          >
+            Open planner
+            <ArrowRightIcon size={16} weight="bold" className="transition-transform group-hover:translate-x-0.5" />
+          </Link>
+        </nav>
       </header>
 
-      <div className="grid gap-4 md:grid-cols-[360px_1fr]">
-        <section className="flex flex-col gap-4 rounded-lg border border-neutral-200 p-4">
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium">Start location</label>
-            <div className="flex gap-2">
-              <div className="flex flex-1 items-center gap-2 rounded border border-neutral-300 px-2">
-                <MagnifyingGlassIcon size={16} className="text-neutral-400" />
-                <input
-                  className="w-full bg-transparent py-2 text-sm outline-none"
-                  placeholder="Search address / city"
-                  value={addr}
-                  onChange={(e) => setAddr(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && searchAddr()}
-                />
-              </div>
-              <button
-                onClick={geolocate}
-                title="Use my location"
-                className="rounded border border-neutral-300 px-3 hover:bg-neutral-50"
-              >
-                <CrosshairIcon size={18} />
-              </button>
-            </div>
-            <p className="text-xs text-neutral-400">Or click the map to drop the start point.</p>
-          </div>
+      {/* HERO */}
+      <section className="grain relative overflow-hidden">
+        <Contours className="pointer-events-none absolute inset-0 h-full w-full text-volt/25" />
+        <div className="pointer-events-none absolute inset-x-0 top-1/2 hidden h-[480px] -translate-y-1/2 opacity-90 md:block">
+          <RouteTrace />
+        </div>
 
-          <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium">Add to route</span>
-            <div className="flex overflow-hidden rounded border border-neutral-300 text-sm">
-              <button
-                onClick={() => setClickMode("start")}
-                className={`flex-1 py-1.5 ${clickMode === "start" ? "bg-neutral-900 text-white" : "bg-white"}`}
-              >
-                Set start
-              </button>
-              <button
-                onClick={() => setClickMode("via")}
-                disabled={!center}
-                className={`flex-1 py-1.5 ${clickMode === "via" ? "bg-violet-600 text-white" : "bg-white"} disabled:opacity-40`}
-              >
-                Add waypoint
-                {vias.length > 0 && (
-                  <span className="ml-1 text-xs font-normal opacity-70">{vias.length}</span>
-                )}
-              </button>
-            </div>
-            <p className="text-xs text-neutral-400">
-              {clickMode === "via"
-                ? "Click the map to drop a pass-through waypoint."
-                : "Click the map to move the start point."}{" "}
-              Click any point marker to pin it as a required stop
-              {pinned.length > 0 && (
-                <span className="text-neutral-300"> ({pinned.length} pinned)</span>
-              )}
-              .
-            </p>
-            {(pinned.length > 0 || vias.length > 0) && (
-              <ul className="flex flex-col gap-1">
-                {pinned.map((f) => (
-                  <li
-                    key={f.id}
-                    className="flex items-center justify-between rounded bg-amber-50 px-2 py-1 text-xs"
-                  >
-                    <span className="flex items-center gap-1 truncate text-amber-700">
-                      <PushPinIcon size={12} weight="fill" /> {markLabel(f)}
-                    </span>
-                    <button
-                      onClick={() => togglePin(f.id)}
-                      className="shrink-0 text-amber-400 hover:text-amber-700"
-                      aria-label="unpin mark"
-                    >
-                      <XIcon size={14} />
-                    </button>
-                  </li>
-                ))}
-                {vias.map((v, i) => (
-                  <li
-                    key={`via-${i}`}
-                    className="flex items-center justify-between rounded bg-violet-50 px-2 py-1 text-xs"
-                  >
-                    <span className="flex items-center gap-1 text-violet-700">
-                      <FlagIcon size={12} /> waypoint {i + 1}: {v.lat.toFixed(4)}, {v.lon.toFixed(4)}
-                    </span>
-                    <button
-                      onClick={() => setVias((arr) => arr.filter((_, j) => j !== i))}
-                      className="shrink-0 text-violet-400 hover:text-violet-700"
-                      aria-label="remove waypoint"
-                    >
-                      <XIcon size={14} />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+        <div className="relative mx-auto max-w-6xl px-5 pb-24 pt-20 md:pb-32 md:pt-28">
+          <motion.span
+            {...fadeUp}
+            className="inline-flex items-center gap-2 rounded-full border border-volt/40 bg-volt/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-volt"
+          >
+            <GlobeHemisphereWestIcon size={14} weight="fill" />
+            Open-source map fieldwork
+          </motion.span>
 
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium">Point type</label>
-            <input
-              list="tag-presets"
-              className="rounded border border-neutral-300 px-2 py-2 text-sm outline-none"
-              value={tagSel}
-              onChange={(e) => setTagSel(e.target.value)}
-              placeholder="amenity=drinking_water"
-            />
-            <datalist id="tag-presets">
-              {TAG_PRESETS.map((p) => (
-                <option key={p.label} value={p.label} />
-              ))}
-            </datalist>
-          </div>
+          <motion.h1
+            {...fadeUp}
+            transition={{ ...fadeUp.transition, delay: 0.05 }}
+            className="mt-6 max-w-3xl font-display text-[clamp(2.8rem,9vw,6.5rem)] font-bold leading-[0.92] tracking-tight"
+          >
+            Run the map
+            <br />
+            <span className="text-volt">real.</span>
+          </motion.h1>
 
-          <div className="grid grid-cols-2 gap-3">
-            <label className="flex flex-col gap-1 text-sm">
-              Search radius (mi)
-              <input
-                type="number"
-                min={0.5}
-                step={0.5}
-                value={radiusMi}
-                onChange={(e) => setRadiusMi(Number(e.target.value))}
-                className="rounded border border-neutral-300 px-2 py-2 outline-none"
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              Target run (mi)
-              <input
-                type="number"
-                min={0.5}
-                step={0.5}
-                value={targetMi}
-                onChange={(e) => setTargetMi(Number(e.target.value))}
-                className="rounded border border-neutral-300 px-2 py-2 outline-none"
-              />
-            </label>
-          </div>
+          <motion.p
+            {...fadeUp}
+            transition={{ ...fadeUp.transition, delay: 0.12 }}
+            className="mt-7 max-w-xl text-lg leading-relaxed text-cream-dim"
+          >
+            Every run is a chance to fix the map nobody else will. Plan a route past
+            unverified OpenStreetMap points, chase them down on foot, and write the truth
+            back — one changeset per run.
+          </motion.p>
 
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={loop} onChange={(e) => setLoop(e.target.checked)} />
-            Loop (finish back at start)
-          </label>
-
-          <div className="flex flex-col gap-2 border-t border-neutral-100 pt-3">
-            <button
-              onClick={findPoints}
-              disabled={!center || busy !== null}
-              className="flex items-center justify-center gap-2 rounded bg-neutral-900 py-2 text-sm font-medium text-white disabled:opacity-40"
+          <motion.div
+            {...fadeUp}
+            transition={{ ...fadeUp.transition, delay: 0.18 }}
+            className="mt-9 flex flex-wrap items-center gap-3"
+          >
+            <Link
+              href="/plan"
+              className="group flex items-center gap-2 rounded-full bg-volt px-7 py-3.5 text-base font-bold text-ink transition hover:gap-3 hover:bg-cream"
             >
-              <MapPinIcon size={16} />
-              {busy === "find" ? "Finding…" : "Find points"}
-              {fountains.length > 0 && (
-                <span className="ml-1 rounded bg-white/20 px-1.5 text-xs">{fountains.length}</span>
-              )}
-            </button>
-            <button
-              onClick={makeRoute}
-              disabled={fountains.length === 0 || busy !== null}
-              className="flex items-center justify-center gap-2 rounded border border-neutral-900 py-2 text-sm font-medium disabled:opacity-40"
+              Plan a run
+              <ArrowRightIcon size={18} weight="bold" className="transition-transform group-hover:translate-x-1" />
+            </Link>
+            <a
+              href="#how"
+              className="rounded-full border border-white/20 px-7 py-3.5 text-base font-semibold text-cream transition hover:border-volt hover:text-volt"
             >
-              <PathIcon size={16} />
-              {busy === "route" ? "Planning…" : "Plan route"}
-            </button>
-          </div>
+              How it works
+            </a>
+          </motion.div>
 
-          {stops.length > 0 && (
-            <div className="rounded bg-green-50 p-3 text-sm">
-              <div className="flex justify-between">
-                <span className="font-medium text-green-800">
-                  {stops.length} stops
-                  <span className="ml-1 font-normal text-green-600">of {fountains.length}</span>
-                </span>
-                <span className="font-medium text-green-800">{fmtDist(distanceM)}</span>
+          {/* stat strip */}
+          <motion.dl
+            {...fadeUp}
+            transition={{ ...fadeUp.transition, delay: 0.26 }}
+            className="mt-16 grid max-w-2xl grid-cols-2 gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/5 sm:grid-cols-3"
+          >
+            {[
+              { k: "1 run", v: "= 1 clean changeset" },
+              { k: "0 keys", v: "free, public APIs" },
+              { k: "∞", v: "points left to verify" },
+            ].map((s) => (
+              <div key={s.k} className="bg-ink/40 px-5 py-5">
+                <dt className="font-display text-2xl font-bold text-volt">{s.k}</dt>
+                <dd className="mt-1 text-sm text-cream-dim">{s.v}</dd>
               </div>
-              <button
-                onClick={startRun}
-                className="mt-3 w-full rounded bg-green-600 py-2 font-semibold text-white hover:bg-green-700"
-              >
-                Start run →
-              </button>
-            </div>
-          )}
+            ))}
+          </motion.dl>
+        </div>
+      </section>
 
-          {err && <p className="rounded bg-red-50 p-2 text-sm text-red-700">{err}</p>}
-        </section>
-
-        <section className="h-[60vh] overflow-hidden rounded-lg border border-neutral-200 md:h-auto md:min-h-[560px]">
-          <MapView
-            center={center ? [center.lat, center.lon] : [38.9072, -77.0369]}
-            zoom={14}
-            recenterKey={recenterKey}
-            markers={[...markers, ...viaMarkers, ...startMarker]}
-            line={line}
-            onMapClick={handleMapClick}
-            className="h-full w-full"
-          />
-        </section>
+      {/* TICKER */}
+      <div className="border-y border-white/10 bg-ink-soft py-3">
+        <div className="flex w-max animate-marquee gap-8 whitespace-nowrap">
+          {[...TICKER, ...TICKER].map((t, i) => (
+            <span
+              key={i}
+              className="flex items-center gap-8 font-display text-sm font-medium uppercase tracking-widest text-cream-dim"
+            >
+              {t}
+              <span className="text-volt">/</span>
+            </span>
+          ))}
+        </div>
       </div>
+
+      {/* HOW IT WORKS */}
+      <section id="how" className="mx-auto max-w-6xl px-5 py-24 md:py-32">
+        <motion.div {...fadeUp} className="max-w-2xl">
+          <p className="font-display text-sm font-semibold uppercase tracking-[0.2em] text-volt">
+            The loop
+          </p>
+          <h2 className="mt-3 font-display text-[clamp(2rem,5vw,3.4rem)] font-bold leading-tight tracking-tight">
+            Four steps from couch to corrected map.
+          </h2>
+        </motion.div>
+
+        <div className="mt-14 grid gap-5 sm:grid-cols-2">
+          {STEPS.map((step, i) => {
+            const Icon = step.icon;
+            return (
+              <motion.div
+                key={step.n}
+                {...fadeUp}
+                transition={{ ...fadeUp.transition, delay: i * 0.06 }}
+                className="group relative overflow-hidden rounded-3xl border border-white/10 bg-ink-soft p-7 transition hover:border-volt/50"
+              >
+                <div className="flex items-start justify-between">
+                  <Icon size={36} weight="duotone" className="text-volt" />
+                  <span className="font-display text-5xl font-bold text-white/5 transition group-hover:text-volt/20">
+                    {step.n}
+                  </span>
+                </div>
+                <h3 className="mt-6 font-display text-xl font-semibold">{step.title}</h3>
+                <p className="mt-2 text-cream-dim">{step.body}</p>
+              </motion.div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* MANIFESTO SPLIT */}
+      <section className="border-y border-white/10 bg-ink-soft">
+        <div className="mx-auto grid max-w-6xl gap-12 px-5 py-24 md:grid-cols-2 md:py-32">
+          <motion.div {...fadeUp}>
+            <h2 className="font-display text-[clamp(2rem,5vw,3.4rem)] font-bold leading-[1.05] tracking-tight">
+              The map is only as good as the people
+              <span className="text-volt"> who go check.</span>
+            </h2>
+            <p className="mt-6 text-lg leading-relaxed text-cream-dim">
+              OpenStreetMap powers the apps you already trust — but half its world is
+              guessed, stale, or never confirmed. Satellites can&apos;t tell you the fountain
+              is dry or the bench is gone. Feet can.
+            </p>
+            <p className="mt-4 text-lg leading-relaxed text-cream-dim">
+              Groundtruth turns your training miles into the most boring, most valuable
+              thing in open data: someone actually showing up.
+            </p>
+          </motion.div>
+
+          <motion.ul {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.1 }} className="flex flex-col gap-4">
+            {[
+              { icon: CompassIcon, h: "Built for the run, not the desk", b: "Turn-toward-next-point guidance with live distance — phone-first, glanceable, sweat-proof." },
+              { icon: CheckCircleIcon, h: "Honest by design", b: "Working, out-of-order, or removed — mapped straight onto OSM lifecycle tags with today's date." },
+              { icon: GlobeHemisphereWestIcon, h: "Yours stays public", b: "No accounts to sell, no keys to buy. Edits are attributed to you and free for everyone." },
+            ].map((f) => {
+              const Icon = f.icon;
+              return (
+                <li key={f.h} className="flex gap-4 rounded-2xl border border-white/10 bg-ink/40 p-5">
+                  <Icon size={28} weight="bold" className="mt-0.5 shrink-0 text-volt" />
+                  <div>
+                    <h3 className="font-display font-semibold">{f.h}</h3>
+                    <p className="mt-1 text-sm text-cream-dim">{f.b}</p>
+                  </div>
+                </li>
+              );
+            })}
+          </motion.ul>
+        </div>
+      </section>
+
+      {/* FINAL CTA */}
+      <section className="grain relative overflow-hidden">
+        <Contours className="pointer-events-none absolute inset-0 h-full w-full text-volt/20" />
+        <div className="relative mx-auto max-w-4xl px-5 py-28 text-center md:py-36">
+          <motion.h2
+            {...fadeUp}
+            className="font-display text-[clamp(2.4rem,7vw,5rem)] font-bold leading-[0.95] tracking-tight"
+          >
+            Lace up. <span className="text-volt">Fix the map.</span>
+          </motion.h2>
+          <motion.p
+            {...fadeUp}
+            transition={{ ...fadeUp.transition, delay: 0.08 }}
+            className="mx-auto mt-6 max-w-lg text-lg text-cream-dim"
+          >
+            Pick a distance, pick a tag, and go make the world&apos;s map a little more true.
+          </motion.p>
+          <motion.div {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.16 }} className="mt-10">
+            <Link
+              href="/plan"
+              className="group inline-flex items-center gap-2 rounded-full bg-volt px-9 py-4 text-lg font-bold text-ink transition hover:gap-3 hover:bg-cream"
+            >
+              Plan your first run
+              <ArrowRightIcon size={20} weight="bold" className="transition-transform group-hover:translate-x-1" />
+            </Link>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="border-t border-white/10">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 py-8 text-sm text-cream-dim sm:flex-row">
+          <span className="flex items-center gap-2 font-display font-bold text-cream">
+            <span className="inline-block h-2 w-2 rounded-full bg-volt" />
+            GROUNDTRUTH
+          </span>
+          <span>Powered by OpenStreetMap, Overpass &amp; BRouter — all open, all free.</span>
+        </div>
+      </footer>
     </main>
   );
 }

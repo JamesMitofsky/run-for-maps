@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+@theme {
+  --color-ink: #0c0d0a;
+  --color-ink-soft: #16180f;
+  --color-volt: #ccff2e;
+  --color-volt-deep: #a6d600;
+  --color-cream: #f4f3ea;
+  --color-cream-dim: #b9b8ac;
+
+  --font-display: var(--font-display), system-ui, sans-serif;
+  --font-body: var(--font-body), system-ui, sans-serif;
+
+  --animate-marquee: marquee 28s linear infinite;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -8,10 +22,29 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: system-ui, -apple-system, Arial, sans-serif;
+  font-family: var(--font-body), system-ui, -apple-system, Arial, sans-serif;
 }
 
 /* Keep Leaflet panes below app UI overlays. */
 .leaflet-container {
   font: inherit;
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Fine film grain over dark hero sections. */
+.grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }

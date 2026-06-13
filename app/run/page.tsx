@@ -177,7 +177,7 @@ export default function RunPage() {
 
   function goHome() {
     run.reset();
-    router.push("/");
+    router.push("/plan");
   }
 
   const line: [number, number][] = useMemo(
