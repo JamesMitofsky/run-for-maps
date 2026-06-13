@@ -230,6 +230,8 @@ export default function RunPage() {
           <li>Removed: {(counts.removed || 0) + (counts.delete || 0)}</li>
           <li>Skipped: {counts.skipped || 0}</li>
         </ul>
+        {/* JSON backup before submit, per the completion-screen flow. */}
+        <ExportButton className="w-full" />
 
         {sealed ? (
           <>
@@ -264,8 +266,6 @@ export default function RunPage() {
             )}
           </>
         )}
-
-        <ExportButton className="w-full" />
       </main>
     );
   }

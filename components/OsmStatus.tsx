@@ -18,28 +18,17 @@ export function useOsmStatus() {
 }
 
 export default function OsmStatusBar() {
-  const { status, refresh } = useOsmStatus();
+  const { status } = useOsmStatus();
   if (!status) return null;
   return (
     <div className="flex items-center gap-3 text-sm">
-      <span
-        className={`rounded px-2 py-0.5 text-xs font-semibold ${
-          status.live ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
-        }`}
-        title={status.apiBase}
-      >
-        {status.live ? "LIVE OSM" : "SANDBOX"}
-      </span>
       {status.loggedIn ? (
-        <button
-          onClick={async () => {
-            await fetch("/api/osm/status", { method: "DELETE" });
-            refresh();
-          }}
-          className="text-neutral-500 underline underline-offset-2 hover:text-neutral-800"
+        <span
+          className="rounded bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700"
+          title={status.apiBase}
         >
-          Sign out of OSM
-        </button>
+          Connected
+        </span>
       ) : (
         <a href="/api/osm/auth" className="font-medium text-blue-600 underline underline-offset-2">
           Sign in to OSM
