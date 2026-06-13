@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useGSAP } from "@gsap/react";
@@ -9,6 +9,7 @@ import gsap from "gsap";
 import {
   MapPinIcon,
   CrosshairIcon,
+  NavigationArrowIcon,
   PathIcon,
   MagnifyingGlassIcon,
   FlagIcon,
@@ -60,6 +61,9 @@ export default function PlannerPage() {
   const [step, setStep] = useState(0);
 
   const [center, setCenter] = useState<Pt | null>(null);
+  // Live GPS position + whether the map keeps it centered as the user moves.
+  const [pos, setPos] = useState<Pt | null>(null);
+  const [follow, setFollow] = useState(false);
   const [vias, setVias] = useState<Pt[]>([]);
   const [pinnedIds, setPinnedIds] = useState<number[]>([]);
   const [clickMode, setClickMode] = useState<"start" | "via">("start");
@@ -114,6 +118,30 @@ export default function PlannerPage() {
     setRecenterKey(`${p.lat},${p.lon},${Date.now()}`);
   }
 
+  // While "follow" is on, stream the live GPS position. Cleared when off so we
+  // don't hold the geolocation watch open in the background.
+  useEffect(() => {
+    if (!follow) return;
+    const id = navigator.geolocation.watchPosition(
+      (p) => setPos({ lat: p.coords.latitude, lon: p.coords.longitude }),
+      (e) => {
+        setErr(`Location: ${e.message}`);
+        setFollow(false);
+      },
+      { enableHighAccuracy: true, maximumAge: 5000 },
+    );
+    return () => navigator.geolocation.clearWatch(id);
+  }, [follow]);
+
+  function toggleFollow() {
+    setErr(null);
+    if (!follow && !navigator.geolocation) {
+      setErr("Geolocation not available on this device.");
+      return;
+    }
+    setFollow((f) => !f);
+  }
+
   // Marks the user pins, resolved to fountains and forced into the route.
   const pinned = useMemo(
     () => fountains.filter((f) => pinnedIds.includes(f.id)),
@@ -121,6 +149,8 @@ export default function PlannerPage() {
   );
 
   function handleMapClick(lat: number, lon: number) {
+    // Placing a point is manual control; stop auto-following the GPS.
+    setFollow(false);
     if (clickMode === "via" && center) {
       setVias((v) => [...v, { lat, lon }]);
     } else {
@@ -364,16 +394,26 @@ export default function PlannerPage() {
   const active = STEPS[step];
   const canAdvance = step === 0 ? !!center : true;
 
+  // When following, the map view tracks the live GPS point (rounded so we only
+  // recenter on real movement); otherwise it tracks the chosen start point.
+  const DEFAULT_CENTER: [number, number] = [38.9072, -77.0369];
+  const viewCenter: [number, number] =
+    follow && pos ? [pos.lat, pos.lon] : center ? [center.lat, center.lon] : DEFAULT_CENTER;
+  const viewKey =
+    follow && pos ? `follow:${pos.lat.toFixed(4)},${pos.lon.toFixed(4)}` : recenterKey;
+
   return (
     <main ref={scope} className="relative h-screen w-screen overflow-hidden bg-ink font-body text-cream">
       {/* Map fills the screen; floating cards sit on top. */}
       <MapView
-        center={center ? [center.lat, center.lon] : [38.9072, -77.0369]}
+        center={viewCenter}
         zoom={14}
-        recenterKey={recenterKey}
+        recenterKey={viewKey}
         markers={[...markers, ...viaMarkers, ...startMarker]}
         line={line}
+        userPos={pos ? [pos.lat, pos.lon] : null}
         onMapClick={handleMapClick}
+        onUserPan={() => setFollow(false)}
         className="absolute inset-0 h-full w-full"
       />
 
@@ -390,6 +430,21 @@ export default function PlannerPage() {
           <OsmStatusBar />
         </div>
       </header>
+
+      {/* Follow-me toggle: keep the live GPS point centered as the user moves. */}
+      <button
+        onClick={toggleFollow}
+        title={follow ? "Stop following my location" : "Keep my location centered"}
+        aria-pressed={follow}
+        className={`absolute right-4 top-20 z-[1000] flex items-center gap-1.5 rounded-full border px-4 py-2.5 text-sm font-semibold shadow-xl backdrop-blur transition ${
+          follow
+            ? "border-volt bg-volt text-ink"
+            : "border-white/10 bg-ink/85 text-cream hover:border-volt/60 hover:text-volt"
+        } md:right-6`}
+      >
+        <NavigationArrowIcon size={16} weight={follow ? "fill" : "regular"} />
+        {follow ? "Following" : "Follow me"}
+      </button>
 
       {/* ----- CONFIG PHASE: one question at a time ----- */}
       {phase === "config" && (

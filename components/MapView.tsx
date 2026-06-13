@@ -24,6 +24,8 @@ type Props = {
   line?: [number, number][];
   userPos?: [number, number] | null;
   onMapClick?: (lat: number, lon: number) => void;
+  // Fired when the user drags the map, so callers can drop "follow me" mode.
+  onUserPan?: () => void;
   recenterKey?: string; // change to force recenter on `center`
   className?: string;
 };
@@ -57,10 +59,20 @@ function Recenter({ center, recenterKey }: { center: [number, number]; recenterK
   return null;
 }
 
-function ClickHandler({ onMapClick }: { onMapClick?: (lat: number, lon: number) => void }) {
+function ClickHandler({
+  onMapClick,
+  onUserPan,
+}: {
+  onMapClick?: (lat: number, lon: number) => void;
+  onUserPan?: () => void;
+}) {
   useMapEvents({
     click(e) {
       onMapClick?.(e.latlng.lat, e.latlng.lng);
+    },
+    // Only user-initiated drags fire dragstart; programmatic setView does not.
+    dragstart() {
+      onUserPan?.();
     },
   });
   return null;
@@ -73,6 +85,7 @@ export default function MapView({
   line,
   userPos,
   onMapClick,
+  onUserPan,
   recenterKey,
   className,
 }: Props) {
@@ -83,7 +96,7 @@ export default function MapView({
         url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <Recenter center={center} recenterKey={recenterKey} />
-      <ClickHandler onMapClick={onMapClick} />
+      <ClickHandler onMapClick={onMapClick} onUserPan={onUserPan} />
       {line && line.length > 1 && <Polyline positions={line} pathOptions={{ color: "#2563eb", weight: 5, opacity: 0.8 }} />}
       {markers.map((m) => (
         <Marker
