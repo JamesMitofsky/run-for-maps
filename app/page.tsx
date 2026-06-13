@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MapPinIcon, CrosshairIcon, PathIcon, MagnifyingGlassIcon, FlagIcon, XIcon } from "@phosphor-icons/react";
+import { MapPinIcon, CrosshairIcon, PathIcon, MagnifyingGlassIcon, FlagIcon, PushPinIcon, XIcon } from "@phosphor-icons/react";
 import { planRoute } from "@/lib/plan";
 import { fmtDist, milesToMeters, type Pt } from "@/lib/geo";
 import type { Fountain } from "@/lib/schemas";
@@ -28,6 +28,7 @@ export default function PlannerPage() {
 
   const [center, setCenter] = useState<Pt | null>(null);
   const [vias, setVias] = useState<Pt[]>([]);
+  const [pinnedIds, setPinnedIds] = useState<number[]>([]);
   const [clickMode, setClickMode] = useState<"start" | "via">("start");
   const [recenterKey, setRecenterKey] = useState("init");
   const [addr, setAddr] = useState("");
@@ -55,12 +56,26 @@ export default function PlannerPage() {
     setRecenterKey(`${p.lat},${p.lon},${Date.now()}`);
   }
 
+  // Marks the user pins, resolved to fountains and forced into the route.
+  const pinned = useMemo(
+    () => fountains.filter((f) => pinnedIds.includes(f.id)),
+    [fountains, pinnedIds],
+  );
+
   function handleMapClick(lat: number, lon: number) {
     if (clickMode === "via" && center) {
       setVias((v) => [...v, { lat, lon }]);
     } else {
       recenter({ lat, lon });
     }
+  }
+
+  function togglePin(id: number) {
+    setPinnedIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
+  }
+
+  function markLabel(f: Fountain) {
+    return f.tags.name ?? `mark #${f.id}`;
   }
 
   function geolocate() {
@@ -95,6 +110,7 @@ export default function PlannerPage() {
     setErr(null);
     setStops([]);
     setLine([]);
+    setPinnedIds([]);
     try {
       const r = await fetch("/api/fountains", {
         method: "POST",
@@ -121,6 +137,7 @@ export default function PlannerPage() {
         start: center,
         candidates: fountains,
         vias,
+        pinned,
         targetM: milesToMeters(targetMi),
         loop,
       });
@@ -171,17 +188,22 @@ export default function PlannerPage() {
 
   const markers: MapMarker[] = useMemo(() => {
     const chosenIds = new Map(stops.map((s, i) => [s.id, i + 1]));
+    const pinnedSet = new Set(pinnedIds);
     return fountains.map((f) => {
       const n = chosenIds.get(f.id);
+      const isPinned = pinnedSet.has(f.id);
+      // green numbered = chosen; amber star = pinned (forced); gray = available.
+      const color = n ? "#16a34a" : isPinned ? "#f59e0b" : "#9ca3af";
       return {
         id: f.id,
         lat: f.lat,
         lon: f.lon,
-        color: n ? "#16a34a" : "#9ca3af",
-        label: n ? String(n) : undefined,
+        color,
+        label: n ? String(n) : isPinned ? "★" : undefined,
+        onClick: () => togglePin(f.id),
       };
     });
-  }, [fountains, stops]);
+  }, [fountains, stops, pinnedIds]);
 
   const startMarker: MapMarker[] = center
     ? [{ id: "start", lat: center.lat, lon: center.lon, color: "#2563eb", label: "S" }]
@@ -233,36 +255,66 @@ export default function PlannerPage() {
           </div>
 
           <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium">Map click adds</span>
+            <span className="text-sm font-medium">Add to route</span>
             <div className="flex overflow-hidden rounded border border-neutral-300 text-sm">
               <button
                 onClick={() => setClickMode("start")}
                 className={`flex-1 py-1.5 ${clickMode === "start" ? "bg-neutral-900 text-white" : "bg-white"}`}
               >
-                Start
+                Set start
               </button>
               <button
                 onClick={() => setClickMode("via")}
                 disabled={!center}
                 className={`flex-1 py-1.5 ${clickMode === "via" ? "bg-violet-600 text-white" : "bg-white"} disabled:opacity-40`}
               >
-                Via-point
+                Add waypoint
                 {vias.length > 0 && (
                   <span className="ml-1 text-xs font-normal opacity-70">{vias.length}</span>
                 )}
               </button>
             </div>
-            {vias.length > 0 && (
+            <p className="text-xs text-neutral-400">
+              {clickMode === "via"
+                ? "Click the map to drop a pass-through waypoint."
+                : "Click the map to move the start point."}{" "}
+              Click any point marker to pin it as a required stop
+              {pinned.length > 0 && (
+                <span className="text-neutral-300"> ({pinned.length} pinned)</span>
+              )}
+              .
+            </p>
+            {(pinned.length > 0 || vias.length > 0) && (
               <ul className="flex flex-col gap-1">
+                {pinned.map((f) => (
+                  <li
+                    key={f.id}
+                    className="flex items-center justify-between rounded bg-amber-50 px-2 py-1 text-xs"
+                  >
+                    <span className="flex items-center gap-1 truncate text-amber-700">
+                      <PushPinIcon size={12} weight="fill" /> {markLabel(f)}
+                    </span>
+                    <button
+                      onClick={() => togglePin(f.id)}
+                      className="shrink-0 text-amber-400 hover:text-amber-700"
+                      aria-label="unpin mark"
+                    >
+                      <XIcon size={14} />
+                    </button>
+                  </li>
+                ))}
                 {vias.map((v, i) => (
-                  <li key={i} className="flex items-center justify-between rounded bg-violet-50 px-2 py-1 text-xs">
+                  <li
+                    key={`via-${i}`}
+                    className="flex items-center justify-between rounded bg-violet-50 px-2 py-1 text-xs"
+                  >
                     <span className="flex items-center gap-1 text-violet-700">
-                      <FlagIcon size={12} /> via {i + 1}: {v.lat.toFixed(4)}, {v.lon.toFixed(4)}
+                      <FlagIcon size={12} /> waypoint {i + 1}: {v.lat.toFixed(4)}, {v.lon.toFixed(4)}
                     </span>
                     <button
                       onClick={() => setVias((arr) => arr.filter((_, j) => j !== i))}
-                      className="text-violet-400 hover:text-violet-700"
-                      aria-label="remove via-point"
+                      className="shrink-0 text-violet-400 hover:text-violet-700"
+                      aria-label="remove waypoint"
                     >
                       <XIcon size={14} />
                     </button>
