@@ -17,6 +17,7 @@ import { bearing, compass, fmtDist, haversine, type Pt } from "@/lib/geo";
 import type { MapMarker } from "@/components/MapView";
 import type { EditAction } from "@/lib/schemas";
 import OsmStatusBar, { useOsmStatus } from "@/components/OsmStatus";
+import ExportButton from "@/components/ExportButton";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 
@@ -191,6 +192,7 @@ export default function RunPage() {
         <button onClick={finish} className="w-full rounded bg-neutral-900 py-3 font-semibold text-white">
           Close changeset & finish
         </button>
+        <ExportButton className="w-full" />
       </main>
     );
   }
@@ -313,6 +315,8 @@ export default function RunPage() {
         </AnimatePresence>
 
         {err && <p className="rounded bg-red-50 p-2 text-sm text-red-700">{err}</p>}
+
+        <ExportButton className="mt-auto" />
       </div>
     </main>
   );
