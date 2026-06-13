@@ -8,6 +8,7 @@ import {
   deleteNode,
   applyAction,
   todayIso,
+  OsmApiError,
 } from "@/lib/osm";
 import { appendJson } from "@/lib/db";
 
@@ -28,7 +29,8 @@ export async function POST(req: Request) {
       changesetId = await openChangeset(token, "Survey: drinking water / amenity status check");
     }
 
-    // Apply, with one retry on version conflict (409).
+    // Re-read the node each attempt so the version sent always matches the
+    // current db version (OSM rejects a stale version with 409).
     const run = async (): Promise<number> => {
       const node = await getNode(token, nodeId);
       if (action === "delete") {
@@ -38,12 +40,19 @@ export async function POST(req: Request) {
       return putNode(token, nodeId, { ...node, tags }, changesetId!);
     };
 
+    // Retry on version conflict (409): a concurrent editor bumped the version
+    // between our read and write. Re-read + retry up to 3 attempts.
+    const MAX_ATTEMPTS = 3;
     let newVersion: number;
-    try {
-      newVersion = await run();
-    } catch (e) {
-      if ((e as Error).message.includes("409")) newVersion = await run();
-      else throw e;
+    for (let attempt = 1; ; attempt++) {
+      try {
+        newVersion = await run();
+        break;
+      } catch (e) {
+        const conflict = e instanceof OsmApiError && e.status === 409;
+        if (conflict && attempt < MAX_ATTEMPTS) continue;
+        throw e;
+      }
     }
 
     await appendJson("edit-log.json", {
