@@ -190,15 +190,9 @@ export default function LandingPage() {
               href="/plan"
               className="group flex items-center gap-2 rounded-full bg-volt px-7 py-3.5 text-base font-bold text-ink transition hover:gap-3 hover:bg-cream"
             >
-              Open planner
+              Map your contribution
               <ArrowRightIcon size={18} weight="bold" className="transition-transform group-hover:translate-x-1" />
             </Link>
-            <a
-              href="#how"
-              className="rounded-full border border-white/20 px-7 py-3.5 text-base font-semibold text-cream transition hover:border-volt hover:text-volt"
-            >
-              How it works
-            </a>
           </motion.div>
         </div>
       </section>
@@ -207,7 +201,7 @@ export default function LandingPage() {
       <section id="how" className="mx-auto max-w-6xl px-5 py-24 md:py-32">
         <motion.div {...fadeUp} className="max-w-2xl">
           <h2 className="font-display text-[clamp(2rem,5vw,3.4rem)] font-bold leading-tight tracking-tight">
-            Plan, run, contribute
+            How it works
           </h2>
         </motion.div>
 
@@ -290,7 +284,7 @@ export default function LandingPage() {
               href="/plan"
               className="group inline-flex items-center gap-2 rounded-full bg-volt px-9 py-4 text-lg font-bold text-ink transition hover:gap-3 hover:bg-cream"
             >
-              Plan your first run
+              Map your contribution
               <ArrowRightIcon size={20} weight="bold" className="transition-transform group-hover:translate-x-1" />
             </Link>
           </motion.div>
