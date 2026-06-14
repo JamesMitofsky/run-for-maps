@@ -71,8 +71,8 @@ export default function PlannerPage() {
   const [clickMode, setClickMode] = useState<"start" | "via">("start");
   const [recenterKey, setRecenterKey] = useState("init");
   const [addr, setAddr] = useState("");
-  const [radiusMi, setRadiusMi] = useState(3);
-  const [targetMi, setTargetMi] = useState(3);
+  const [radiusMi, setRadiusMi] = useState<number | "">(3);
+  const [targetMi, setTargetMi] = useState<number | "">(3);
   const [loop, setLoop] = useState(true);
   const [tag, setTag] = useState({ key: "amenity", value: "drinking_water" });
 
@@ -295,7 +295,7 @@ export default function PlannerPage() {
       const r = await fetch("/api/fountains", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...center, radiusM: milesToMeters(radiusMi), tag }),
+        body: JSON.stringify({ ...center, radiusM: milesToMeters(radiusMi || 0), tag }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error?.formErrors?.join(", ") || j.error || "fetch failed");
@@ -324,7 +324,7 @@ export default function PlannerPage() {
         candidates: fountains,
         vias,
         pinned,
-        targetM: milesToMeters(targetMi),
+        targetM: milesToMeters(targetMi || 0),
         loop,
       });
       const chosen = ordered.filter((n) => n.fountain).map((n) => n.fountain!);
@@ -567,7 +567,11 @@ export default function PlannerPage() {
                         min={0.5}
                         step={0.5}
                         value={radiusMi}
-                        onChange={(e) => setRadiusMi(Number(e.target.value))}
+                        onChange={(e) =>
+                          setRadiusMi(
+                            e.target.value === "" ? "" : Number(e.target.value)
+                          )
+                        }
                         className="rounded-lg border border-white/15 bg-ink/40 px-2 py-2 text-cream outline-none focus:border-volt/60"
                       />
                     </label>
@@ -578,7 +582,11 @@ export default function PlannerPage() {
                         min={0.5}
                         step={0.5}
                         value={targetMi}
-                        onChange={(e) => setTargetMi(Number(e.target.value))}
+                        onChange={(e) =>
+                          setTargetMi(
+                            e.target.value === "" ? "" : Number(e.target.value)
+                          )
+                        }
                         className="rounded-lg border border-white/15 bg-ink/40 px-2 py-2 text-cream outline-none focus:border-volt/60"
                       />
                     </label>
