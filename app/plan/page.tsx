@@ -67,7 +67,6 @@ export default function PlannerPage() {
   const [heading, setHeading] = useState<number | null>(null);
   const [vias, setVias] = useState<Pt[]>([]);
   const [pinnedIds, setPinnedIds] = useState<number[]>([]);
-  const [clickMode, setClickMode] = useState<"start" | "via">("start");
   const [recenterKey, setRecenterKey] = useState("init");
   const [addr, setAddr] = useState("");
   const [radiusMi, setRadiusMi] = useState<number | "">(3);
@@ -197,11 +196,14 @@ export default function PlannerPage() {
   function handleMapClick(lat: number, lon: number) {
     // Placing a point is manual control; stop auto-following the GPS.
     setFollow(false);
-    if (clickMode === "via" && center) {
-      setVias((v) => [...v, { lat, lon }]);
-    } else {
-      recenter({ lat, lon });
+    // The start point can only be set during the first setup step ("where").
+    // Later config steps ignore map clicks so the start can't move by accident.
+    if (phase === "config") {
+      if (step === 0) recenter({ lat, lon });
+      return;
     }
+    // Map phase: a click drops a pass-through waypoint.
+    if (center) setVias((v) => [...v, { lat, lon }]);
   }
 
   function togglePin(id: number) {
@@ -691,31 +693,14 @@ export default function PlannerPage() {
                 </span>
               )}
 
-              {/* Map interaction mode */}
+              {/* Map interaction help */}
               <div className="flex flex-col gap-2">
-                <div className="flex overflow-hidden rounded-lg border border-white/15 text-sm">
-                  <button
-                    onClick={() => setClickMode("start")}
-                    className={`flex-1 py-1.5 transition ${clickMode === "start" ? "bg-volt font-semibold text-ink" : "bg-ink/40 text-cream-dim hover:text-cream"}`}
-                  >
-                    Move start
-                  </button>
-                  <button
-                    onClick={() => setClickMode("via")}
-                    disabled={!center}
-                    className={`flex-1 py-1.5 transition ${clickMode === "via" ? "bg-violet-500 font-semibold text-white" : "bg-ink/40 text-cream-dim hover:text-cream"} disabled:opacity-40`}
-                  >
-                    Add waypoint
-                    {vias.length > 0 && (
-                      <span className="ml-1 text-xs font-normal opacity-70">{vias.length}</span>
-                    )}
-                  </button>
-                </div>
                 <p className="text-xs text-cream-dim">
-                  {clickMode === "via"
-                    ? "Click the map to drop a pass-through waypoint."
-                    : "Click the map to move the start point."}{" "}
-                  Click any point marker to pin it as a required stop or update it in OSM
+                  Click the map to drop a pass-through waypoint
+                  {vias.length > 0 && <span className="text-cream-dim"> ({vias.length} added)</span>}.{" "}
+                  To change the start point, use{" "}
+                  <span className="font-semibold text-cream">Edit setup</span>. Click any point
+                  marker to pin it as a required stop or update it in OSM
                   {pinned.length > 0 && <span className="text-cream-dim"> ({pinned.length} pinned)</span>}.
                 </p>
                 {(pinned.length > 0 || vias.length > 0) && (
