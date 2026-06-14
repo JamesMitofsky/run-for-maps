@@ -3,7 +3,6 @@
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import {
@@ -68,7 +67,6 @@ export default function PlannerPage() {
   const [heading, setHeading] = useState<number | null>(null);
   const [vias, setVias] = useState<Pt[]>([]);
   const [pinnedIds, setPinnedIds] = useState<number[]>([]);
-  const [clickMode, setClickMode] = useState<"start" | "via">("start");
   const [recenterKey, setRecenterKey] = useState("init");
   const [addr, setAddr] = useState("");
   const [radiusMi, setRadiusMi] = useState<number | "">(3);
@@ -200,11 +198,14 @@ export default function PlannerPage() {
   function handleMapClick(lat: number, lon: number) {
     // Placing a point is manual control; stop auto-following the GPS.
     setFollow(false);
-    if (clickMode === "via" && center) {
-      setVias((v) => [...v, { lat, lon }]);
-    } else {
-      recenter({ lat, lon });
+    // The start point can only be set during the first setup step ("where").
+    // Later config steps ignore map clicks so the start can't move by accident.
+    if (phase === "config") {
+      if (step === 0) recenter({ lat, lon });
+      return;
     }
+    // Map phase: a click drops a pass-through waypoint.
+    if (center) setVias((v) => [...v, { lat, lon }]);
   }
 
   function togglePin(id: number) {
@@ -506,15 +507,8 @@ export default function PlannerPage() {
         />
       </div>
 
-      {/* Top bar: brand + OSM status, floating over the map. */}
-      <header className="pointer-events-none absolute inset-x-0 top-0 z-[1000] flex flex-wrap items-center justify-between gap-3 p-4 md:p-5">
-        <Link
-          href="/"
-          className="pointer-events-auto flex items-center gap-2 rounded-full border border-white/10 bg-ink/80 px-4 py-2 font-display text-lg font-bold tracking-tight backdrop-blur"
-        >
-          <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full border-2 border-volt" />
-          ROSM
-        </Link>
+      {/* Top bar: OSM status, floating over the map. */}
+      <header className="pointer-events-none absolute inset-x-0 top-0 z-[1000] flex flex-wrap items-center justify-start gap-3 p-4 md:p-5">
         <div className="pointer-events-auto">
           <OsmStatusBar />
         </div>
@@ -525,13 +519,13 @@ export default function PlannerPage() {
         onClick={toggleFollow}
         title={follow ? "Stop following my location" : "Keep my location centered"}
         aria-pressed={follow}
-        className={`absolute right-4 top-20 z-[1000] flex items-center gap-1.5 rounded-full border px-4 py-2.5 text-sm font-semibold shadow-xl backdrop-blur transition ${
+        className={`absolute right-4 top-4 z-[1000] flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-semibold shadow-xl backdrop-blur transition ${
           follow
             ? "border-volt bg-volt text-ink"
             : "border-white/10 bg-ink/85 text-cream hover:border-volt/60 hover:text-volt"
-        } md:right-6`}
+        } md:right-6 md:top-5`}
       >
-        <NavigationArrowIcon size={16} weight={follow ? "fill" : "regular"} />
+        <NavigationArrowIcon size={14} weight={follow ? "fill" : "regular"} />
         {follow ? "Following" : "Follow me"}
       </button>
 
@@ -669,25 +663,23 @@ export default function PlannerPage() {
       {/* ----- MAP PHASE: map-first, controls float over it ----- */}
       {phase === "map" && (
         <>
-          {/* Back to the questions. */}
-          <button
-            onClick={() => setPhase("config")}
-            className="phase-card absolute left-4 top-20 z-[1000] flex items-center gap-1.5 rounded-full border border-white/10 bg-ink/85 px-4 py-2.5 text-sm font-semibold text-cream shadow-xl backdrop-blur transition hover:border-volt/60 hover:text-volt md:left-6"
-          >
-            <SlidersHorizontalIcon size={16} />
-            Edit setup
-          </button>
-
           <div className="phase-card z-[1000] flex justify-center p-4 md:absolute md:inset-y-0 md:right-0 md:left-auto md:items-center md:p-6">
             <section className="flex w-full max-w-sm flex-col gap-4 rounded-3xl border border-white/10 bg-ink-soft/95 p-5 shadow-2xl backdrop-blur-md md:max-h-[calc(100vh-7rem)] md:overflow-y-auto">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <h2 className="font-display text-lg font-bold">Build the route</h2>
-                {fountains.length > 0 && (
-                  <span className="rounded-full bg-volt/15 px-2 py-0.5 text-xs font-semibold text-volt">
-                    {fountains.length} found
-                  </span>
-                )}
+                <button
+                  onClick={() => setPhase("config")}
+                  className="flex shrink-0 items-center gap-1.5 rounded-full border border-white/15 px-3 py-1.5 text-xs font-semibold text-cream-dim transition hover:border-volt/60 hover:text-volt"
+                >
+                  <SlidersHorizontalIcon size={14} />
+                  Edit setup
+                </button>
               </div>
+              {fountains.length > 0 && (
+                <span className="-mt-2 w-fit rounded-full bg-volt/15 px-2 py-0.5 text-xs font-semibold text-volt">
+                  {fountains.length} found
+                </span>
+              )}
 
               {/* Route sizing: by a target distance, or by the points picked */}
               <div className="flex flex-col gap-2">
@@ -735,31 +727,14 @@ export default function PlannerPage() {
                 </label>
               </div>
 
-              {/* Map interaction mode */}
+              {/* Map interaction help */}
               <div className="flex flex-col gap-2">
-                <div className="flex overflow-hidden rounded-lg border border-white/15 text-sm">
-                  <button
-                    onClick={() => setClickMode("start")}
-                    className={`flex-1 py-1.5 transition ${clickMode === "start" ? "bg-volt font-semibold text-ink" : "bg-ink/40 text-cream-dim hover:text-cream"}`}
-                  >
-                    Move start
-                  </button>
-                  <button
-                    onClick={() => setClickMode("via")}
-                    disabled={!center}
-                    className={`flex-1 py-1.5 transition ${clickMode === "via" ? "bg-violet-500 font-semibold text-white" : "bg-ink/40 text-cream-dim hover:text-cream"} disabled:opacity-40`}
-                  >
-                    Add waypoint
-                    {vias.length > 0 && (
-                      <span className="ml-1 text-xs font-normal opacity-70">{vias.length}</span>
-                    )}
-                  </button>
-                </div>
                 <p className="text-xs text-cream-dim">
-                  {clickMode === "via"
-                    ? "Click the map to drop a pass-through waypoint."
-                    : "Click the map to move the start point."}{" "}
-                  Click any point marker to pin it as a required stop or update it in OSM
+                  Click the map to drop a pass-through waypoint
+                  {vias.length > 0 && <span className="text-cream-dim"> ({vias.length} added)</span>}.{" "}
+                  To change the start point, use{" "}
+                  <span className="font-semibold text-cream">Edit setup</span>. Click any point
+                  marker to pin it as a required stop or update it in OSM
                   {pinned.length > 0 && <span className="text-cream-dim"> ({pinned.length} pinned)</span>}.
                 </p>
                 {(pinned.length > 0 || vias.length > 0) && (
