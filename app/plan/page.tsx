@@ -766,11 +766,11 @@ export default function PlannerPage() {
         onClick={toggleFollow}
         title={follow ? "Stop following my location" : "Keep my location centered"}
         aria-pressed={follow}
-        className={`absolute right-4 top-4 z-[1000] flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-semibold shadow-xl backdrop-blur transition ${
+        className={`absolute right-4 top-[calc(1rem+env(safe-area-inset-top))] z-[1000] flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-semibold shadow-xl backdrop-blur transition ${
           follow
             ? "border-volt bg-volt text-ink"
             : "border-white/10 bg-ink/85 text-cream hover:border-volt/60 hover:text-volt"
-        } md:right-6 md:top-5`}
+        } md:right-6 md:top-[calc(1.25rem+env(safe-area-inset-top))]`}
       >
         <NavigationArrowIcon size={14} weight={follow ? "fill" : "regular"} />
         {follow ? "Following" : "Follow me"}
