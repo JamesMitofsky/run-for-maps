@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { RouteRequest } from "@/lib/schemas";
-import { footRoute } from "@/lib/brouter";
+import { footRoute, RouteError } from "@/lib/brouter";
 
 export async function POST(req: Request) {
   const parsed = RouteRequest.safeParse(await req.json());
@@ -12,6 +12,12 @@ export async function POST(req: Request) {
     const route = await footRoute(points, loop);
     return NextResponse.json(route);
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 502 });
+    const err = e as RouteError;
+    // `island` (when present) is the unreachable point's coords, so the client
+    // can highlight exactly where the route breaks.
+    return NextResponse.json(
+      { error: err.message, island: err.island },
+      { status: 502 },
+    );
   }
 }

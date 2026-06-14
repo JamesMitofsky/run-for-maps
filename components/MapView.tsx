@@ -3,7 +3,7 @@
 import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 export type MapMarker = {
   id: number | string;
@@ -12,8 +12,12 @@ export type MapMarker = {
   color: string;
   label?: string;
   onClick?: () => void;
-  // Rendered inside a Leaflet popup that opens when the marker is clicked.
+  // Rendered inside a Leaflet popup.
   popup?: ReactNode;
+  // When the popup opens. "click" (default) opens it on a normal tap. "contextmenu"
+  // opens it on long-press / right-click, leaving a plain tap free for `onClick`
+  // (so a tap can toggle route membership without the popup hijacking it).
+  popupTrigger?: "click" | "contextmenu";
 };
 
 type Props = {
@@ -67,6 +71,39 @@ function userDot(heading?: number | null) {
   });
 }
 
+// One marker. For `popupTrigger: "contextmenu"` we suppress Leaflet's default
+// open-popup-on-click (bound by <Popup>) so a tap fires only `onClick`, and open
+// the popup on long-press / right-click instead.
+function MarkerView({ m }: { m: MapMarker }) {
+  const ref = useRef<L.Marker>(null);
+  const contextOnly = m.popupTrigger === "contextmenu";
+  useEffect(() => {
+    const mk = ref.current as (L.Marker & { _openPopup: L.LeafletEventHandlerFn }) | null;
+    if (!mk || !m.popup || !contextOnly) return;
+    // Leaflet's bindPopup wires `_openPopup` to the marker's click event. Drop it
+    // so a tap is free for `onClick`; we re-open on contextmenu (long-press) below.
+    mk.off("click", mk._openPopup, mk);
+    return () => {
+      mk.on("click", mk._openPopup, mk);
+    };
+  }, [m.popup, contextOnly]);
+  return (
+    <Marker
+      ref={ref}
+      position={[m.lat, m.lon]}
+      icon={pin(m.color, m.label)}
+      eventHandlers={{
+        click: () => m.onClick?.(),
+        contextmenu: () => {
+          if (contextOnly) ref.current?.openPopup();
+        },
+      }}
+    >
+      {m.popup && <Popup>{m.popup}</Popup>}
+    </Marker>
+  );
+}
+
 function Recenter({ center, recenterKey }: { center: [number, number]; recenterKey?: string }) {
   const map = useMap();
   useEffect(() => {
@@ -117,14 +154,7 @@ export default function MapView({
       <ClickHandler onMapClick={onMapClick} onUserPan={onUserPan} />
       {line && line.length > 1 && <Polyline positions={line} pathOptions={{ color: "#2563eb", weight: 5, opacity: 0.8 }} />}
       {markers.map((m) => (
-        <Marker
-          key={m.id}
-          position={[m.lat, m.lon]}
-          icon={pin(m.color, m.label)}
-          eventHandlers={m.onClick ? { click: m.onClick } : undefined}
-        >
-          {m.popup && <Popup>{m.popup}</Popup>}
-        </Marker>
+        <MarkerView key={m.id} m={m} />
       ))}
       {userPos && <Marker position={userPos} icon={userDot(userHeading)} />}
     </MapContainer>

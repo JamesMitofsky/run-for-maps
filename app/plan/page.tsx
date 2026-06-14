@@ -39,6 +39,7 @@ type Draft = {
   loop: boolean;
   fountains: Fountain[];
   pinnedIds: number[];
+  excludedIds: number[];
   vias: Pt[];
   stops: Fountain[];
   line: [number, number][];
@@ -66,6 +67,13 @@ const STEPS = [
   { key: "what", title: "What are you looking for?", hint: "Pick the kind of point to route past." },
   { key: "radius", title: "How wide should we search?", hint: "Set how far out to look for points." },
 ] as const;
+
+// Module-scoped monotonic counters (the planner is a single-instance route).
+// Kept out of refs so the route-building call graph stays ref-free and the React
+// Compiler can treat it as pure. `planRequestSeq` drops stale overlapping plans;
+// `recenterSeq` forces the map to recenter even when coords repeat.
+let planRequestSeq = 0;
+let recenterSeq = 0;
 
 export default function PlannerPage() {
   const router = useRouter();
@@ -97,8 +105,17 @@ export default function PlannerPage() {
 
   const [fountains, setFountains] = useState<Fountain[]>([]);
   const [stops, setStops] = useState<Fountain[]>([]);
+  // Points the user explicitly took OUT of the route (e.g. auto-grabbed ones they
+  // don't want). They stay excluded so re-planning / auto-pickup won't re-add them.
+  const [excludedIds, setExcludedIds] = useState<number[]>([]);
   const [line, setLine] = useState<[number, number][]>([]);
   const [distanceM, setDistanceM] = useState(0);
+  // True once a route is built; gates the auto-replan effect so picks/removes
+  // update the route live without re-running the whole planner by hand.
+  const [hasRoute, setHasRoute] = useState(false);
+  // Coords of a point BRouter can't reach on foot ("target island"), highlighted
+  // on the map so the user can see exactly where the route breaks.
+  const [islandPt, setIslandPt] = useState<Pt | null>(null);
   // How many stops were auto-grabbed (tiny detour off the route), for the summary.
   const [autoCount, setAutoCount] = useState(0);
   const [busy, setBusy] = useState<string | null>(null);
@@ -171,6 +188,7 @@ export default function PlannerPage() {
       loop,
       fountains,
       pinnedIds,
+      excludedIds,
       vias,
       stops,
       line,
@@ -192,6 +210,7 @@ export default function PlannerPage() {
     loop,
     fountains,
     pinnedIds,
+    excludedIds,
     vias,
     stops,
     line,
@@ -210,11 +229,13 @@ export default function PlannerPage() {
     setLoop(d.loop);
     setFountains(d.fountains);
     setPinnedIds(d.pinnedIds);
+    setExcludedIds(d.excludedIds ?? []);
     setVias(d.vias);
     setStops(d.stops);
     setLine(d.line);
     setDistanceM(d.distanceM);
     setAutoCount(d.autoCount);
+    setHasRoute(d.stops.length > 0);
     setResumable(null);
     setPhase("map");
   }
@@ -227,7 +248,7 @@ export default function PlannerPage() {
 
   function recenter(p: Pt) {
     setCenter(p);
-    setRecenterKey(`${p.lat},${p.lon},${Date.now()}`);
+    setRecenterKey(`${p.lat},${p.lon},${++recenterSeq}`);
   }
 
   // While "follow" is on, stream the live GPS position. Cleared when off so we
@@ -293,10 +314,26 @@ export default function PlannerPage() {
   }
 
   // Marks the user pins, resolved to fountains and forced into the route.
+  // Excluded points can never be pinned (removing a point also unpins it).
   const pinned = useMemo(
-    () => fountains.filter((f) => pinnedIds.includes(f.id)),
-    [fountains, pinnedIds],
+    () => fountains.filter((f) => pinnedIds.includes(f.id) && !excludedIds.includes(f.id)),
+    [fountains, pinnedIds, excludedIds],
   );
+
+  // Points the user removed from the route, resolved to fountains for the list.
+  const removed = useMemo(
+    () => fountains.filter((f) => excludedIds.includes(f.id)),
+    [fountains, excludedIds],
+  );
+
+  // A point is "in the route" if it's a chosen stop or a required pin (and not
+  // explicitly removed). Drives marker color + the popup's add/remove toggle.
+  const inRouteIds = useMemo(() => {
+    const s = new Set<number>(pinnedIds);
+    stops.forEach((f) => s.add(f.id));
+    excludedIds.forEach((id) => s.delete(id));
+    return s;
+  }, [stops, pinnedIds, excludedIds]);
 
   function handleMapClick(lat: number, lon: number) {
     // Placing a point is manual control; stop auto-following the GPS.
@@ -308,12 +345,60 @@ export default function PlannerPage() {
       return;
     }
     // Map phase: a click drops a pass-through waypoint.
-    if (center) setVias((v) => [...v, { lat, lon }]);
+    if (center) {
+      const v = [...vias, { lat, lon }];
+      setVias(v);
+      replan({ v });
+    }
   }
 
-  function togglePin(id: number) {
-    setPinnedIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
+  // Remove a pass-through waypoint and re-plan around the rest.
+  function removeVia(i: number) {
+    const v = vias.filter((_, j) => j !== i);
+    setVias(v);
+    replan({ v });
+  }
+
+  // Once a route exists, every membership change re-plans immediately with the
+  // new picks (passed explicitly — setState is async). `replan` is a no-op
+  // before the first route is built (the "Plan route" button does that).
+  function replan(o: { pins?: number[]; excludes?: number[]; v?: Pt[]; lp?: boolean }) {
+    if (hasRoute) planAndRoute(o);
+  }
+
+  // Force a point into the route (pin it) and clear any prior removal.
+  function addStop(id: number) {
+    const excludes = excludedIds.filter((x) => x !== id);
+    const pins = pinnedIds.includes(id) ? pinnedIds : [...pinnedIds, id];
+    setExcludedIds(excludes);
+    setPinnedIds(pins);
     celebratePoint();
+    replan({ pins, excludes });
+  }
+
+  // Take a point out of the route and keep it out: exclude it (so re-planning /
+  // auto-pickup won't grab it again) and drop any pin.
+  function removeStop(id: number) {
+    const pins = pinnedIds.filter((x) => x !== id);
+    const excludes = excludedIds.includes(id) ? excludedIds : [...excludedIds, id];
+    setPinnedIds(pins);
+    setExcludedIds(excludes);
+    replan({ pins, excludes });
+  }
+
+  // Tap a marker to add it; tap again to remove it. The route re-plans on every
+  // change.
+  function toggleStop(id: number) {
+    if (inRouteIds.has(id)) removeStop(id);
+    else addStop(id);
+  }
+
+  // Undo a removal: let the planner consider the point again (it may be re-picked
+  // by distance fill or small-detour pickup).
+  function restoreStop(id: number) {
+    const excludes = excludedIds.filter((x) => x !== id);
+    setExcludedIds(excludes);
+    replan({ excludes });
   }
 
   // Write a status update straight to OSM from the map, no run required. Edits
@@ -408,7 +493,10 @@ export default function PlannerPage() {
     setStops([]);
     setLine([]);
     setPinnedIds([]);
+    setExcludedIds([]);
     setAutoCount(0);
+    setHasRoute(false);
+    setIslandPt(null);
     try {
       const r = await fetch("/api/fountains", {
         method: "POST",
@@ -432,10 +520,78 @@ export default function PlannerPage() {
     setPhase("map");
   }
 
-  async function makeRoute() {
+  // Plan + fetch street geometry. Picks/removes pass the *new* ids/waypoints
+  // explicitly (state setters are async, so reading state here could be stale),
+  // falling back to current state for the "Plan route" button.
+  type PlanOverride = { pins?: number[]; excludes?: number[]; v?: Pt[]; lp?: boolean };
+  async function planAndRoute(o: PlanOverride = {}) {
     if (!center || fountains.length === 0) return;
+    const pins = o.pins ?? pinnedIds;
+    const excludes = o.excludes ?? excludedIds;
+    const v = o.v ?? vias;
+    const lp = o.lp ?? loop;
     // In points mode the route is sized purely by what the user picks, so the
     // target distance is ignored even if a value is left in the field.
+    const target = sizeMode === "distance" ? targetMi || 0 : 0;
+    // Rapid taps fire overlapping plans; only the latest may write results, so a
+    // slow earlier fetch can't clobber a newer route.
+    const seq = ++planRequestSeq;
+    const fresh = () => seq === planRequestSeq;
+    setBusy("route");
+    setErr(null);
+    setIslandPt(null);
+    try {
+      const { ordered, autoIds } = planRoute({
+        start: center,
+        // Excluded points are out of the running entirely — never re-picked.
+        candidates: fountains.filter((f) => !excludes.includes(f.id)),
+        vias: v,
+        pinned: fountains.filter((f) => pins.includes(f.id) && !excludes.includes(f.id)),
+        targetM: milesToMeters(target),
+        loop: lp,
+      });
+      const chosen = ordered.filter((n) => n.fountain).map((n) => n.fountain!);
+      if (ordered.length === 0) {
+        if (!fresh()) return;
+        setErr(
+          sizeMode === "distance"
+            ? "No points fit that distance. Increase target distance or add via-points."
+            : "No points left in the route — add one back or pin a point.",
+        );
+        setStops([]);
+        setLine([]);
+        setDistanceM(0);
+        setAutoCount(0);
+        // Stay "live" (don't reset hasRoute) so adding a point back re-plans.
+        return;
+      }
+      const points = [center, ...ordered.map((n) => ({ lat: n.lat, lon: n.lon }))];
+      const r = await fetch("/api/route", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ points, loop: lp }),
+      });
+      const j = await r.json();
+      if (!fresh()) return; // a newer plan superseded this one
+      if (!r.ok) {
+        if (j.island) setIslandPt(j.island as Pt);
+        throw new Error(j.error || "routing failed");
+      }
+      setStops(chosen);
+      setAutoCount(autoIds.length);
+      setLine((j.coords as [number, number][]).map(([lon, lat]) => [lat, lon]));
+      setDistanceM(j.distanceM);
+      setHasRoute(true);
+    } catch (e) {
+      if (fresh()) setErr((e as Error).message);
+    } finally {
+      if (fresh()) setBusy(null);
+    }
+  }
+
+  // "Plan route" button: validate inputs, then build.
+  async function makeRoute() {
+    if (!center || fountains.length === 0) return;
     const target = sizeMode === "distance" ? targetMi || 0 : 0;
     if (sizeMode === "distance" && target <= 0) {
       setErr("Enter a target distance.");
@@ -447,40 +603,7 @@ export default function PlannerPage() {
       setErr("Pin a point or add a waypoint to size your route.");
       return;
     }
-    setBusy("route");
-    setErr(null);
-    try {
-      const { ordered, autoIds } = planRoute({
-        start: center,
-        candidates: fountains,
-        vias,
-        pinned,
-        targetM: milesToMeters(target),
-        loop,
-      });
-      const chosen = ordered.filter((n) => n.fountain).map((n) => n.fountain!);
-      if (ordered.length === 0) {
-        setErr("No points fit that distance. Increase target distance or add via-points.");
-        setBusy(null);
-        return;
-      }
-      setStops(chosen);
-      setAutoCount(autoIds.length);
-      const points = [center, ...ordered.map((n) => ({ lat: n.lat, lon: n.lon }))];
-      const r = await fetch("/api/route", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ points, loop }),
-      });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error || "routing failed");
-      setLine((j.coords as [number, number][]).map(([lon, lat]) => [lat, lon]));
-      setDistanceM(j.distanceM);
-    } catch (e) {
-      setErr((e as Error).message);
-    } finally {
-      setBusy(null);
-    }
+    await planAndRoute();
   }
 
   async function startRun() {
@@ -509,48 +632,63 @@ export default function PlannerPage() {
   const markers: MapMarker[] = useMemo(() => {
     const chosenIds = new Map(stops.map((s, i) => [s.id, i + 1]));
     const pinnedSet = new Set(pinnedIds);
+    const excludedSet = new Set(excludedIds);
     return fountains.map((f) => {
       const n = chosenIds.get(f.id);
       const isPinned = pinnedSet.has(f.id);
+      const isExcluded = excludedSet.has(f.id);
+      const inRoute = inRouteIds.has(f.id);
       const edit = edits[f.id];
-      // edited (this session) wins; else green numbered = chosen; amber star =
-      // pinned (forced); gray = available.
+      // edited (this session) wins; then: dim "–" = explicitly removed; green
+      // numbered = chosen; amber star = pinned (forced); gray = available.
       const color = edit
         ? EDIT_COLOR[edit.status] ?? "#9ca3af"
-        : n
-          ? "#16a34a"
-          : isPinned
-            ? "#f59e0b"
-            : "#9ca3af";
+        : isExcluded
+          ? "#52525b"
+          : n
+            ? "#16a34a"
+            : isPinned
+              ? "#f59e0b"
+              : "#9ca3af";
       const label = edit
         ? EDIT_LABEL[edit.status]
-        : n
-          ? String(n)
-          : isPinned
-            ? "★"
-            : undefined;
+        : isExcluded
+          ? "–"
+          : n
+            ? String(n)
+            : isPinned
+              ? "★"
+              : undefined;
       return {
         id: f.id,
         lat: f.lat,
         lon: f.lon,
         color,
         label,
-        // Click opens a popup to pin or update the point straight in OSM.
+        // Tap adds/removes the point; the route re-plans automatically.
+        onClick: () => toggleStop(f.id),
+        // Long-press / right-click opens the popup to update the point in OSM.
+        popupTrigger: "contextmenu" as const,
         popup: (
           <PointPopup
             fountain={f}
             loggedIn={!!osm?.loggedIn}
-            isPinned={isPinned}
+            inRoute={inRoute}
             edit={edit}
             busy={editBusyId === f.id}
-            onPin={() => togglePin(f.id)}
+            onToggleRoute={() => toggleStop(f.id)}
             onAction={(action) => updatePoint(f.id, action)}
           />
         ),
       };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fountains, stops, pinnedIds, edits, editBusyId, osm?.loggedIn]);
+  }, [fountains, stops, pinnedIds, excludedIds, inRouteIds, edits, editBusyId, osm?.loggedIn]);
+
+  // Highlight the unreachable ("target island") point, if any.
+  const islandMarker: MapMarker[] = islandPt
+    ? [{ id: "island", lat: islandPt.lat, lon: islandPt.lon, color: "#dc2626", label: "!" }]
+    : [];
 
   const startMarker: MapMarker[] = center
     ? [{ id: "start", lat: center.lat, lon: center.lon, color: "#2563eb", label: "S" }]
@@ -562,7 +700,7 @@ export default function PlannerPage() {
     lon: v.lon,
     color: "#7c3aed",
     label: "✦",
-    onClick: () => setVias((arr) => arr.filter((_, j) => j !== i)),
+    onClick: () => removeVia(i),
   }));
 
   const active = STEPS[step];
@@ -606,7 +744,7 @@ export default function PlannerPage() {
           center={viewCenter}
           zoom={14}
           recenterKey={viewKey}
-          markers={[...markers, ...viaMarkers, ...startMarker]}
+          markers={[...markers, ...viaMarkers, ...startMarker, ...islandMarker]}
           line={line}
           userPos={pos ? [pos.lat, pos.lon] : null}
           userHeading={follow ? heading : null}
@@ -855,7 +993,11 @@ export default function PlannerPage() {
                   <input
                     type="checkbox"
                     checked={loop}
-                    onChange={(e) => setLoop(e.target.checked)}
+                    onChange={(e) => {
+                      const lp = e.target.checked;
+                      setLoop(lp);
+                      replan({ lp });
+                    }}
                     className="h-4 w-4 accent-volt"
                   />
                   Loop (finish back at start)
@@ -865,12 +1007,12 @@ export default function PlannerPage() {
               {/* Map interaction help */}
               <div className="flex flex-col gap-2">
                 <p className="text-xs text-cream-dim">
-                  Click the map to drop a pass-through waypoint
+                  Tap a point to add it to the route; tap it again to remove it — the
+                  route updates itself. Long-press a point to update it in OSM. Click
+                  empty map to drop a pass-through waypoint
                   {vias.length > 0 && <span className="text-cream-dim"> ({vias.length} added)</span>}.{" "}
                   To change the start point, use{" "}
-                  <span className="font-semibold text-cream">Edit setup</span>. Click any point
-                  marker to pin it as a required stop or update it in OSM
-                  {pinned.length > 0 && <span className="text-cream-dim"> ({pinned.length} pinned)</span>}.
+                  <span className="font-semibold text-cream">Edit setup</span>.
                 </p>
                 {(pinned.length > 0 || vias.length > 0) && (
                   <ul className="flex flex-col gap-1">
@@ -883,9 +1025,9 @@ export default function PlannerPage() {
                           <PushPinIcon size={12} weight="fill" /> {markLabel(f)}
                         </span>
                         <button
-                          onClick={() => togglePin(f.id)}
+                          onClick={() => removeStop(f.id)}
                           className="shrink-0 text-amber-400/60 hover:text-amber-300"
-                          aria-label="unpin mark"
+                          aria-label="remove pinned point from route"
                         >
                           <XIcon size={14} />
                         </button>
@@ -900,7 +1042,7 @@ export default function PlannerPage() {
                           <FlagIcon size={12} /> waypoint {i + 1}: {v.lat.toFixed(4)}, {v.lon.toFixed(4)}
                         </span>
                         <button
-                          onClick={() => setVias((arr) => arr.filter((_, j) => j !== i))}
+                          onClick={() => removeVia(i)}
                           className="shrink-0 text-violet-400/60 hover:text-violet-300"
                           aria-label="remove waypoint"
                         >
@@ -909,6 +1051,32 @@ export default function PlannerPage() {
                       </li>
                     ))}
                   </ul>
+                )}
+                {removed.length > 0 && (
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-semibold text-cream-dim">
+                      Removed from route ({removed.length})
+                    </span>
+                    <ul className="flex flex-col gap-1">
+                      {removed.map((f) => (
+                        <li
+                          key={f.id}
+                          className="flex items-center justify-between rounded-lg bg-white/5 px-2 py-1 text-xs"
+                        >
+                          <span className="flex items-center gap-1 truncate text-cream-dim line-through">
+                            {markLabel(f)}
+                          </span>
+                          <button
+                            onClick={() => restoreStop(f.id)}
+                            className="shrink-0 font-semibold text-volt/70 hover:text-volt"
+                            aria-label="add point back to route"
+                          >
+                            Add back
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
               </div>
 
@@ -945,12 +1113,34 @@ export default function PlannerPage() {
                   </div>
                   {autoCount > 0 && (
                     <p className="mt-1 text-xs text-cream-dim">
-                      +{autoCount} grabbed for a small detour off your route.
+                      +{autoCount} grabbed for a small detour off your route. Remove any you
+                      don&apos;t want.
                     </p>
                   )}
+                  <ul className="mt-2 flex flex-col gap-1">
+                    {stops.map((f, i) => (
+                      <li
+                        key={f.id}
+                        className="flex items-center justify-between gap-2 rounded-lg bg-volt/10 px-2 py-1 text-xs"
+                      >
+                        <span className="flex min-w-0 items-center gap-1.5 truncate text-cream">
+                          <span className="shrink-0 font-semibold text-volt">{i + 1}.</span>
+                          <span className="truncate">{markLabel(f)}</span>
+                        </span>
+                        <button
+                          onClick={() => removeStop(f.id)}
+                          className="shrink-0 text-cream-dim transition hover:text-red-300"
+                          aria-label="remove stop from route"
+                        >
+                          <XIcon size={14} />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
                   <button
                     onClick={startRun}
-                    className="mt-3 w-full rounded-full bg-volt py-2.5 font-bold text-ink transition hover:bg-cream"
+                    disabled={busy !== null}
+                    className="mt-3 w-full rounded-full bg-volt py-2.5 font-bold text-ink transition hover:bg-cream disabled:opacity-40"
                   >
                     Start run →
                   </button>
@@ -975,7 +1165,16 @@ export default function PlannerPage() {
               )}
 
               {err && (
-                <p className="rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-sm text-red-300">{err}</p>
+                <div className="flex flex-col gap-1 rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-sm text-red-300">
+                  <span>{err}</span>
+                  {islandPt && (
+                    <span className="text-xs text-red-300/80">
+                      It&apos;s marked <span className="font-bold">!</span> in red on the map.
+                      Remove that point (or move your nearest waypoint), then the route
+                      re-plans on its own.
+                    </span>
+                  )}
+                </div>
               )}
             </section>
           </div>

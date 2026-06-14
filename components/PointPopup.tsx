@@ -4,8 +4,8 @@ import {
   CheckCircleIcon,
   WarningIcon,
   TrashIcon,
-  PushPinIcon,
-  PushPinSlashIcon,
+  PlusCircleIcon,
+  MinusCircleIcon,
 } from "@phosphor-icons/react";
 import { useMap } from "react-leaflet";
 import type { Fountain, EditAction } from "@/lib/schemas";
@@ -28,23 +28,26 @@ const STATUS_LABEL: Partial<Record<StopStatus, string>> = {
 type Props = {
   fountain: Fountain;
   loggedIn: boolean;
-  isPinned: boolean;
   edit?: PointEdit;
   busy: boolean;
-  onPin: () => void;
   onAction: (action: EditAction) => void;
+  // Route-membership toggle (planner only). Omit on the run page, where points
+  // are fixed and only OSM updates apply.
+  inRoute?: boolean;
+  onToggleRoute?: () => void;
 };
 
-// Map popup body for a found amenity point: pin toggle + OSM status updates,
-// usable from the planner without starting a run.
+// Map popup body for a found amenity point: optional route add/remove toggle +
+// OSM status updates. Reused on the planner (with the toggle) and on the run
+// (OSM updates only, so any point can be updated on the fly).
 export default function PointPopup({
   fountain,
   loggedIn,
-  isPinned,
   edit,
   busy,
-  onPin,
   onAction,
+  inRoute,
+  onToggleRoute,
 }: Props) {
   const map = useMap();
   const name = fountain.tags.name ?? `node ${fountain.id}`;
@@ -76,25 +79,31 @@ export default function PointPopup({
         </div>
       ) : (
         <>
-          <button
-            onClick={() => {
-              onPin();
-              map.closePopup();
-            }}
-            className="flex items-center justify-center gap-1.5 rounded border border-amber-500 py-1.5 text-xs font-semibold text-amber-700 transition hover:bg-amber-50"
-          >
-            {isPinned ? (
-              <>
-                <PushPinSlashIcon size={14} /> Unpin from route
-              </>
-            ) : (
-              <>
-                <PushPinIcon size={14} /> Pin as required stop
-              </>
-            )}
-          </button>
+          {onToggleRoute && (
+            <button
+              onClick={() => {
+                onToggleRoute();
+                map.closePopup();
+              }}
+              className={`flex items-center justify-center gap-1.5 rounded border py-1.5 text-xs font-semibold transition ${
+                inRoute
+                  ? "border-red-400 text-red-600 hover:bg-red-50"
+                  : "border-green-500 text-green-700 hover:bg-green-50"
+              }`}
+            >
+              {inRoute ? (
+                <>
+                  <MinusCircleIcon size={14} /> Remove from route
+                </>
+              ) : (
+                <>
+                  <PlusCircleIcon size={14} /> Add to route
+                </>
+              )}
+            </button>
+          )}
 
-          <div className="border-t border-neutral-200 pt-2">
+          <div className={onToggleRoute ? "border-t border-neutral-200 pt-2" : ""}>
             {!loggedIn ? (
               <a
                 href="/api/osm/auth"

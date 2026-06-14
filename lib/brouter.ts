@@ -11,6 +11,18 @@ export type FootRoute = {
   distanceM: number;
 };
 
+// A routing failure we can explain to the user. `island` is set when BRouter
+// reports a point it can't connect to the foot network ("target island"); it
+// carries that point's coords so the UI can highlight it on the map.
+export class RouteError extends Error {
+  island?: Pt;
+  constructor(message: string, island?: Pt) {
+    super(message);
+    this.name = "RouteError";
+    this.island = island;
+  }
+}
+
 // points must be in visit order; loop appends start at the end.
 export async function footRoute(points: Pt[], loop: boolean): Promise<FootRoute> {
   const seq = loop ? [...points, points[0]] : points;
@@ -21,7 +33,20 @@ export async function footRoute(points: Pt[], loop: boolean): Promise<FootRoute>
 
   const res = await fetch(url);
   if (!res.ok) {
-    throw new Error(`BRouter error ${res.status}: ${await res.text()}`);
+    const body = await res.text();
+    // "target island detected for section N" => waypoint N (1-based leg, whose
+    // target endpoint is seq[N]) can't be reached on foot. Map it back to the
+    // offending point so the UI can show *where* the route breaks.
+    const m = body.match(/target island detected for section (\d+)/i);
+    if (m) {
+      const idx = Math.min(Math.max(Number(m[1]), 0), seq.length - 1);
+      const p = seq[idx];
+      throw new RouteError(
+        "A point on your route can't be reached on foot — it sits on an isolated path with no walkable connection to the rest of the route.",
+        { lat: p.lat, lon: p.lon },
+      );
+    }
+    throw new RouteError(`Routing failed (BRouter ${res.status}). ${body}`.trim());
   }
   const gj = (await res.json()) as {
     features: {
@@ -30,7 +55,7 @@ export async function footRoute(points: Pt[], loop: boolean): Promise<FootRoute>
     }[];
   };
   const feat = gj.features?.[0];
-  if (!feat) throw new Error("BRouter returned no route");
+  if (!feat) throw new RouteError("BRouter returned no route");
   const distanceM = Number(feat.properties["track-length"] ?? 0);
   return { coords: feat.geometry.coordinates, distanceM };
 }

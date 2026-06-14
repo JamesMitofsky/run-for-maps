@@ -12,11 +12,12 @@ import {
   SkipForwardIcon,
   FlagCheckeredIcon,
 } from "@phosphor-icons/react";
-import { useRun, type StopStatus } from "@/store/run";
+import { useRun, type RunStop, type StopStatus } from "@/store/run";
 import { bearing, compass, fmtDist, haversine, type Pt } from "@/lib/geo";
 import type { MapMarker } from "@/components/MapView";
 import type { EditAction } from "@/lib/schemas";
 import OsmStatusBar, { useOsmStatus } from "@/components/OsmStatus";
+import PointPopup from "@/components/PointPopup";
 import ExportButton from "@/components/ExportButton";
 import { celebratePoint } from "@/lib/confetti";
 
@@ -113,12 +114,15 @@ export default function RunPage() {
     persist(ni);
   }
 
-  async function record(action: EditAction) {
-    if (!target) return;
+  // Record an OSM update for any node. Editing the current target advances the
+  // run; editing another point on the fly (tapped on the map) just saves it and
+  // leaves the run position alone.
+  async function recordFor(node: RunStop, action: EditAction) {
     if (!osm?.loggedIn) {
       setErr("Sign in to OSM first.");
       return;
     }
+    const isCurrent = !!target && node.id === target.id;
     setBusy(true);
     setErr(null);
     setLastSaved(null);
@@ -126,12 +130,12 @@ export default function RunPage() {
       const r = await fetch("/api/osm/edit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nodeId: target.id, action, tagKey, changesetId: run.changesetId }),
+        body: JSON.stringify({ nodeId: node.id, action, tagKey, changesetId: run.changesetId }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "edit failed");
       run.setChangeset(j.changesetId);
-      run.setStatus(target.id, action as StopStatus);
+      run.setStatus(node.id, action as StopStatus);
       celebratePoint();
       setLastSaved({
         nodeId: j.nodeId,
@@ -139,13 +143,22 @@ export default function RunPage() {
         summary: j.summary,
         changesetUrl: j.changesetUrl,
       });
-      await persist(index + 1, j.changesetId);
-      advance();
+      if (isCurrent) {
+        await persist(index + 1, j.changesetId);
+        advance();
+      } else {
+        // Persist the status change without moving the current-stop pointer.
+        await persist(index, j.changesetId);
+      }
     } catch (e) {
       setErr((e as Error).message);
     } finally {
       setBusy(false);
     }
+  }
+
+  function record(action: EditAction) {
+    if (target) recordFor(target, action);
   }
 
   function skip() {
@@ -197,6 +210,15 @@ export default function RunPage() {
       lon: s.lon,
       color: i === index && s.status === "pending" ? "#2563eb" : STATUS_COLOR[s.status],
       label: String(i + 1),
+      // Tap any point to update it in OSM on the fly, not just the current one.
+      popup: (
+        <PointPopup
+          fountain={s}
+          loggedIn={!!osm?.loggedIn}
+          busy={busy}
+          onAction={(action) => recordFor(s, action)}
+        />
+      ),
     }));
     const viaMarkers: MapMarker[] = run.vias.map((v, i) => ({
       id: `via-${i}`,
@@ -206,7 +228,8 @@ export default function RunPage() {
       label: "✦",
     }));
     return [...stopMarkers, ...viaMarkers];
-  }, [stops, index, run.vias]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stops, index, run.vias, osm?.loggedIn, busy]);
 
   if (hydrating) return <main className="grid min-h-screen place-items-center text-neutral-400">Loading…</main>;
 
