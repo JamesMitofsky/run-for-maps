@@ -434,6 +434,46 @@ export default function PlannerPage() {
   const active = STEPS[step];
   const canAdvance = step === 0 ? !!center : true;
 
+  // Gate the whole planner behind OSM sign-in — no map until logged in.
+  // `osm === null` is the brief status-fetch window; render nothing to avoid a
+  // flash of the sign-in screen for users who are already authenticated.
+  if (osm === null) {
+    return <main className="h-screen w-screen bg-ink" />;
+  }
+  if (!osm.loggedIn) {
+    return (
+      <main className="relative flex h-screen w-screen items-center justify-center overflow-hidden bg-ink font-body text-cream">
+        <Link
+          href="/"
+          className="absolute left-4 top-4 z-10 flex items-center gap-2 rounded-full border border-white/10 bg-ink/80 px-4 py-2 font-display text-lg font-bold tracking-tight backdrop-blur md:left-5 md:top-5"
+        >
+          <span className="inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-volt" />
+          Legwork Maps
+        </Link>
+        <section className="flex w-full max-w-md flex-col gap-5 rounded-3xl border border-white/10 bg-ink-soft/95 p-8 shadow-2xl backdrop-blur-md">
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wide text-volt">
+              Sign in required
+            </span>
+            <h1 className="font-display text-3xl font-bold leading-tight">
+              Connect your OpenStreetMap account
+            </h1>
+            <p className="text-sm text-cream-dim">
+              The planner edits real OSM data. Sign in with your OpenStreetMap account to
+              open the map and start building routes.
+            </p>
+          </div>
+          <a
+            href="/api/osm/auth"
+            className="flex items-center justify-center gap-2 rounded-full bg-volt px-5 py-3 font-bold text-ink transition hover:bg-cream"
+          >
+            Sign in to OpenStreetMap
+          </a>
+        </section>
+      </main>
+    );
+  }
+
   // When following, the map view tracks the live GPS point (rounded so we only
   // recenter on real movement); otherwise it tracks the chosen start point.
   const DEFAULT_CENTER: [number, number] = [38.9072, -77.0369];
