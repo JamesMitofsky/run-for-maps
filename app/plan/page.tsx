@@ -71,7 +71,7 @@ export default function PlannerPage() {
   const [recenterKey, setRecenterKey] = useState("init");
   const [addr, setAddr] = useState("");
   const [radiusMi, setRadiusMi] = useState<number | "">(3);
-  const [targetMi, setTargetMi] = useState<number | "">(3);
+  const [targetMi, setTargetMi] = useState<number | "">("");
   const [loop, setLoop] = useState(true);
   const [tag, setTag] = useState({ key: "amenity", value: "drinking_water" });
 
