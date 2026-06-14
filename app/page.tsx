@@ -115,26 +115,26 @@ const STEPS = [
   {
     icon: MapTrifoldIcon,
     n: "01",
-    title: "Place",
-    body: "Pick the place. Search an address, tap the map, or drop on your live location.",
+    title: "Set a center point",
+    body: "Search an address, tap the map, or use your live location. OSM features matching a tag (default amenity=drinking_water) are fetched within a radius via the Overpass API.",
   },
   {
     icon: RulerIcon,
     n: "02",
-    title: "Distance",
-    body: "Set how far you want to run. The route fills to fit — split a whole city across as many runs as you like.",
+    title: "Set a target distance",
+    body: "Choose how far to run. A distance-bounded subset of the fetched points is selected, so a large area can be split across multiple runs.",
   },
   {
     icon: PathIcon,
     n: "03",
-    title: "Route",
-    body: "Clarify the waypoints or goals you want to hit, then let it thread a real running route past the points that matter.",
+    title: "Generate the route",
+    body: "Selected points are ordered and threaded into a runnable footpath route via the BRouter pedestrian routing engine (foot-fast profile). Loop or one-way.",
   },
   {
     icon: PersonSimpleRunIcon,
     n: "04",
-    title: "Contribute",
-    body: "Run the generated route and mark off how things are looking as you go — every check writes straight back to the open map.",
+    title: "Run and record",
+    body: "Run the route with turn-toward-next-point guidance. At each point, record its state — written back to OSM under a single changeset.",
   },
 ];
 
@@ -147,7 +147,7 @@ export default function LandingPage() {
           <Link href="/" className="flex items-center gap-2 font-display text-lg font-bold tracking-tight">
             <span>
               <span className="text-volt">ROSM</span>
-              <span className="ml-6 font-body font-thin text-white">Run for Open-Sourced Maps</span>
+              <span className="ml-6 font-body font-thin text-white">Running for Open-Sourced Maps</span>
             </span>
           </Link>
         </nav>
@@ -170,7 +170,8 @@ export default function LandingPage() {
             transition={{ ...fadeUp.transition, delay: 0.05 }}
             className="mt-12 max-w-4xl font-display text-[clamp(2.4rem,7vw,5.25rem)] font-bold leading-[0.95] tracking-tight"
           >
-            Put in the <span className="text-volt">Legwork</span>
+            Field-verify the <br />
+            <span className="whitespace-nowrap text-volt">open map</span>
           </motion.h1>
 
           <motion.p
@@ -178,7 +179,9 @@ export default function LandingPage() {
             transition={{ ...fadeUp.transition, delay: 0.12 }}
             className="mt-6 max-w-xl text-lg leading-relaxed text-cream-dim"
           >
-            Create routes optimized for verifying the current state of Open Streets Maps.
+            Query OpenStreetMap features within a radius, generate a distance-bounded
+            running route that visits them, and write each point&apos;s verified
+            state back to OSM.
           </motion.p>
 
           <motion.div
@@ -190,7 +193,7 @@ export default function LandingPage() {
               href="/plan"
               className="group flex items-center gap-2 rounded-full bg-volt px-7 py-3.5 text-base font-bold text-ink transition hover:gap-3 hover:bg-cream"
             >
-              Map your contribution
+              Plan a route
               <ArrowRightIcon size={18} weight="bold" className="transition-transform group-hover:translate-x-1" />
             </Link>
           </motion.div>
@@ -234,25 +237,26 @@ export default function LandingPage() {
         <div className="mx-auto grid max-w-6xl gap-12 px-5 py-24 md:grid-cols-2 md:py-32">
           <motion.div {...fadeUp}>
             <h2 className="font-display text-[clamp(2rem,5vw,3.4rem)] font-bold leading-[1.05] tracking-tight">
-              The map is only as good as the people
-              <span className="text-volt"> who go check.</span>
+              OSM point features have no systematic way to be
+              <span className="text-volt"> physically re-verified.</span>
             </h2>
             <p className="mt-6 text-lg leading-relaxed text-cream-dim">
-              OpenStreetMap powers the apps you already trust, and the real world it maps
-              never stops moving. Satellites can&apos;t tell you the fountain is flowing or the
-              bench is still there.
+              Crowdsourced map data degrades over time. Point features — drinking
+              fountains, benches, and similar nodes — are tagged once and rarely
+              rechecked. Aerial imagery can&apos;t confirm whether a fountain still
+              works or a node still exists on the ground.
             </p>
             <p className="mt-4 text-lg leading-relaxed text-cream-dim">
-              ROSM turns your training miles into the most boring, most valuable
-              thing in open data: someone actually showing up.
+              ROSM closes the loop by routing runs past unverified points so their
+              real-world state can be observed and recorded easily into OSM.
             </p>
           </motion.div>
 
           <motion.ul {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.1 }} className="flex flex-col gap-4">
             {[
-              { icon: CompassIcon, h: "Built for the run, not the desk", b: "Turn-toward-next-point guidance with live distance — phone-first, glanceable, sweat-proof." },
-              { icon: CheckCircleIcon, h: "Honest by design", b: "Working, out-of-order, or removed — mapped straight onto OSM lifecycle tags with today's date." },
-              { icon: GlobeHemisphereWestIcon, h: "Yours stays public", b: "No accounts to sell, no keys to buy. Edits are attributed to you and free for everyone." },
+              { icon: CompassIcon, h: "On-foot guidance", b: "Mobile-first run view: live distance and a compass arrow pointing toward the next point on the route." },
+              { icon: CheckCircleIcon, h: "OSM lifecycle mapping", b: "Working sets check_date; out-of-order moves the tag to disused:; removed moves it to abandoned: — each stamped with today's date." },
+              { icon: GlobeHemisphereWestIcon, h: "Single attributed changeset", b: "All edits from one run commit under one OSM changeset, attributed to your OSM account via OAuth2." },
             ].map((f) => {
               const Icon = f.icon;
               return (
@@ -277,14 +281,14 @@ export default function LandingPage() {
             {...fadeUp}
             className="font-display text-[clamp(2.4rem,7vw,5rem)] font-bold leading-[0.95] tracking-tight"
           >
-            Lace up.
+            Plan a verification run.
           </motion.h2>
           <motion.div {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.16 }} className="mt-10">
             <Link
               href="/plan"
               className="group inline-flex items-center gap-2 rounded-full bg-volt px-9 py-4 text-lg font-bold text-ink transition hover:gap-3 hover:bg-cream"
             >
-              Map your contribution
+              Plan a route
               <ArrowRightIcon size={20} weight="bold" className="transition-transform group-hover:translate-x-1" />
             </Link>
           </motion.div>

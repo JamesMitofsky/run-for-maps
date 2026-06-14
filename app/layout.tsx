@@ -14,7 +14,7 @@ const body = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "ROSM — Run for Open-Sourced Maps",
+  title: "ROSM — Running for Open-Sourced Maps",
   description:
     "Turn your run into open-map fieldwork. Plan a route past unverified OpenStreetMap points, run it with turn-by-turn cues, and fix the map from the ground.",
 };
