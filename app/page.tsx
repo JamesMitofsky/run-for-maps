@@ -138,18 +138,6 @@ const STEPS = [
   },
 ];
 
-const TICKER = [
-  "check_date",
-  "amenity=drinking_water",
-  "disused:",
-  "natural=spring",
-  "verified ✓",
-  "amenity=bench",
-  "abandoned:",
-  "one changeset",
-  "open data",
-];
-
 export default function LandingPage() {
   return (
     <main className="bg-ink font-body text-cream">
@@ -157,15 +145,10 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 border-b border-white/10 bg-ink/80 backdrop-blur-md">
         <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
           <Link href="/" className="flex items-center gap-2 font-display text-lg font-bold tracking-tight">
-            <span className="inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-volt" />
-            Legwork Maps
-          </Link>
-          <Link
-            href="/plan"
-            className="group flex items-center gap-1.5 rounded-full bg-volt px-4 py-2 text-sm font-semibold text-ink transition hover:gap-2.5"
-          >
-            Open planner
-            <ArrowRightIcon size={16} weight="bold" className="transition-transform group-hover:translate-x-0.5" />
+            <span>
+              <span className="text-volt">ROSM</span>
+              <span className="ml-6 font-body font-thin text-white">Run for Open-Sourced Maps</span>
+            </span>
           </Link>
         </nav>
       </header>
@@ -173,7 +156,7 @@ export default function LandingPage() {
       {/* HERO */}
       <section className="grain relative overflow-hidden">
         <Contours className="pointer-events-none absolute inset-0 h-full w-full text-volt/25" />
-        <div className="pointer-events-none absolute inset-x-0 top-1/2 hidden h-[480px] -translate-y-1/2 opacity-90 md:block">
+        <div className="pointer-events-none absolute inset-x-0 top-3/4 hidden h-[480px] -translate-y-1/2 opacity-90 md:block">
           <RouteTrace />
         </div>
 
@@ -182,18 +165,10 @@ export default function LandingPage() {
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-ink/40 via-transparent to-ink" />
 
         <div className="relative mx-auto max-w-6xl px-5 pb-24 pt-20 md:pb-32 md:pt-28">
-          <motion.span
-            {...fadeUp}
-            className="inline-flex items-center gap-2 rounded-full border border-volt/40 bg-volt/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-volt"
-          >
-            <GlobeHemisphereWestIcon size={14} weight="fill" />
-            Open-source fieldwork
-          </motion.span>
-
           <motion.h1
             {...fadeUp}
             transition={{ ...fadeUp.transition, delay: 0.05 }}
-            className="mt-6 max-w-4xl font-display text-[clamp(2.4rem,7vw,5.25rem)] font-bold leading-[0.95] tracking-tight"
+            className="mt-12 max-w-4xl font-display text-[clamp(2.4rem,7vw,5.25rem)] font-bold leading-[0.95] tracking-tight"
           >
             Put in the <span className="text-volt">Legwork</span>
           </motion.h1>
@@ -201,23 +176,21 @@ export default function LandingPage() {
           <motion.p
             {...fadeUp}
             transition={{ ...fadeUp.transition, delay: 0.12 }}
-            className="mt-7 max-w-xl text-lg leading-relaxed text-cream-dim"
+            className="mt-6 max-w-xl text-lg leading-relaxed text-cream-dim"
           >
-            Free maps, sourced from the public is an <em className="italic text-cream">incredible</em> feat.
-            With all my love for OpenStreetMaps, this is a little tool for integrating upkeep of
-            our maps into your outings—be they runs, bike rides, leisurely strolls, or whatever!
+            Create routes optimized for verifying the current state of Open Streets Maps.
           </motion.p>
 
           <motion.div
             {...fadeUp}
             transition={{ ...fadeUp.transition, delay: 0.18 }}
-            className="mt-9 flex flex-wrap items-center gap-3"
+            className="mt-16 flex flex-wrap items-center gap-3"
           >
             <Link
               href="/plan"
               className="group flex items-center gap-2 rounded-full bg-volt px-7 py-3.5 text-base font-bold text-ink transition hover:gap-3 hover:bg-cream"
             >
-              Plan a run
+              Open planner
               <ArrowRightIcon size={18} weight="bold" className="transition-transform group-hover:translate-x-1" />
             </Link>
             <a
@@ -227,48 +200,14 @@ export default function LandingPage() {
               How it works
             </a>
           </motion.div>
-
-          {/* stat strip */}
-          <motion.dl
-            {...fadeUp}
-            transition={{ ...fadeUp.transition, delay: 0.26 }}
-            className="mt-16 grid max-w-xs grid-cols-1 gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/5"
-          >
-            {[
-              { k: "∞", v: "points left to verify" },
-            ].map((s) => (
-              <div key={s.k} className="bg-ink/40 px-5 py-5">
-                <dt className="font-display text-2xl font-bold text-volt">{s.k}</dt>
-                <dd className="mt-1 text-sm text-cream-dim">{s.v}</dd>
-              </div>
-            ))}
-          </motion.dl>
         </div>
       </section>
-
-      {/* TICKER */}
-      <div className="border-y border-white/10 bg-ink-soft py-3">
-        <div className="flex w-max animate-marquee gap-8 whitespace-nowrap">
-          {[...TICKER, ...TICKER].map((t, i) => (
-            <span
-              key={i}
-              className="flex items-center gap-8 font-display text-sm font-medium uppercase tracking-widest text-cream-dim"
-            >
-              {t}
-              <span className="text-volt">/</span>
-            </span>
-          ))}
-        </div>
-      </div>
 
       {/* HOW IT WORKS */}
       <section id="how" className="mx-auto max-w-6xl px-5 py-24 md:py-32">
         <motion.div {...fadeUp} className="max-w-2xl">
-          <p className="font-display text-sm font-semibold uppercase tracking-[0.2em] text-volt">
-            The loop
-          </p>
-          <h2 className="mt-3 font-display text-[clamp(2rem,5vw,3.4rem)] font-bold leading-tight tracking-tight">
-            Plan it, run it, write it back.
+          <h2 className="font-display text-[clamp(2rem,5vw,3.4rem)] font-bold leading-tight tracking-tight">
+            Plan, run, contribute
           </h2>
         </motion.div>
 
@@ -310,7 +249,7 @@ export default function LandingPage() {
               bench is still there.
             </p>
             <p className="mt-4 text-lg leading-relaxed text-cream-dim">
-              Legwork Maps turns your training miles into the most boring, most valuable
+              ROSM turns your training miles into the most boring, most valuable
               thing in open data: someone actually showing up.
             </p>
           </motion.div>
@@ -344,15 +283,8 @@ export default function LandingPage() {
             {...fadeUp}
             className="font-display text-[clamp(2.4rem,7vw,5rem)] font-bold leading-[0.95] tracking-tight"
           >
-            Lace up. <span className="text-volt">Fix the map.</span>
+            Lace up.
           </motion.h2>
-          <motion.p
-            {...fadeUp}
-            transition={{ ...fadeUp.transition, delay: 0.08 }}
-            className="mx-auto mt-6 max-w-lg text-lg text-cream-dim"
-          >
-            Pick a distance, pick a tag, and go make the world&apos;s map a little more true.
-          </motion.p>
           <motion.div {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.16 }} className="mt-10">
             <Link
               href="/plan"
@@ -370,7 +302,7 @@ export default function LandingPage() {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 py-8 text-sm text-cream-dim sm:flex-row">
           <span className="flex items-center gap-2 font-display font-bold text-cream">
             <span className="inline-block h-2 w-2 rounded-full bg-volt" />
-            Legwork Maps
+            ROSM
           </span>
           <span>
             Made with <span className="text-volt">♥</span> by{" "}

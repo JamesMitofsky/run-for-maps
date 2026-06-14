@@ -464,8 +464,8 @@ export default function PlannerPage() {
           href="/"
           className="pointer-events-auto flex items-center gap-2 rounded-full border border-white/10 bg-ink/80 px-4 py-2 font-display text-lg font-bold tracking-tight backdrop-blur"
         >
-          <span className="inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-volt" />
-          Legwork Maps
+          <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full border-2 border-volt" />
+          ROSM
         </Link>
         <div className="pointer-events-auto rounded-full border border-white/10 bg-ink/80 px-2 py-1 backdrop-blur">
           <OsmStatusBar />
