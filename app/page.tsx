@@ -147,7 +147,7 @@ export default function LandingPage() {
           <Link href="/" className="flex items-center gap-2 font-display text-lg font-bold tracking-tight">
             <span>
               <span className="text-volt">ROSM</span>
-              <span className="ml-6 font-body font-thin text-white">Run for Open-Sourced Maps</span>
+              <span className="ml-6 font-body font-thin text-white">Running for Open-Sourced Maps</span>
             </span>
           </Link>
         </nav>
