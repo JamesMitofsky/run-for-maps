@@ -23,7 +23,7 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
-  const { nodeId, action, tagKey } = parsed.data;
+  const { nodeId, action, tagKey, comment } = parsed.data;
 
   try {
     let changesetId = parsed.data.changesetId;
@@ -63,6 +63,7 @@ export async function POST(req: Request) {
       changesetId,
       newVersion,
       at: new Date().toISOString(),
+      comment,
     });
 
     return NextResponse.json({

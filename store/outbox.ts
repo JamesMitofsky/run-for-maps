@@ -18,6 +18,7 @@ export type OutboxItem = {
   action: EditAction;
   tagKey: string;
   name?: string; // for the review list
+  comment?: string; // surveyor's free-text note for this edit
   summary: string; // computed locally at enqueue, matches the server's wording
   syncState: SyncState;
   attempts: number;
@@ -40,6 +41,7 @@ type EnqueueInput = {
   action: EditAction;
   tagKey: string;
   name?: string;
+  comment?: string;
 };
 
 type OutboxState = {
@@ -97,6 +99,7 @@ export const useOutbox = create<OutboxState>((set, get) => {
         action: input.action,
         tagKey: input.tagKey,
         name: input.name,
+        comment: input.comment,
         summary: editSummary(input.action, input.tagKey, todayLocal()),
         syncState: "pending",
         attempts: 0,
@@ -131,6 +134,7 @@ export const useOutbox = create<OutboxState>((set, get) => {
                 nodeId: item.nodeId,
                 action: item.action,
                 tagKey: item.tagKey,
+                comment: item.comment,
                 changesetId: get().changesetId,
               }),
             });

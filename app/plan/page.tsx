@@ -157,6 +157,7 @@ export default function PlannerPage() {
         summary: it.summary,
         syncState: it.syncState,
         changesetUrl: it.changesetUrl,
+        comment: it.comment,
       };
     }
     return m;
@@ -440,9 +441,9 @@ export default function PlannerPage() {
   // Update a point straight from the map. Offline-first: queued on-device and
   // celebrated immediately, then sent to OSM in the background. Edits batch into
   // one changeset (opened by the API on the first successful send).
-  function updatePoint(nodeId: number, action: EditAction, name?: string) {
+  function updatePoint(nodeId: number, action: EditAction, name?: string, comment?: string) {
     setErr(null);
-    useOutbox.getState().enqueue({ nodeId, action, tagKey: tag.key, name });
+    useOutbox.getState().enqueue({ nodeId, action, tagKey: tag.key, name, comment });
     celebratePoint();
     useOutbox.getState().flush();
   }
@@ -737,7 +738,7 @@ export default function PlannerPage() {
             edit={edit}
             busy={false}
             onToggleRoute={() => toggleStop(f.id)}
-            onAction={(action) => updatePoint(f.id, action, markLabel(f))}
+            onAction={(action, comment) => updatePoint(f.id, action, markLabel(f), comment)}
           />
         ),
       };
