@@ -28,7 +28,6 @@ const STATUS_LABEL: Partial<Record<StopStatus, string>> = {
   confirm: "Confirmed working",
   out_of_order: "Marked out of order",
   removed: "Marked removed",
-  delete: "Deleted from OSM",
 };
 
 type Props = {
@@ -57,7 +56,6 @@ export default function PointPopup({
 }: Props) {
   const map = useMap();
   const name = fountain.tags.name ?? `node ${fountain.id}`;
-  const deleted = edit?.status === "delete";
   const [comment, setComment] = useState("");
   const note = comment.trim() || undefined;
 
@@ -153,16 +151,6 @@ export default function PointPopup({
                 >
                   <TrashIcon size={16} /> Removed
                 </button>
-                <details className="text-xs">
-                  <summary className="cursor-pointer text-neutral-500">Advanced</summary>
-                  <button
-                    disabled={busy || deleted}
-                    onClick={() => onAction("delete", note)}
-                    className="mt-1.5 w-full rounded border border-red-600 py-1.5 text-xs font-medium text-red-600 disabled:opacity-50"
-                  >
-                    Delete node from OSM (irreversible)
-                  </button>
-                </details>
               </div>
             )}
           </div>

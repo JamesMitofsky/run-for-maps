@@ -5,7 +5,6 @@ import {
   openChangeset,
   getNode,
   putNode,
-  deleteNode,
   applyAction,
   todayIso,
   changesetUrl,
@@ -35,9 +34,6 @@ export async function POST(req: Request) {
     // current db version (OSM rejects a stale version with 409).
     const run = async (): Promise<number> => {
       const node = await getNode(token, nodeId);
-      if (action === "delete") {
-        return deleteNode(token, nodeId, node, changesetId!);
-      }
       const tags = applyAction(node.tags, action, tagKey, todayIso());
       return putNode(token, nodeId, { ...node, tags }, changesetId!);
     };

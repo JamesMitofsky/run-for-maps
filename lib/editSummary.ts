@@ -16,7 +16,5 @@ export function editSummary(action: EditAction, tagKey: string, today: string): 
       return `${tagKey} → disused:${tagKey} · check_date=${today}`;
     case "removed":
       return `${tagKey} → abandoned:${tagKey} · check_date=${today}`;
-    case "delete":
-      return "node deleted from OSM";
   }
 }

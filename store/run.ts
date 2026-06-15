@@ -7,7 +7,6 @@ export type StopStatus =
   | "confirm"
   | "out_of_order"
   | "removed"
-  | "delete"
   | "skipped";
 
 export type RunStop = Fountain & { status: StopStatus };
