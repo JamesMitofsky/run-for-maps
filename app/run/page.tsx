@@ -39,6 +39,7 @@ export default function RunPage() {
 
   const [pos, setPos] = useState<Pt | null>(null);
   const [manualArrived, setManualArrived] = useState(false);
+  const [comment, setComment] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [hydrating, setHydrating] = useState(() => !useRun.getState().hasPlan);
@@ -117,7 +118,7 @@ export default function RunPage() {
   // Record an OSM update for any node. Editing the current target advances the
   // run; editing another point on the fly (tapped on the map) just saves it and
   // leaves the run position alone.
-  async function recordFor(node: RunStop, action: EditAction) {
+  async function recordFor(node: RunStop, action: EditAction, comment?: string) {
     if (!osm?.loggedIn) {
       setErr("Sign in to OSM first.");
       return;
@@ -130,7 +131,7 @@ export default function RunPage() {
       const r = await fetch("/api/osm/edit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nodeId: node.id, action, tagKey, changesetId: run.changesetId }),
+        body: JSON.stringify({ nodeId: node.id, action, tagKey, changesetId: run.changesetId, comment }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "edit failed");
@@ -158,7 +159,8 @@ export default function RunPage() {
   }
 
   function record(action: EditAction) {
-    if (target) recordFor(target, action);
+    if (target) recordFor(target, action, comment.trim());
+    setComment("");
   }
 
   function skip() {
@@ -215,7 +217,7 @@ export default function RunPage() {
           fountain={s}
           loggedIn={!!osm?.loggedIn}
           busy={busy}
-          onAction={(action) => recordFor(s, action)}
+          onAction={(action, comment) => recordFor(s, action, comment)}
         />
       ),
     }));
@@ -370,6 +372,13 @@ export default function RunPage() {
               </button>
             ) : (
               <div className="grid gap-2">
+                <textarea
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Comment (optional)"
+                  rows={2}
+                  className="resize-none rounded border border-neutral-300 px-3 py-2 text-sm text-neutral-800 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none"
+                />
                 <button
                   disabled={busy}
                   onClick={() => record("confirm")}

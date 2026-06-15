@@ -38,6 +38,7 @@ export const EditRequest = z.object({
   action: EditAction,
   tagKey: z.string().default("amenity"), // primary key to lifecycle-prefix
   changesetId: z.number().optional(),
+  comment: z.string().trim().optional(), // surveyor note, written to the node's `note` tag
 });
 
 // Persisted record of an edit we made (local audit log).

@@ -185,8 +185,10 @@ export function applyAction(
   action: EditAction,
   tagKey: string,
   today: string,
+  comment?: string,
 ): Record<string, string> {
   const next = { ...tags };
+  if (comment) next.note = comment;
   const lifecycle = (prefix: string) => {
     if (next[tagKey] != null) {
       next[`${prefix}:${tagKey}`] = next[tagKey];

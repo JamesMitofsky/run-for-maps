@@ -404,7 +404,7 @@ export default function PlannerPage() {
 
   // Write a status update straight to OSM from the map, no run required. Edits
   // batch into one changeset (opened by the API on first write).
-  async function updatePoint(nodeId: number, action: EditAction) {
+  async function updatePoint(nodeId: number, action: EditAction, comment?: string) {
     if (!osm?.loggedIn) {
       setErr("Sign in to OSM first.");
       return;
@@ -415,7 +415,7 @@ export default function PlannerPage() {
       const r = await fetch("/api/osm/edit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nodeId, action, tagKey: tag.key, changesetId: editChangesetId }),
+        body: JSON.stringify({ nodeId, action, tagKey: tag.key, changesetId: editChangesetId, comment }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error?.formErrors?.join(", ") || j.error || "edit failed");
@@ -712,7 +712,7 @@ export default function PlannerPage() {
             edit={edit}
             busy={editBusyId === f.id}
             onToggleRoute={() => toggleStop(f.id)}
-            onAction={(action) => updatePoint(f.id, action)}
+            onAction={(action, comment) => updatePoint(f.id, action, comment)}
           />
         ),
       };

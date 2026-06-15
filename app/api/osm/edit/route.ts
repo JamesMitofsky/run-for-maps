@@ -37,7 +37,7 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
-  const { nodeId, action, tagKey } = parsed.data;
+  const { nodeId, action, tagKey, comment } = parsed.data;
 
   try {
     let changesetId = parsed.data.changesetId;
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
       if (action === "delete") {
         return deleteNode(token, nodeId, node, changesetId!);
       }
-      const tags = applyAction(node.tags, action, tagKey, todayIso());
+      const tags = applyAction(node.tags, action, tagKey, todayIso(), comment);
       return putNode(token, nodeId, { ...node, tags }, changesetId!);
     };
 
