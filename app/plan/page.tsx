@@ -865,7 +865,7 @@ export default function PlannerPage() {
       {/* ----- CONFIG PHASE: one question at a time ----- */}
       {phase === "config" && (
         <div className="phase-card z-[1000] flex justify-center p-4 md:absolute md:inset-y-0 md:left-0 md:right-auto md:items-center md:p-6">
-          <section className="flex w-full max-w-md flex-col gap-5 rounded-3xl border border-white/10 bg-ink-soft/95 p-6 shadow-2xl backdrop-blur-md">
+          <section className="flex w-full max-w-md flex-col gap-5">
             {/* Step progress */}
             <div className="flex items-center gap-2">
               {STEPS.map((s, i) => (
@@ -1038,7 +1038,7 @@ export default function PlannerPage() {
       {phase === "map" && (
         <>
           <div className="phase-card z-[1000] flex justify-center p-4 md:absolute md:inset-y-0 md:right-0 md:left-auto md:items-center md:p-6">
-            <section className="flex w-full max-w-sm flex-col gap-4 rounded-3xl border border-white/10 bg-ink-soft/95 p-5 shadow-2xl backdrop-blur-md md:max-h-[calc(100vh-7rem)] md:overflow-y-auto">
+            <section className="flex w-full max-w-sm flex-col gap-4 md:max-h-[calc(100vh-7rem)] md:overflow-y-auto">
               <div className="flex items-center justify-between gap-3">
                 <h2 className="font-display text-lg font-bold">Build the route</h2>
                 <button
