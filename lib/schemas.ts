@@ -20,11 +20,19 @@ export const TagFilterSchema = z.object({
 });
 export type TagFilter = z.infer<typeof TagFilterSchema>;
 
+// How to filter points by when they were last surveyed (check_date tag).
+// "any" = no filter; "stale" = not checked within the window (or never checked,
+// i.e. worth verifying); "fresh" = checked within the window.
+export const RecencyMode = z.enum(["any", "stale", "fresh"]);
+export type RecencyMode = z.infer<typeof RecencyMode>;
+
 export const FountainsRequest = z.object({
   lat: z.number(),
   lon: z.number(),
   radiusM: z.number().positive(),
   tag: TagFilterSchema,
+  recencyMode: RecencyMode.default("any"),
+  recencyMonths: z.number().positive().default(6),
 });
 
 export const RouteRequest = z.object({
