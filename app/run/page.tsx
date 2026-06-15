@@ -33,7 +33,6 @@ const STATUS_COLOR: Record<StopStatus, string> = {
   confirm: "#16a34a",
   out_of_order: "#d97706",
   removed: "#dc2626",
-  delete: "#dc2626",
   skipped: "#6b7280",
 };
 
@@ -436,15 +435,6 @@ export default function RunPage() {
                 >
                   <TrashIcon size={20} /> Removed (abandoned:)
                 </button>
-                <details className="text-sm">
-                  <summary className="cursor-pointer text-neutral-500">Advanced</summary>
-                  <button
-                    onClick={() => record("delete")}
-                    className="mt-2 w-full rounded border border-red-600 py-2 font-medium text-red-600 disabled:opacity-50"
-                  >
-                    Delete node from OSM (irreversible)
-                  </button>
-                </details>
               </div>
             )}
 

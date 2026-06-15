@@ -182,22 +182,6 @@ export async function createNode(
   return Number((await res.text()).trim()); // new node id
 }
 
-export async function deleteNode(
-  token: string,
-  id: number,
-  node: NodeData,
-  changesetId: number,
-): Promise<number> {
-  const xml = `<osm><node id="${id}" version="${node.version}" lat="${node.lat}" lon="${node.lon}" changeset="${changesetId}"/></osm>`;
-  const res = await fetch(`${API_BASE}/api/0.6/node/${id}`, {
-    method: "DELETE",
-    headers: { ...auth(token), "Content-Type": "text/xml" },
-    body: xml,
-  });
-  if (!res.ok) throw new OsmApiError(res.status, "delete node", await res.text());
-  return Number((await res.text()).trim());
-}
-
 // Pure tag transform per survey action. tagKey is the primary key (e.g. "amenity").
 export function applyAction(
   tags: Record<string, string>,
@@ -224,8 +208,6 @@ export function applyAction(
       lifecycle("abandoned");
       next.check_date = today;
       break;
-    case "delete":
-      break; // handled by deleteNode, no tag change
   }
   return next;
 }

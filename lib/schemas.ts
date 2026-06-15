@@ -10,7 +10,7 @@ export const FountainSchema = z.object({
 export type Fountain = z.infer<typeof FountainSchema>;
 
 // State the surveyor records on arrival.
-export const EditAction = z.enum(["confirm", "out_of_order", "removed", "delete"]);
+export const EditAction = z.enum(["confirm", "out_of_order", "removed"]);
 export type EditAction = z.infer<typeof EditAction>;
 
 // Targetable OSM tag (key=value), e.g. amenity=drinking_water.

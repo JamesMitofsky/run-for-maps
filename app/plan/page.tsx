@@ -57,13 +57,11 @@ const EDIT_COLOR: Partial<Record<StopStatus, string>> = {
   confirm: "#16a34a",
   out_of_order: "#d97706",
   removed: "#dc2626",
-  delete: "#dc2626",
 };
 const EDIT_LABEL: Partial<Record<StopStatus, string>> = {
   confirm: "✓",
   out_of_order: "!",
   removed: "✕",
-  delete: "✕",
 };
 
 // Recency filter modes, shown as a segmented control in the radius step.
