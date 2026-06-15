@@ -785,7 +785,7 @@ export default function PlannerPage() {
         {phase === "run" && session.needsCompassPermission && (
           <button
             onClick={session.requestCompass}
-            className="absolute right-3 top-3 z-[1000] flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold text-blue-600 shadow-md"
+            className="absolute bottom-3 right-3 z-[1000] flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold text-blue-600 shadow-md"
           >
             <CompassIcon size={16} weight="fill" />
             Enable compass
@@ -793,12 +793,15 @@ export default function PlannerPage() {
         )}
       </div>
 
-      {/* Top bar: OSM status, floating over the map. */}
-      <header className="pointer-events-none absolute inset-x-0 top-0 z-[1000] flex flex-wrap items-center justify-start gap-3 p-4 md:p-5">
-        <div className="pointer-events-auto">
-          <OsmStatusBar />
-        </div>
-      </header>
+      {/* Top bar: OSM status, floating over the map. Hidden during a run so the
+          map is the topmost element on the route — nothing overlaps its top edge. */}
+      {phase !== "run" && (
+        <header className="pointer-events-none absolute inset-x-0 top-0 z-[1000] flex flex-wrap items-center justify-start gap-3 p-4 md:p-5">
+          <div className="pointer-events-auto">
+            <OsmStatusBar />
+          </div>
+        </header>
+      )}
 
       {/* Resume offer: a route from a prior session survived a refresh. */}
       {resumable && (
