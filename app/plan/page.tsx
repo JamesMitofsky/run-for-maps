@@ -23,10 +23,12 @@ import { planRoute } from "@/lib/plan";
 import { fmtDist, milesToMeters, type Pt } from "@/lib/geo";
 import type { Fountain, EditAction } from "@/lib/schemas";
 import { useRun, type RunStop, type StopStatus } from "@/store/run";
+import { useOutbox, outboxCounts } from "@/store/outbox";
 import type { MapMarker } from "@/components/MapView";
 import OsmStatusBar, { useOsmStatus } from "@/components/OsmStatus";
 import PointTypePicker from "@/components/PointTypePicker";
 import PointPopup, { type PointEdit } from "@/components/PointPopup";
+import SyncStatus from "@/components/SyncStatus";
 import { celebratePoint } from "@/lib/confetti";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
@@ -127,11 +129,25 @@ export default function PlannerPage() {
   const [resumable, setResumable] = useState<Draft | null>(null);
   const [draftReady, setDraftReady] = useState(false);
 
-  // Direct OSM edits made from the map, before any run. Keyed by node id.
-  const [edits, setEdits] = useState<Record<number, PointEdit>>({});
-  const [editChangesetId, setEditChangesetId] = useState<number | undefined>();
-  const [editBusyId, setEditBusyId] = useState<number | null>(null);
+  // Direct OSM edits made from the map, before any run. Backed by the offline
+  // outbox: saved on-device first, sent to OSM in the background.
+  const outboxItems = useOutbox((s) => s.items);
+  const outboxChangeset = useOutbox((s) => s.changesetId);
   const [closingEdits, setClosingEdits] = useState(false);
+
+  // Latest queued edit per node, for the marker color/label + popup feedback.
+  const edits = useMemo(() => {
+    const m: Record<number, PointEdit> = {};
+    for (const it of outboxItems) {
+      m[it.nodeId] = {
+        status: it.action as StopStatus,
+        summary: it.summary,
+        syncState: it.syncState,
+        changesetUrl: it.changesetUrl,
+      };
+    }
+    return m;
+  }, [outboxItems]);
 
   const scope = useRef<HTMLElement>(null);
 
@@ -402,50 +418,31 @@ export default function PlannerPage() {
     replan({ excludes });
   }
 
-  // Write a status update straight to OSM from the map, no run required. Edits
-  // batch into one changeset (opened by the API on first write).
-  async function updatePoint(nodeId: number, action: EditAction) {
-    if (!osm?.loggedIn) {
-      setErr("Sign in to OSM first.");
-      return;
-    }
-    setEditBusyId(nodeId);
+  // Update a point straight from the map. Offline-first: queued on-device and
+  // celebrated immediately, then sent to OSM in the background. Edits batch into
+  // one changeset (opened by the API on the first successful send).
+  function updatePoint(nodeId: number, action: EditAction, name?: string) {
     setErr(null);
-    try {
-      const r = await fetch("/api/osm/edit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nodeId, action, tagKey: tag.key, changesetId: editChangesetId }),
-      });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error?.formErrors?.join(", ") || j.error || "edit failed");
-      setEditChangesetId(j.changesetId);
-      setEdits((e) => ({
-        ...e,
-        [nodeId]: { status: action as StopStatus, summary: j.summary, changesetUrl: j.changesetUrl },
-      }));
-      celebratePoint();
-    } catch (e) {
-      setErr((e as Error).message);
-    } finally {
-      setEditBusyId(null);
-    }
+    useOutbox.getState().enqueue({ nodeId, action, tagKey: tag.key, name });
+    celebratePoint();
+    useOutbox.getState().flush();
   }
 
   // Close the open edit changeset so it's not left dangling on OSM.
   async function closeEdits() {
-    if (!editChangesetId) return;
+    const changesetId = useOutbox.getState().changesetId;
+    if (!changesetId) return;
     setClosingEdits(true);
     setErr(null);
     try {
       const r = await fetch("/api/osm/close", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ changesetId: editChangesetId }),
+        body: JSON.stringify({ changesetId }),
       });
       const j = await r.json();
       if (!r.ok || j.ok === false) throw new Error(j.error || "close failed");
-      setEditChangesetId(undefined);
+      useOutbox.getState().setChangeset(undefined);
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -454,6 +451,7 @@ export default function PlannerPage() {
   }
 
   const editCount = Object.keys(edits).length;
+  const outboxUnsent = outboxCounts(outboxItems).unsent;
 
   function markLabel(f: Fountain) {
     return f.tags.name ?? `mark #${f.id}`;
@@ -710,15 +708,15 @@ export default function PlannerPage() {
             loggedIn={!!osm?.loggedIn}
             inRoute={inRoute}
             edit={edit}
-            busy={editBusyId === f.id}
+            busy={false}
             onToggleRoute={() => toggleStop(f.id)}
-            onAction={(action) => updatePoint(f.id, action)}
+            onAction={(action) => updatePoint(f.id, action, markLabel(f))}
           />
         ),
       };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fountains, stops, pinnedIds, excludedIds, inRouteIds, edits, editBusyId, osm?.loggedIn]);
+  }, [fountains, stops, pinnedIds, excludedIds, inRouteIds, edits, osm?.loggedIn]);
 
   // Highlight the unreachable ("target island") point, if any.
   const islandMarker: MapMarker[] = islandPt
@@ -1193,15 +1191,14 @@ export default function PlannerPage() {
               )}
 
               {editCount > 0 && (
-                <div className="rounded-2xl border border-green-500/30 bg-green-500/10 p-3 text-sm">
-                  <span className="font-semibold text-green-300">
-                    {editCount} point{editCount === 1 ? "" : "s"} updated in OSM
-                  </span>
-                  {editChangesetId && (
+                <div className="flex flex-col gap-2">
+                  {/* Offline-first review: what reached OSM + retry missed sends. */}
+                  <SyncStatus tone="dark" />
+                  {outboxChangeset && (
                     <button
                       onClick={closeEdits}
-                      disabled={closingEdits}
-                      className="mt-2 w-full rounded-full border border-green-500/40 py-1.5 text-xs font-semibold text-green-300 transition hover:bg-green-500/10 disabled:opacity-50"
+                      disabled={closingEdits || outboxUnsent > 0}
+                      className="w-full rounded-full border border-white/15 py-1.5 text-xs font-semibold text-cream-dim transition hover:border-volt/60 hover:text-volt disabled:opacity-40"
                     >
                       {closingEdits ? "Closing changeset…" : "Close changeset"}
                     </button>
