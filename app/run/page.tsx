@@ -43,6 +43,7 @@ export default function RunPage() {
   const { status: osm, refresh } = useOsmStatus();
 
   const [pos, setPos] = useState<Pt | null>(null);
+  const [heading, setHeading] = useState<number | null>(null);
   const [manualArrived, setManualArrived] = useState(false);
   const [adding, setAdding] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -72,7 +73,11 @@ export default function RunPage() {
   useEffect(() => {
     if (!navigator.geolocation) return;
     const id = navigator.geolocation.watchPosition(
-      (p) => setPos({ lat: p.coords.latitude, lon: p.coords.longitude }),
+      (p) => {
+        setPos({ lat: p.coords.latitude, lon: p.coords.longitude });
+        // heading is the travel direction in degrees, present only while moving.
+        if (p.coords.heading != null && Number.isFinite(p.coords.heading)) setHeading(p.coords.heading);
+      },
       (e) => setErr(`Location: ${e.message}`),
       { enableHighAccuracy: true, maximumAge: 5000 },
     );
@@ -360,6 +365,7 @@ export default function RunPage() {
           markers={markers}
           line={line}
           userPos={pos ? [pos.lat, pos.lon] : null}
+          userHeading={heading}
           className="h-full w-full"
         />
       </div>
