@@ -783,9 +783,6 @@ export default function PlannerPage() {
 
             <div className="wizard-step flex flex-col gap-4">
               <div className="flex flex-col gap-1">
-                <span className="text-xs font-semibold uppercase tracking-wide text-cream-dim">
-                  Step {step + 1} of {STEPS.length}
-                </span>
                 <h2 className="font-display text-2xl font-bold leading-tight">{active.title}</h2>
                 {active.hint && <p className="text-sm text-cream-dim">{active.hint}</p>}
               </div>
@@ -833,8 +830,7 @@ export default function PlannerPage() {
               {/* Step 3 — search radius (defines the pool of points to choose from) */}
               {active.key === "radius" && (
                 <div className="flex flex-col gap-4">
-                  <label className="flex flex-col gap-1 text-sm">
-                    Search radius (mi)
+                  <label className="flex items-center gap-2 text-sm">
                     <input
                       type="number"
                       min={0.5}
@@ -843,15 +839,15 @@ export default function PlannerPage() {
                       onChange={(e) =>
                         setRadiusMi(e.target.value === "" ? "" : Number(e.target.value))
                       }
-                      className="rounded-lg border border-white/15 bg-ink/40 px-2 py-2 text-cream outline-none focus:border-volt/60"
+                      className="w-20 rounded-lg border border-white/15 bg-ink/40 px-2 py-2 text-cream outline-none focus:border-volt/60"
                     />
+                    mile search radius
                   </label>
 
                   {/* Recency filter — narrow the pool by when each point was last
                       surveyed (OSM check_date). Defaults to points not checked in
                       the last 6 months: the ones worth verifying on the ground. */}
                   <div className="flex flex-col gap-2">
-                    <span className="text-sm">Last surveyed</span>
                     <div className="flex overflow-hidden rounded-lg border border-white/15 text-xs">
                       {RECENCY_MODES.map((m) => (
                         <button
