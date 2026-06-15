@@ -23,9 +23,9 @@ import type { EditAction } from "@/lib/schemas";
 import { editSummary, todayLocal } from "@/lib/editSummary";
 import OsmStatusBar, { useOsmStatus } from "@/components/OsmStatus";
 import PointPopup from "@/components/PointPopup";
-import ExportButton from "@/components/ExportButton";
 import SyncStatus from "@/components/SyncStatus";
 import { celebratePoint } from "@/lib/confetti";
+import { archiveRoute } from "@/lib/routeArchive";
 import { useHeading } from "@/lib/useHeading";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
@@ -101,22 +101,27 @@ export default function RunPage() {
   const arrived = manualArrived || (distToTarget != null && distToTarget < 30);
 
   async function persist(nextIndex: number, changesetId?: number) {
+    const routeId = useRun.getState().routeId;
+    const plan = {
+      start: run.start,
+      loop,
+      tagKey,
+      tagValue,
+      stops: useRun.getState().stops,
+      vias: run.vias,
+      added: useRun.getState().added,
+      routeCoords: run.routeCoords,
+      distanceM: run.distanceM,
+      index: nextIndex,
+      changesetId: changesetId ?? run.changesetId,
+    };
+    // Durable on-device record of this route + every node change, kept across N
+    // routes. Written first so the archive survives even if the server POST fails.
+    archiveRoute({ routeId, plan, edits: useOutbox.getState().items });
     await fetch("/api/run", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        start: run.start,
-        loop,
-        tagKey,
-        tagValue,
-        stops: useRun.getState().stops,
-        vias: run.vias,
-        added: useRun.getState().added,
-        routeCoords: run.routeCoords,
-        distanceM: run.distanceM,
-        index: nextIndex,
-        changesetId: changesetId ?? run.changesetId,
-      }),
+      body: JSON.stringify({ ...plan, routeId }),
     });
   }
 
@@ -221,6 +226,8 @@ export default function RunPage() {
       } else {
         setClosed({});
       }
+      // Snapshot the sealed run so the archive holds the final per-edit changeset.
+      await persist(index);
     } catch (e) {
       setFinishErr((e as Error).message);
     } finally {
@@ -302,9 +309,6 @@ export default function RunPage() {
 
         {/* Review what reached OSM and retry anything that missed. */}
         <SyncStatus />
-
-        {/* JSON backup before submit, per the completion-screen flow. */}
-        <ExportButton className="w-full" />
 
         {sealed ? (
           <>
@@ -486,8 +490,6 @@ export default function RunPage() {
 
         {/* Live OSM delivery status + retry, available during the run too. */}
         <SyncStatus className="mt-auto" />
-
-        <ExportButton />
       </div>
     </main>
   );
