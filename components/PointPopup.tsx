@@ -10,12 +10,16 @@ import {
 import { useMap } from "react-leaflet";
 import type { Fountain, EditAction } from "@/lib/schemas";
 import type { StopStatus } from "@/store/run";
+import type { SyncState } from "@/store/outbox";
+import { SyncBadge } from "@/components/SyncStatus";
 
-// Local feedback for a point already updated in this session.
+// Local feedback for a point already updated in this session. The edit is saved
+// on-device first; changesetUrl only exists once OSM accepts it.
 export type PointEdit = {
   status: StopStatus;
   summary: string;
-  changesetUrl: string;
+  syncState: SyncState;
+  changesetUrl?: string;
 };
 
 const STATUS_LABEL: Partial<Record<StopStatus, string>> = {
@@ -65,17 +69,20 @@ export default function PointPopup({
       </div>
 
       {edit ? (
-        <div className="rounded bg-green-50 p-2 text-xs text-green-800">
-          <div className="font-medium">{STATUS_LABEL[edit.status] ?? "Updated"}</div>
-          <div className="text-green-700">{edit.summary}</div>
-          <a
-            href={edit.changesetUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="font-medium underline underline-offset-2"
-          >
-            view on OSM
-          </a>
+        <div className="flex flex-col gap-1 rounded bg-neutral-50 p-2 text-xs text-neutral-700">
+          <div className="font-medium text-neutral-800">{STATUS_LABEL[edit.status] ?? "Updated"}</div>
+          <div>{edit.summary}</div>
+          <SyncBadge state={edit.syncState} />
+          {edit.changesetUrl && (
+            <a
+              href={edit.changesetUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium underline underline-offset-2"
+            >
+              view on OSM
+            </a>
+          )}
         </div>
       ) : (
         <>
