@@ -671,8 +671,10 @@ export default function PlannerPage() {
       start: center,
       loop,
       tagKey: tag.key,
+      tagValue: tag.value,
       stops: runStops,
       vias,
+      added: [],
       routeCoords: line.map(([lat, lon]) => [lon, lat] as [number, number]),
       distanceM,
     };
