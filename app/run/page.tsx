@@ -12,6 +12,7 @@ import {
   SkipForwardIcon,
   FlagCheckeredIcon,
   PlusCircleIcon,
+  CompassIcon,
 } from "@phosphor-icons/react";
 import { useRun, type RunStop, type StopStatus } from "@/store/run";
 import { useOutbox, outboxCounts } from "@/store/outbox";
@@ -25,6 +26,7 @@ import PointPopup from "@/components/PointPopup";
 import ExportButton from "@/components/ExportButton";
 import SyncStatus from "@/components/SyncStatus";
 import { celebratePoint } from "@/lib/confetti";
+import { useHeading } from "@/lib/useHeading";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 
@@ -43,7 +45,8 @@ export default function RunPage() {
   const { status: osm, refresh } = useOsmStatus();
 
   const [pos, setPos] = useState<Pt | null>(null);
-  const [heading, setHeading] = useState<number | null>(null);
+  const [gpsHeading, setGpsHeading] = useState<number | null>(null);
+  const { heading, needsCompassPermission, requestCompass } = useHeading(gpsHeading);
   const [manualArrived, setManualArrived] = useState(false);
   const [adding, setAdding] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -75,8 +78,9 @@ export default function RunPage() {
     const id = navigator.geolocation.watchPosition(
       (p) => {
         setPos({ lat: p.coords.latitude, lon: p.coords.longitude });
-        // heading is the travel direction in degrees, present only while moving.
-        if (p.coords.heading != null && Number.isFinite(p.coords.heading)) setHeading(p.coords.heading);
+        // GPS heading is the travel direction in degrees, present only while
+        // moving. Used as fallback when the compass is denied/unsupported.
+        if (p.coords.heading != null && Number.isFinite(p.coords.heading)) setGpsHeading(p.coords.heading);
       },
       (e) => setErr(`Location: ${e.message}`),
       { enableHighAccuracy: true, maximumAge: 5000 },
@@ -357,7 +361,7 @@ export default function RunPage() {
         <OsmStatusBar />
       </div>
 
-      <div className="h-[42vh] w-full">
+      <div className="relative h-[42vh] w-full">
         <MapView
           center={center}
           zoom={16}
@@ -368,6 +372,15 @@ export default function RunPage() {
           userHeading={heading}
           className="h-full w-full"
         />
+        {needsCompassPermission && (
+          <button
+            onClick={requestCompass}
+            className="absolute right-3 top-3 z-[1000] flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold text-blue-600 shadow-md"
+          >
+            <CompassIcon size={16} weight="fill" />
+            Enable compass
+          </button>
+        )}
       </div>
 
       <div className="flex flex-1 flex-col gap-4 p-4">
