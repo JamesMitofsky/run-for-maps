@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Space_Grotesk, Inter } from "next/font/google";
 import "./globals.css";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import OutboxSync from "@/components/OutboxSync";
 
 const display = Space_Grotesk({
   subsets: ["latin"],
@@ -59,6 +60,7 @@ export default function RootLayout({
     <html lang="en" className={`h-full antialiased ${display.variable} ${body.variable}`}>
       <body className="min-h-full">
         {children}
+        <OutboxSync />
         <ServiceWorkerRegister />
       </body>
     </html>

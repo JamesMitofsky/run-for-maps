@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { EditRequest } from "@/lib/schemas";
-import type { EditAction } from "@/lib/schemas";
 import {
   openChangeset,
   getNode,
@@ -13,20 +12,7 @@ import {
   OsmApiError,
 } from "@/lib/osm";
 import { appendJson } from "@/lib/db";
-
-// Human-readable summary of what was written, for high-fidelity UI feedback.
-function editSummary(action: EditAction, tagKey: string, today: string): string {
-  switch (action) {
-    case "confirm":
-      return `confirmed · check_date=${today}`;
-    case "out_of_order":
-      return `${tagKey} → disused:${tagKey} · check_date=${today}`;
-    case "removed":
-      return `${tagKey} → abandoned:${tagKey} · check_date=${today}`;
-    case "delete":
-      return "node deleted from OSM";
-  }
-}
+import { editSummary } from "@/lib/editSummary";
 
 export async function POST(req: Request) {
   const jar = await cookies();
