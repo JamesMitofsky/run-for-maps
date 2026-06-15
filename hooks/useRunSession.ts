@@ -11,6 +11,7 @@ import { editSummary, todayLocal } from "@/lib/editSummary";
 import { useOsmStatus } from "@/components/OsmStatus";
 import PointPopup from "@/components/PointPopup";
 import { celebratePoint } from "@/lib/confetti";
+import { useHeading } from "@/lib/useHeading";
 import { createElement } from "react";
 
 const STATUS_COLOR: Record<StopStatus, string> = {
@@ -35,6 +36,9 @@ export function useRunSession({ enabled = true }: { enabled?: boolean } = {}) {
   const { status: osm, refresh } = useOsmStatus();
 
   const [pos, setPos] = useState<Pt | null>(null);
+  // GPS travel direction (only while moving) — fallback for the compass heading.
+  const [gpsHeading, setGpsHeading] = useState<number | null>(null);
+  const { heading: deviceHeading, needsCompassPermission, requestCompass } = useHeading(gpsHeading);
   const [manualArrived, setManualArrived] = useState(false);
   const [adding, setAdding] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -66,7 +70,12 @@ export function useRunSession({ enabled = true }: { enabled?: boolean } = {}) {
   useEffect(() => {
     if (!enabled || !navigator.geolocation) return;
     const id = navigator.geolocation.watchPosition(
-      (p) => setPos({ lat: p.coords.latitude, lon: p.coords.longitude }),
+      (p) => {
+        setPos({ lat: p.coords.latitude, lon: p.coords.longitude });
+        // GPS heading is the travel direction in degrees, present only while
+        // moving. Used as fallback when the compass is denied/unsupported.
+        if (p.coords.heading != null && Number.isFinite(p.coords.heading)) setGpsHeading(p.coords.heading);
+      },
       (e) => setErr(`Location: ${e.message}`),
       { enableHighAccuracy: true, maximumAge: 5000 },
     );
@@ -267,6 +276,9 @@ export function useRunSession({ enabled = true }: { enabled?: boolean } = {}) {
     line,
     center,
     userPos,
+    userHeading: deviceHeading,
+    needsCompassPermission,
+    requestCompass,
     recenterKey,
     // lifecycle
     hydrating,

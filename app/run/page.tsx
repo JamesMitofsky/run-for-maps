@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { CompassIcon } from "@phosphor-icons/react";
 import { useRunSession } from "@/hooks/useRunSession";
 import { useRun } from "@/store/run";
 import OsmStatusBar from "@/components/OsmStatus";
@@ -47,7 +48,7 @@ export default function RunPage() {
         <OsmStatusBar />
       </div>
 
-      <div className="h-[42vh] w-full">
+      <div className="relative h-[42vh] w-full">
         <MapView
           center={session.center}
           zoom={16}
@@ -55,8 +56,18 @@ export default function RunPage() {
           markers={session.markers}
           line={session.line}
           userPos={session.userPos}
+          userHeading={session.userHeading}
           className="h-full w-full"
         />
+        {session.needsCompassPermission && (
+          <button
+            onClick={session.requestCompass}
+            className="absolute right-3 top-3 z-[1000] flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold text-blue-600 shadow-md"
+          >
+            <CompassIcon size={16} weight="fill" />
+            Enable compass
+          </button>
+        )}
       </div>
 
       <div className="flex flex-1 flex-col gap-4 p-4">

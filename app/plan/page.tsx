@@ -17,6 +17,7 @@ import {
   ArrowRightIcon,
   ArrowsClockwiseIcon,
   SlidersHorizontalIcon,
+  CompassIcon,
 } from "@phosphor-icons/react";
 import { planRoute } from "@/lib/plan";
 import { fmtDist, milesToMeters, type Pt } from "@/lib/geo";
@@ -777,9 +778,19 @@ export default function PlannerPage() {
           }
           line={phase === "run" ? session.line : line}
           userPos={phase === "run" ? session.userPos : undefined}
+          userHeading={phase === "run" ? session.userHeading : undefined}
           onMapClick={phase === "run" ? undefined : handleMapClick}
           className="absolute inset-0 h-full w-full"
         />
+        {phase === "run" && session.needsCompassPermission && (
+          <button
+            onClick={session.requestCompass}
+            className="absolute right-3 top-3 z-[1000] flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold text-blue-600 shadow-md"
+          >
+            <CompassIcon size={16} weight="fill" />
+            Enable compass
+          </button>
+        )}
       </div>
 
       {/* Top bar: OSM status, floating over the map. */}
