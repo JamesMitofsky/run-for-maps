@@ -8,7 +8,6 @@ import gsap from "gsap";
 import {
   MapPinIcon,
   CrosshairIcon,
-  NavigationArrowIcon,
   PathIcon,
   MagnifyingGlassIcon,
   FlagIcon,
@@ -95,11 +94,6 @@ export default function PlannerPage() {
   const [step, setStep] = useState(0);
 
   const [center, setCenter] = useState<Pt | null>(null);
-  // Live GPS position + whether the map keeps it centered as the user moves.
-  const [pos, setPos] = useState<Pt | null>(null);
-  const [follow, setFollow] = useState(false);
-  // Compass heading in degrees (0 = north, clockwise) for the direction cone.
-  const [heading, setHeading] = useState<number | null>(null);
   const [vias, setVias] = useState<Pt[]>([]);
   const [pinnedIds, setPinnedIds] = useState<number[]>([]);
   const [recenterKey, setRecenterKey] = useState("init");
@@ -287,68 +281,6 @@ export default function PlannerPage() {
     setRecenterKey(`${p.lat},${p.lon},${++recenterSeq}`);
   }
 
-  // While "follow" is on, stream the live GPS position. Cleared when off so we
-  // don't hold the geolocation watch open in the background.
-  useEffect(() => {
-    if (!follow) return;
-    const id = navigator.geolocation.watchPosition(
-      (p) => {
-        setPos({ lat: p.coords.latitude, lon: p.coords.longitude });
-        // GPS heading is only meaningful while moving; use as compass fallback.
-        if (p.coords.heading != null && !Number.isNaN(p.coords.heading)) {
-          setHeading(p.coords.heading);
-        }
-      },
-      (e) => {
-        setErr(`Location: ${e.message}`);
-        setFollow(false);
-      },
-      { enableHighAccuracy: true, maximumAge: 5000 },
-    );
-    return () => navigator.geolocation.clearWatch(id);
-  }, [follow]);
-
-  // Device compass — works even while standing still, unlike GPS heading.
-  useEffect(() => {
-    if (!follow) return;
-    const handler = (e: DeviceOrientationEvent) => {
-      const iosHeading = (e as DeviceOrientationEvent & { webkitCompassHeading?: number })
-        .webkitCompassHeading;
-      let h: number | null = null;
-      if (typeof iosHeading === "number") h = iosHeading; // iOS: clockwise from north
-      else if (e.absolute && e.alpha != null) h = 360 - e.alpha; // standard absolute
-      if (h != null) setHeading(((h % 360) + 360) % 360);
-    };
-    const evt = "ondeviceorientationabsolute" in window ? "deviceorientationabsolute" : "deviceorientation";
-    window.addEventListener(evt, handler, true);
-    return () => window.removeEventListener(evt, handler, true);
-  }, [follow]);
-
-  async function toggleFollow() {
-    setErr(null);
-    if (follow) {
-      setFollow(false);
-      setHeading(null);
-      return;
-    }
-    if (!navigator.geolocation) {
-      setErr("Geolocation not available on this device.");
-      return;
-    }
-    // iOS 13+ gates the compass behind a permission prompt that needs a gesture.
-    const DOE = window.DeviceOrientationEvent as unknown as {
-      requestPermission?: () => Promise<string>;
-    };
-    if (typeof DOE?.requestPermission === "function") {
-      try {
-        await DOE.requestPermission();
-      } catch {
-        // Compass denied — fall back to GPS heading only.
-      }
-    }
-    setFollow(true);
-  }
-
   // Marks the user pins, resolved to fountains and forced into the route.
   // Excluded points can never be pinned (removing a point also unpins it).
   const pinned = useMemo(
@@ -372,8 +304,6 @@ export default function PlannerPage() {
   }, [stops, pinnedIds, excludedIds]);
 
   function handleMapClick(lat: number, lon: number) {
-    // Placing a point is manual control; stop auto-following the GPS.
-    setFollow(false);
     // The start point can only be set during the first setup step ("where").
     // Later config steps ignore map clicks so the start can't move by accident.
     if (phase === "config") {
@@ -783,13 +713,10 @@ export default function PlannerPage() {
     return <main className="h-screen w-screen bg-ink" />;
   }
 
-  // When following, the map view tracks the live GPS point (rounded so we only
-  // recenter on real movement); otherwise it tracks the chosen start point.
+  // The map view tracks the chosen start point.
   const DEFAULT_CENTER: [number, number] = [38.9072, -77.0369];
-  const viewCenter: [number, number] =
-    follow && pos ? [pos.lat, pos.lon] : center ? [center.lat, center.lon] : DEFAULT_CENTER;
-  const viewKey =
-    follow && pos ? `follow:${pos.lat.toFixed(4)},${pos.lon.toFixed(4)}` : recenterKey;
+  const viewCenter: [number, number] = center ? [center.lat, center.lon] : DEFAULT_CENTER;
+  const viewKey = recenterKey;
 
   return (
     <main
@@ -805,10 +732,7 @@ export default function PlannerPage() {
           recenterKey={viewKey}
           markers={[...markers, ...viaMarkers, ...startMarker, ...islandMarker]}
           line={line}
-          userPos={pos ? [pos.lat, pos.lon] : null}
-          userHeading={follow ? heading : null}
           onMapClick={handleMapClick}
-          onUserPan={() => setFollow(false)}
           className="absolute inset-0 h-full w-full"
         />
       </div>
@@ -819,21 +743,6 @@ export default function PlannerPage() {
           <OsmStatusBar />
         </div>
       </header>
-
-      {/* Follow-me toggle: keep the live GPS point centered as the user moves. */}
-      <button
-        onClick={toggleFollow}
-        title={follow ? "Stop following my location" : "Keep my location centered"}
-        aria-pressed={follow}
-        className={`absolute right-4 top-[calc(1rem+env(safe-area-inset-top))] z-[1000] flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-semibold shadow-xl backdrop-blur transition ${
-          follow
-            ? "border-volt bg-volt text-ink"
-            : "border-white/10 bg-ink/85 text-cream hover:border-volt/60 hover:text-volt"
-        } md:right-6 md:top-[calc(1.25rem+env(safe-area-inset-top))]`}
-      >
-        <NavigationArrowIcon size={14} weight={follow ? "fill" : "regular"} />
-        {follow ? "Following" : "Follow me"}
-      </button>
 
       {/* Resume offer: a route from a prior session survived a refresh. */}
       {resumable && (

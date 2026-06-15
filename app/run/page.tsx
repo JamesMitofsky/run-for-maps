@@ -348,10 +348,7 @@ export default function RunPage() {
 
   return (
     <main className="flex min-h-screen flex-col">
-      <div className="flex items-center justify-between px-4 py-2">
-        <span className="text-sm font-semibold">
-          Stop {Math.min(index + 1, stops.length)} / {stops.length}
-        </span>
+      <div className="flex items-center justify-end px-4 py-2">
         <OsmStatusBar />
       </div>
 
