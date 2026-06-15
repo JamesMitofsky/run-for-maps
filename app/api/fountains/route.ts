@@ -8,13 +8,20 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
-  const { lat, lon, radiusM, tag } = parsed.data;
+  const { lat, lon, radiusM, tag, recencyMode, recencyMonths } = parsed.data;
   try {
-    const fountains = await fetchFountains(lat, lon, radiusM, tag);
+    const fountains = await fetchFountains(lat, lon, radiusM, tag, recencyMode, recencyMonths);
     // Cache write is best-effort; a failure must not break the response.
-    await writeJson("fountains-cache.json", { at: new Date().toISOString(), lat, lon, radiusM, tag, fountains }).catch(
-      () => {}
-    );
+    await writeJson("fountains-cache.json", {
+      at: new Date().toISOString(),
+      lat,
+      lon,
+      radiusM,
+      tag,
+      recencyMode,
+      recencyMonths,
+      fountains,
+    }).catch(() => {});
     return NextResponse.json({ fountains });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 502 });

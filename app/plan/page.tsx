@@ -21,7 +21,7 @@ import {
 } from "@phosphor-icons/react";
 import { planRoute } from "@/lib/plan";
 import { fmtDist, milesToMeters, type Pt } from "@/lib/geo";
-import type { Fountain, EditAction } from "@/lib/schemas";
+import type { Fountain, EditAction, RecencyMode } from "@/lib/schemas";
 import { useRun, type RunStop, type StopStatus } from "@/store/run";
 import { useOutbox, outboxCounts } from "@/store/outbox";
 import type { MapMarker } from "@/components/MapView";
@@ -38,6 +38,8 @@ type Draft = {
   center: Pt;
   tag: { key: string; value: string };
   radiusMi: number | "";
+  recencyMode: RecencyMode;
+  recencyMonths: number | "";
   targetMi: number | "";
   loop: boolean;
   fountains: Fountain[];
@@ -63,6 +65,13 @@ const EDIT_LABEL: Partial<Record<StopStatus, string>> = {
   removed: "✕",
   delete: "✕",
 };
+
+// Recency filter modes, shown as a segmented control in the radius step.
+const RECENCY_MODES: { key: RecencyMode; label: string }[] = [
+  { key: "stale", label: "Not checked in" },
+  { key: "fresh", label: "Checked within" },
+  { key: "any", label: "Any time" },
+];
 
 // The guided config steps, answered one at a time before the map takes over.
 const STEPS = [
@@ -98,6 +107,10 @@ export default function PlannerPage() {
   const [recenterKey, setRecenterKey] = useState("init");
   const [addr, setAddr] = useState("");
   const [radiusMi, setRadiusMi] = useState<number | "">(3);
+  // Recency filter: by default surface points NOT surveyed in the last 6 months
+  // (the ones worth verifying on the ground). "fresh" flips it; "any" disables.
+  const [recencyMode, setRecencyMode] = useState<RecencyMode>("stale");
+  const [recencyMonths, setRecencyMonths] = useState<number | "">(6);
   const [targetMi, setTargetMi] = useState<number | "">("");
   // How the route is sized: to a target distance, or purely by the points picked.
   // Default to points so the route is sized by what the user picks unless they opt
@@ -202,6 +215,8 @@ export default function PlannerPage() {
       center: center!,
       tag,
       radiusMi,
+      recencyMode,
+      recencyMonths,
       targetMi,
       loop,
       fountains,
@@ -224,6 +239,8 @@ export default function PlannerPage() {
     center,
     tag,
     radiusMi,
+    recencyMode,
+    recencyMonths,
     targetMi,
     loop,
     fountains,
@@ -243,6 +260,8 @@ export default function PlannerPage() {
     recenter(d.center);
     setTag(d.tag);
     setRadiusMi(d.radiusMi);
+    setRecencyMode(d.recencyMode ?? "stale");
+    setRecencyMonths(d.recencyMonths ?? 6);
     setTargetMi(d.targetMi);
     setLoop(d.loop);
     setFountains(d.fountains);
@@ -500,7 +519,13 @@ export default function PlannerPage() {
       const r = await fetch("/api/fountains", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...center, radiusM: milesToMeters(radiusMi || 0), tag }),
+        body: JSON.stringify({
+          ...center,
+          radiusM: milesToMeters(radiusMi || 0),
+          tag,
+          recencyMode,
+          recencyMonths: recencyMonths || 6,
+        }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error?.formErrors?.join(", ") || j.error || "fetch failed");
@@ -920,6 +945,47 @@ export default function PlannerPage() {
                       className="rounded-lg border border-white/15 bg-ink/40 px-2 py-2 text-cream outline-none focus:border-volt/60"
                     />
                   </label>
+
+                  {/* Recency filter — narrow the pool by when each point was last
+                      surveyed (OSM check_date). Defaults to points not checked in
+                      the last 6 months: the ones worth verifying on the ground. */}
+                  <div className="flex flex-col gap-2">
+                    <span className="text-sm">Last surveyed</span>
+                    <div className="flex overflow-hidden rounded-lg border border-white/15 text-xs">
+                      {RECENCY_MODES.map((m) => (
+                        <button
+                          key={m.key}
+                          onClick={() => setRecencyMode(m.key)}
+                          className={`flex-1 py-1.5 transition ${recencyMode === m.key ? "bg-volt font-semibold text-ink" : "bg-ink/40 text-cream-dim hover:text-cream"}`}
+                        >
+                          {m.label}
+                        </button>
+                      ))}
+                    </div>
+                    {recencyMode !== "any" && (
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          type="number"
+                          min={1}
+                          step={1}
+                          value={recencyMonths}
+                          onChange={(e) =>
+                            setRecencyMonths(e.target.value === "" ? "" : Number(e.target.value))
+                          }
+                          className="w-20 rounded-lg border border-white/15 bg-ink/40 px-2 py-2 text-cream outline-none focus:border-volt/60"
+                        />
+                        <span className="text-cream-dim">months</span>
+                      </label>
+                    )}
+                    <p className="text-xs text-cream-dim">
+                      {recencyMode === "stale"
+                        ? `Show points not surveyed in the last ${recencyMonths || 6} months (or never) — the ones worth checking.`
+                        : recencyMode === "fresh"
+                          ? `Show only points surveyed within the last ${recencyMonths || 6} months.`
+                          : "Show all matching points regardless of when last surveyed."}
+                    </p>
+                  </div>
+
                   <p className="text-xs text-cream-dim">
                     You&apos;ll size the route — by a target distance or by the points you pick —
                     on the map next.
