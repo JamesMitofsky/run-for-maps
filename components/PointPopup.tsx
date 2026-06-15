@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   CheckCircleIcon,
   WarningIcon,
@@ -20,6 +21,7 @@ export type PointEdit = {
   summary: string;
   syncState: SyncState;
   changesetUrl?: string;
+  comment?: string;
 };
 
 const STATUS_LABEL: Partial<Record<StopStatus, string>> = {
@@ -34,7 +36,7 @@ type Props = {
   loggedIn: boolean;
   edit?: PointEdit;
   busy: boolean;
-  onAction: (action: EditAction) => void;
+  onAction: (action: EditAction, comment?: string) => void;
   // Route-membership toggle (planner only). Omit on the run page, where points
   // are fixed and only OSM updates apply.
   inRoute?: boolean;
@@ -56,6 +58,8 @@ export default function PointPopup({
   const map = useMap();
   const name = fountain.tags.name ?? `node ${fountain.id}`;
   const deleted = edit?.status === "delete";
+  const [comment, setComment] = useState("");
+  const note = comment.trim() || undefined;
 
   return (
     <div className="flex w-56 flex-col gap-2 text-neutral-800">
@@ -72,6 +76,7 @@ export default function PointPopup({
         <div className="flex flex-col gap-1 rounded bg-neutral-50 p-2 text-xs text-neutral-700">
           <div className="font-medium text-neutral-800">{STATUS_LABEL[edit.status] ?? "Updated"}</div>
           <div>{edit.summary}</div>
+          {edit.comment && <div className="italic text-neutral-600">“{edit.comment}”</div>}
           <SyncBadge state={edit.syncState} />
           {edit.changesetUrl && (
             <a
@@ -120,23 +125,30 @@ export default function PointPopup({
               </a>
             ) : (
               <div className="flex flex-col gap-1.5">
+                <textarea
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Comment (optional)"
+                  rows={2}
+                  className="resize-none rounded border border-neutral-300 px-2 py-1 text-xs text-neutral-800 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none"
+                />
                 <button
                   disabled={busy}
-                  onClick={() => onAction("confirm")}
+                  onClick={() => onAction("confirm", note)}
                   className="flex items-center justify-center gap-1.5 rounded bg-green-600 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
                 >
                   <CheckCircleIcon size={16} /> Working — confirm
                 </button>
                 <button
                   disabled={busy}
-                  onClick={() => onAction("out_of_order")}
+                  onClick={() => onAction("out_of_order", note)}
                   className="flex items-center justify-center gap-1.5 rounded bg-amber-500 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
                 >
                   <WarningIcon size={16} /> Out of order
                 </button>
                 <button
                   disabled={busy}
-                  onClick={() => onAction("removed")}
+                  onClick={() => onAction("removed", note)}
                   className="flex items-center justify-center gap-1.5 rounded bg-red-600 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
                 >
                   <TrashIcon size={16} /> Removed
@@ -145,7 +157,7 @@ export default function PointPopup({
                   <summary className="cursor-pointer text-neutral-500">Advanced</summary>
                   <button
                     disabled={busy || deleted}
-                    onClick={() => onAction("delete")}
+                    onClick={() => onAction("delete", note)}
                     className="mt-1.5 w-full rounded border border-red-600 py-1.5 text-xs font-medium text-red-600 disabled:opacity-50"
                   >
                     Delete node from OSM (irreversible)

@@ -55,6 +55,7 @@ export const EditRequest = z.object({
   action: EditAction,
   tagKey: z.string().default("amenity"), // primary key to lifecycle-prefix
   changesetId: z.number().optional(),
+  comment: z.string().optional(), // surveyor's free-text note for this edit
 });
 
 // Persisted record of an edit we made (local audit log).
@@ -64,5 +65,6 @@ export const EditLogEntrySchema = z.object({
   changesetId: z.number(),
   newVersion: z.number(),
   at: z.string(), // ISO timestamp
+  comment: z.string().optional(), // surveyor's free-text note for this edit
 });
 export type EditLogEntry = z.infer<typeof EditLogEntrySchema>;

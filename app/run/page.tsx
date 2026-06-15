@@ -123,11 +123,11 @@ export default function RunPage() {
   // on-device outbox and celebrated immediately, then sent to OSM in the
   // background (retried later if offline). Editing the current target advances the
   // run; editing another point on the fly (tapped on the map) leaves the position.
-  function recordFor(node: RunStop, action: EditAction) {
+  function recordFor(node: RunStop, action: EditAction, comment?: string) {
     const isCurrent = !!target && node.id === target.id;
     setErr(null);
     // 1) Write locally + instant feedback — no network required.
-    useOutbox.getState().enqueue({ nodeId: node.id, action, tagKey, name: node.tags?.name });
+    useOutbox.getState().enqueue({ nodeId: node.id, action, tagKey, name: node.tags?.name, comment });
     run.setStatus(node.id, action as StopStatus);
     celebratePoint();
     setLastSaved({ nodeId: node.id, summary: editSummary(action, tagKey, todayLocal()) });
@@ -244,7 +244,7 @@ export default function RunPage() {
           fountain={s}
           loggedIn={!!osm?.loggedIn}
           busy={false}
-          onAction={(action) => recordFor(s, action)}
+          onAction={(action, comment) => recordFor(s, action, comment)}
         />
       ),
     }));
