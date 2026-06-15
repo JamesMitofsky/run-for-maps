@@ -17,6 +17,7 @@ import {
   ArrowRightIcon,
   ArrowsClockwiseIcon,
   SlidersHorizontalIcon,
+  CompassIcon,
 } from "@phosphor-icons/react";
 import { planRoute } from "@/lib/plan";
 import { fmtDist, milesToMeters, type Pt } from "@/lib/geo";
@@ -28,6 +29,9 @@ import OsmStatusBar, { useOsmStatus } from "@/components/OsmStatus";
 import PointTypePicker from "@/components/PointTypePicker";
 import PointPopup, { type PointEdit } from "@/components/PointPopup";
 import SyncStatus from "@/components/SyncStatus";
+import RunGuide from "@/components/run/RunGuide";
+import RunComplete from "@/components/run/RunComplete";
+import { useRunSession } from "@/hooks/useRunSession";
 import { celebratePoint } from "@/lib/confetti";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
@@ -89,9 +93,15 @@ export default function PlannerPage() {
   const setPlan = useRun((s) => s.setPlan);
   const { status: osm } = useOsmStatus();
 
-  // "config" walks the questions; "map" hides them and shows only the map.
-  const [phase, setPhase] = useState<"config" | "map">("config");
+  // "config" walks the questions; "map" hides them to build the route; "run"
+  // takes the SAME map live for the survey, swapping only the side panel — no
+  // navigation, so the map never reloads under the user.
+  const [phase, setPhase] = useState<"config" | "map" | "run">("config");
   const [step, setStep] = useState(0);
+
+  // The live run, fed from the shared hook. Armed only once we reach the run
+  // phase so the location prompt doesn't fire while building a route.
+  const session = useRunSession({ enabled: phase === "run" });
 
   const [center, setCenter] = useState<Pt | null>(null);
   const [vias, setVias] = useState<Pt[]>([]);
@@ -186,6 +196,22 @@ export default function PlannerPage() {
   useEffect(() => {
     if (osm && !osm.loggedIn) router.replace("/plan/login");
   }, [osm, router]);
+
+  // On mount, recover an in-progress run (the run now lives here, not on a
+  // separate page — a reload mid-survey must drop straight back into it). A
+  // finished run (index past the last stop) is ignored so it can't hijack a
+  // fresh planning session.
+  useEffect(() => {
+    fetch("/api/run")
+      .then((r) => r.json())
+      .then((plan) => {
+        if (plan && plan.stops?.length && (plan.index ?? 0) < plan.stops.length) {
+          useRun.getState().hydrate(plan);
+          setPhase("run");
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // On mount, look for a saved route from a prior session. If one exists, offer
   // to resume it rather than restoring silently (the user may want a fresh plan).
@@ -615,7 +641,25 @@ export default function PlannerPage() {
     });
     // Route promoted to an active run; drop the planner draft so we don't re-offer it.
     fetch("/api/draft", { method: "DELETE" }).catch(() => {});
-    router.push("/run");
+    // Stay on this map — just hand the side panel over to the live run.
+    setPhase("run");
+  }
+
+  // Leave the finished run and return to a clean planner, keeping the start area
+  // so the surveyor can quickly build another route nearby.
+  function exitRun() {
+    session.reset();
+    setStops([]);
+    setLine([]);
+    setFountains([]);
+    setHasRoute(false);
+    setPinnedIds([]);
+    setExcludedIds([]);
+    setVias([]);
+    setDistanceM(0);
+    setAutoCount(0);
+    setStep(0);
+    setPhase("config");
   }
 
   const markers: MapMarker[] = useMemo(() => {
@@ -724,14 +768,29 @@ export default function PlannerPage() {
           Desktop (md+): map fills the screen and the cards float on top. */}
       <div className="relative h-[55vh] w-full shrink-0 md:absolute md:inset-0 md:h-full">
         <MapView
-          center={viewCenter}
-          zoom={14}
-          recenterKey={viewKey}
-          markers={[...markers, ...viaMarkers, ...startMarker, ...islandMarker]}
-          line={line}
-          onMapClick={handleMapClick}
+          center={phase === "run" ? session.center : viewCenter}
+          zoom={phase === "run" ? 16 : 14}
+          recenterKey={phase === "run" ? session.recenterKey : viewKey}
+          markers={
+            phase === "run"
+              ? session.markers
+              : [...markers, ...viaMarkers, ...startMarker, ...islandMarker]
+          }
+          line={phase === "run" ? session.line : line}
+          userPos={phase === "run" ? session.userPos : undefined}
+          userHeading={phase === "run" ? session.userHeading : undefined}
+          onMapClick={phase === "run" ? undefined : handleMapClick}
           className="absolute inset-0 h-full w-full"
         />
+        {phase === "run" && session.needsCompassPermission && (
+          <button
+            onClick={session.requestCompass}
+            className="absolute right-3 top-3 z-[1000] flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold text-blue-600 shadow-md"
+          >
+            <CompassIcon size={16} weight="fill" />
+            Enable compass
+          </button>
+        )}
       </div>
 
       {/* Top bar: OSM status, floating over the map. */}
@@ -1172,6 +1231,22 @@ export default function PlannerPage() {
             </section>
           </div>
         </>
+      )}
+
+      {/* ----- RUN PHASE: same map, side panel becomes the live survey ----- */}
+      {phase === "run" && (
+        <div className="phase-card z-[1000] flex justify-center p-4 md:absolute md:inset-y-0 md:right-0 md:left-auto md:items-center md:p-6">
+          <section className="flex w-full max-w-sm flex-col gap-4 md:max-h-[calc(100vh-7rem)] md:overflow-y-auto">
+            {session.done ? (
+              <RunComplete session={session} tone="dark" onExit={exitRun} />
+            ) : (
+              <>
+                <h2 className="font-display text-lg font-bold">On the run</h2>
+                <RunGuide session={session} tone="dark" />
+              </>
+            )}
+          </section>
+        </div>
       )}
     </main>
   );
