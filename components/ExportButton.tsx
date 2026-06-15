@@ -16,7 +16,13 @@ import type { EditLogEntry } from "@/lib/schemas";
 // The server edit-log (changeset + node version per OSM write) is prefetched on
 // mount and merged best-effort, so the click handler stays synchronous and iOS
 // Safari keeps the user-gesture required to trigger a blob download.
-export default function ExportButton({ className = "" }: { className?: string }) {
+export default function ExportButton({
+  className = "",
+  tone = "light",
+}: {
+  className?: string;
+  tone?: "light" | "dark";
+}) {
   const run = useRun();
   const [editLog, setEditLog] = useState<EditLogEntry[]>([]);
 
@@ -57,11 +63,15 @@ export default function ExportButton({ className = "" }: { className?: string })
     URL.revokeObjectURL(url);
   }
 
+  const toneCls =
+    tone === "dark"
+      ? "border-white/15 text-cream-dim hover:border-volt/60 hover:text-volt"
+      : "border-neutral-300 text-neutral-700";
   return (
     <button
       type="button"
       onClick={download}
-      className={`flex items-center justify-center gap-2 rounded border border-neutral-300 py-2 text-sm font-medium text-neutral-700 ${className}`}
+      className={`flex items-center justify-center gap-2 rounded border py-2 text-sm font-medium transition ${toneCls} ${className}`}
     >
       <DownloadSimpleIcon size={18} /> Export JSON backup
     </button>
