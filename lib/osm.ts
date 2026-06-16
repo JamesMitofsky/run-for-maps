@@ -200,6 +200,22 @@ export function applyAction(
     case "confirm":
       next.check_date = today;
       break;
+    case "dog_only":
+      // Source exists and works, but is for dogs — not intended for humans.
+      // amenity=drinking_water / =water_point self-assert human potability, so
+      // leaving them while adding drinking_water=no contradicts the primary tag.
+      // Correct per OSM wiki: demote the primary to a neutral physical feature
+      // (man_made=water_tap), then state potability + the dog facility
+      // explicitly. Other primaries (amenity=fountain, natural=spring) don't
+      // imply potability, so keep them and only add the explicit flags.
+      if (next.amenity === "drinking_water" || next.amenity === "water_point") {
+        next.man_made = "water_tap";
+        delete next.amenity;
+      }
+      next.drinking_water = "no";
+      next.dog = "yes";
+      next.check_date = today;
+      break;
     case "out_of_order":
       lifecycle("disused");
       next.check_date = today;

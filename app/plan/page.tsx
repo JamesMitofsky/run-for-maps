@@ -56,11 +56,13 @@ type Draft = {
 // Marker colors for points already updated in OSM this session.
 const EDIT_COLOR: Partial<Record<StopStatus, string>> = {
   confirm: "#16a34a",
+  dog_only: "#7c3aed",
   out_of_order: "#d97706",
   removed: "#dc2626",
 };
 const EDIT_LABEL: Partial<Record<StopStatus, string>> = {
   confirm: "✓",
+  dog_only: "🐕",
   out_of_order: "!",
   removed: "✕",
 };

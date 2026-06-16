@@ -5,6 +5,7 @@ import type { Pt } from "@/lib/geo";
 export type StopStatus =
   | "pending"
   | "confirm"
+  | "dog_only"
   | "out_of_order"
   | "removed"
   | "skipped";
