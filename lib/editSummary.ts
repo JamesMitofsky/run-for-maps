@@ -12,6 +12,8 @@ export function editSummary(action: EditAction, tagKey: string, today: string): 
   switch (action) {
     case "confirm":
       return `confirmed · check_date=${today}`;
+    case "dog_only":
+      return `dog water · not human-potable · dog=yes · check_date=${today}`;
     case "out_of_order":
       return `${tagKey} → disused:${tagKey} · check_date=${today}`;
     case "removed":

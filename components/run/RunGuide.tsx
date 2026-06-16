@@ -9,6 +9,7 @@ import {
   SkipForwardIcon,
   PlusCircleIcon,
   MagnifyingGlassIcon,
+  DogIcon,
 } from "@phosphor-icons/react";
 import type { RunSession } from "@/hooks/useRunSession";
 import { fmtDist } from "@/lib/geo";
@@ -108,6 +109,12 @@ export default function RunGuide({
             <p className={`text-xs ${t.faint}`}>Last checked in OSM: {target.tags.check_date}</p>
           )}
 
+          {target && target.tags?.drinking_water === "no" && (
+            <p className="flex items-center gap-1.5 text-sm font-medium text-violet-500">
+              <DogIcon size={16} /> Dog water — not for humans
+            </p>
+          )}
+
           {!osm?.loggedIn && (
             <a
               href="/api/osm/auth"
@@ -125,6 +132,12 @@ export default function RunGuide({
                 className="flex items-center justify-center gap-2 rounded bg-green-600 py-3 font-semibold text-white disabled:opacity-50"
               >
                 <CheckCircleIcon size={20} /> Working — confirm (set check_date)
+              </button>
+              <button
+                onClick={() => record("dog_only")}
+                className="flex items-center justify-center gap-2 rounded bg-violet-600 py-3 font-semibold text-white disabled:opacity-50"
+              >
+                <DogIcon size={20} /> Dog water — not for humans
               </button>
               <button
                 onClick={() => record("out_of_order")}

@@ -18,6 +18,7 @@ import { createElement } from "react";
 const STATUS_COLOR: Record<StopStatus, string> = {
   pending: "#9ca3af",
   confirm: "#16a34a",
+  dog_only: "#7c3aed",
   out_of_order: "#d97706",
   removed: "#dc2626",
   skipped: "#6b7280",

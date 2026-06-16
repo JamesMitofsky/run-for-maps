@@ -7,6 +7,7 @@ import {
   TrashIcon,
   PlusCircleIcon,
   MinusCircleIcon,
+  DogIcon,
 } from "@phosphor-icons/react";
 import { useMap } from "react-leaflet";
 import type { Fountain, EditAction } from "@/lib/schemas";
@@ -26,9 +27,16 @@ export type PointEdit = {
 
 const STATUS_LABEL: Partial<Record<StopStatus, string>> = {
   confirm: "Confirmed working",
+  dog_only: "Marked dog water (not for humans)",
   out_of_order: "Marked out of order",
   removed: "Marked removed",
 };
+
+// True when OSM tags already flag this point as dog water / not human-potable,
+// so a future run shows the warning without re-surveying.
+function isDogWater(tags: Record<string, string>): boolean {
+  return tags.drinking_water === "no";
+}
 
 type Props = {
   fountain: Fountain;
@@ -66,6 +74,11 @@ export default function PointPopup({
         {fountain.tags.check_date && (
           <div className="text-xs text-neutral-500">
             Last checked in OSM: {fountain.tags.check_date}
+          </div>
+        )}
+        {isDogWater(fountain.tags) && (
+          <div className="mt-1 flex items-center gap-1 text-xs font-medium text-violet-700">
+            <DogIcon size={14} /> Dog water — not for humans
           </div>
         )}
       </div>
@@ -136,6 +149,13 @@ export default function PointPopup({
                   className="flex items-center justify-center gap-1.5 rounded bg-green-600 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
                 >
                   <CheckCircleIcon size={16} /> Working — confirm
+                </button>
+                <button
+                  disabled={busy}
+                  onClick={() => onAction("dog_only", note)}
+                  className="flex items-center justify-center gap-1.5 rounded bg-violet-600 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                >
+                  <DogIcon size={16} /> Dog water — not for humans
                 </button>
                 <button
                   disabled={busy}
