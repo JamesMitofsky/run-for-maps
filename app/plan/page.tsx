@@ -24,7 +24,6 @@ import { useRun, type RunStop, type StopStatus } from "@/store/run";
 import { useOutbox, outboxCounts } from "@/store/outbox";
 import type { MapMarker } from "@/components/MapView";
 import OsmStatusBar, { useOsmStatus } from "@/components/OsmStatus";
-import PointTypePicker from "@/components/PointTypePicker";
 import PointPopup, { type PointEdit } from "@/components/PointPopup";
 import SyncStatus from "@/components/SyncStatus";
 import RunGuide from "@/components/run/RunGuide";
@@ -77,7 +76,6 @@ const RECENCY_MODES: { key: RecencyMode; label: string }[] = [
 // The guided config steps, answered one at a time before the map takes over.
 const STEPS = [
   { key: "where", title: "Where do you start?", hint: "Click on the map or search" },
-  { key: "what", title: "What are you looking for?", hint: "Pick the kind of point to route past." },
   { key: "radius", title: "How wide should we search?", hint: undefined },
 ] as const;
 
@@ -879,17 +877,7 @@ export default function PlannerPage() {
                 </div>
               )}
 
-              {/* Step 2 — point type */}
-              {active.key === "what" && (
-                <div className="flex flex-col gap-2">
-                  <PointTypePicker value={tag} onChange={setTag} />
-                  <p className="text-xs text-cream-dim">
-                    Routes pass these points so you can verify them on the ground.
-                  </p>
-                </div>
-              )}
-
-              {/* Step 3 — search radius (defines the pool of points to choose from) */}
+              {/* Step 2 — search radius (defines the pool of points to choose from) */}
               {active.key === "radius" && (
                 <div className="flex flex-col gap-4">
                   <label className="flex items-center gap-2 text-sm">
