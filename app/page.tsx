@@ -406,7 +406,7 @@ export default function LandingPage() {
   return (
     <main className="paper-grain relative bg-paper font-body text-ink">
       {/* NAV */}
-      <header className="sticky top-0 z-50 border-b border-paper-line bg-paper/85 backdrop-blur-md">
+      <header className="sticky top-0 z-50 border-b border-paper-line bg-paper/85 pt-[env(safe-area-inset-top)] backdrop-blur-md">
         <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
           <Link href="/" className="flex items-center gap-5">
             <span className="flex items-center gap-2.5">
