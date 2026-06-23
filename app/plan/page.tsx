@@ -5,15 +5,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   MapPinIcon,
   CrosshairIcon,
   PathIcon,
   MagnifyingGlassIcon,
-  XIcon,
   ArrowLeftIcon,
   ArrowRightIcon,
-  ArrowsClockwiseIcon,
+  ArrowsLeftRightIcon,
   SlidersHorizontalIcon,
   CompassIcon,
 } from "@phosphor-icons/react";
@@ -1036,8 +1036,18 @@ export default function PlannerPage() {
                 </span>
               )}
 
-              {/* Route sizing: by a target distance, or by the points picked */}
-              <div className="flex flex-col gap-2">
+              {/* Route sizing: by a target distance, or by the points picked.
+                  Collapses away once a route exists to free vertical space. */}
+              <AnimatePresence initial={false}>
+                {stops.length === 0 && (
+                  <motion.div
+                    key="sizing"
+                    initial={false}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="flex flex-col gap-2 overflow-hidden"
+                  >
                 <div className="flex overflow-hidden rounded-lg border border-paper-line text-sm">
                   <button
                     onClick={() => setSizeMode("distance")}
@@ -1080,7 +1090,9 @@ export default function PlannerPage() {
                   />
                   Loop (finish back at start)
                 </label>
-              </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Map interaction help */}
               <div className="flex flex-col gap-2">
@@ -1117,19 +1129,30 @@ export default function PlannerPage() {
                 )}
               </div>
 
-              <div className="flex flex-col gap-2 border-t border-paper-line pt-4">
-                <button
-                  onClick={makeRoute}
-                  disabled={fountains.length === 0 || busy !== null || !sizingReady}
-                  className="flex items-center justify-center gap-2 rounded-full bg-ink py-2.5 text-sm font-bold text-paper transition hover:bg-ink-soft disabled:opacity-40 disabled:hover:bg-ink"
-                >
-                  <PathIcon size={16} />
-                  {busy === "route" ? "Planning…" : "Plan route"}
-                </button>
-                {fountains.length > 0 && !sizingReady && planHint && (
-                  <p className="text-center text-xs text-ink-dim">{planHint}</p>
+              <AnimatePresence initial={false}>
+                {stops.length === 0 && (
+                  <motion.div
+                    key="plan-btn"
+                    initial={false}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="flex flex-col gap-2 overflow-hidden border-t border-paper-line pt-4"
+                  >
+                    <button
+                      onClick={makeRoute}
+                      disabled={fountains.length === 0 || busy !== null || !sizingReady}
+                      className="flex items-center justify-center gap-2 rounded-full bg-ink py-2.5 text-sm font-bold text-paper transition hover:bg-ink-soft disabled:opacity-40 disabled:hover:bg-ink"
+                    >
+                      <PathIcon size={16} />
+                      {busy === "route" ? "Planning…" : "Plan route"}
+                    </button>
+                    {fountains.length > 0 && !sizingReady && planHint && (
+                      <p className="text-center text-xs text-ink-dim">{planHint}</p>
+                    )}
+                  </motion.div>
                 )}
-              </div>
+              </AnimatePresence>
 
               {stops.length > 0 && (
                 <div className="rounded-2xl border border-sky-deep/30 bg-sky/10 p-4 text-sm">
@@ -1146,43 +1169,25 @@ export default function PlannerPage() {
                       don&apos;t want.
                     </p>
                   )}
-                  <ul className="mt-2 flex flex-col gap-1">
-                    {stops.map((f, i) => (
-                      <li
-                        key={f.id}
-                        className="flex items-center justify-between gap-2 rounded-lg bg-sky/10 px-2 py-1 text-xs"
+                  <div className="mt-3 flex gap-2">
+                    {stops.length > 1 && (
+                      <button
+                        onClick={reverseRoute}
+                        disabled={busy !== null}
+                        className="flex flex-1 items-center justify-center gap-2 rounded-full border border-sky-deep/40 py-2.5 text-sm font-semibold text-sky-deep transition hover:bg-sky/10 disabled:opacity-40 disabled:hover:bg-transparent"
                       >
-                        <span className="flex min-w-0 items-center gap-1.5 truncate text-ink">
-                          <span className="shrink-0 font-semibold text-sky-deep">{i + 1}.</span>
-                          <span className="truncate">{markLabel(f)}</span>
-                        </span>
-                        <button
-                          onClick={() => removeStop(f.id)}
-                          className="shrink-0 text-ink-dim transition hover:text-red-300"
-                          aria-label="remove stop from route"
-                        >
-                          <XIcon size={14} />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                  {stops.length > 1 && (
+                        <ArrowsLeftRightIcon size={16} />
+                        {busy === "reverse" ? "Reversing…" : "Direction"}
+                      </button>
+                    )}
                     <button
-                      onClick={reverseRoute}
+                      onClick={startRun}
                       disabled={busy !== null}
-                      className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-sky-deep/40 py-2 text-sm font-semibold text-sky-deep transition hover:bg-sky/10 disabled:opacity-40 disabled:hover:bg-transparent"
+                      className="flex-1 rounded-full bg-ink py-2.5 font-bold text-paper transition hover:bg-ink-soft disabled:opacity-40"
                     >
-                      <ArrowsClockwiseIcon size={16} />
-                      {busy === "reverse" ? "Reversing…" : "Reverse direction"}
+                      Start run →
                     </button>
-                  )}
-                  <button
-                    onClick={startRun}
-                    disabled={busy !== null}
-                    className="mt-3 w-full rounded-full bg-ink py-2.5 font-bold text-paper transition hover:bg-ink-soft disabled:opacity-40"
-                  >
-                    Start run →
-                  </button>
+                  </div>
                 </div>
               )}
 
