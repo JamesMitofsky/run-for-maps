@@ -16,6 +16,7 @@ import {
 import type { RunSession } from "@/hooks/useRunSession";
 import { fmtDist } from "@/lib/geo";
 import SyncStatus from "@/components/SyncStatus";
+import OsmSignInLink from "@/components/OsmSignInLink";
 
 type Tone = "light" | "dark";
 
@@ -137,13 +138,12 @@ export default function RunGuide({
           )}
 
           {!osm?.loggedIn && (
-            <a
-              href="/api/osm/auth"
+            <OsmSignInLink
               className={`rounded py-2 text-center text-sm font-semibold ${t.signin}`}
               onClick={() => setTimeout(refresh, 1000)}
             >
               Sign in to OSM to record updates
-            </a>
+            </OsmSignInLink>
           )}
 
           {arrived && (

@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useOsmStatus } from "@/components/OsmStatus";
+import OsmSignInLink from "@/components/OsmSignInLink";
 
 // Dedicated sign-in page for the planner. The planner gates on OSM auth and
 // sends unauthenticated users here; once logged in we bounce back to /plan.
@@ -37,12 +38,9 @@ export default function PlanLoginPage() {
             open the map and start building routes.
           </p>
         </div>
-        <a
-          href="/api/osm/auth"
-          className="flex items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 font-bold text-paper transition hover:bg-ink-soft"
-        >
+        <OsmSignInLink className="flex items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 font-bold text-paper transition hover:bg-ink-soft">
           Sign in to OpenStreetMap
-        </a>
+        </OsmSignInLink>
       </section>
     </main>
   );

@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Native project + its vendored/generated JS (Capacitor bridge, copied web
+    // assets, DerivedData) — not ours to lint.
+    "ios/**",
+    ".api-stash/**",
   ]),
 ]);
 

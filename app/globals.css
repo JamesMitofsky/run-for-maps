@@ -27,10 +27,32 @@
   --foreground: #171717;
 }
 
+/* Behind everything — including the iOS rubber-band overscroll area — so the dark
+   theme never flashes white at the edges in the native app. */
+html {
+  background: var(--color-ink);
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-body), system-ui, -apple-system, Arial, sans-serif;
+}
+
+/* iOS safe-area helpers. The app draws edge-to-edge (viewport-fit=cover), so
+   edge-anchored overlays use these to clear the notch / Dynamic Island / home
+   indicator. Evaluate to 0 on devices without insets. */
+.safe-top {
+  top: env(safe-area-inset-top);
+}
+.safe-bottom-3 {
+  bottom: calc(0.75rem + env(safe-area-inset-bottom));
+}
+.safe-pt {
+  padding-top: env(safe-area-inset-top);
+}
+.safe-pb {
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* Keep Leaflet panes below app UI overlays. */

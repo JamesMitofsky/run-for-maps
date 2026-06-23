@@ -3,6 +3,7 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
+import NativeEntryRedirect from "@/components/NativeEntryRedirect";
 import {
   ArrowRightIcon,
   MapTrifoldIcon,
@@ -405,6 +406,7 @@ const STEPS = [
 export default function LandingPage() {
   return (
     <main className="paper-grain relative bg-paper font-body text-ink">
+      <NativeEntryRedirect />
       {/* NAV */}
       <header className="sticky top-0 z-50 border-b border-paper-line bg-paper/85 pt-[env(safe-area-inset-top)] backdrop-blur-md">
         <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">

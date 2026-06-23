@@ -12,6 +12,7 @@ import {
 import { useMap } from "react-leaflet";
 import type { Fountain, EditAction } from "@/lib/schemas";
 import type { StopStatus } from "@/store/run";
+import OsmSignInLink from "@/components/OsmSignInLink";
 import type { SyncState } from "@/store/outbox";
 import { SyncBadge } from "@/components/SyncStatus";
 
@@ -128,12 +129,9 @@ export default function PointPopup({
 
           <div className={onToggleRoute ? "border-t border-neutral-200 pt-2" : ""}>
             {!loggedIn ? (
-              <a
-                href="/api/osm/auth"
-                className="block rounded bg-blue-600 py-1.5 text-center text-xs font-semibold text-white"
-              >
+              <OsmSignInLink className="block rounded bg-blue-600 py-1.5 text-center text-xs font-semibold text-white">
                 Sign in to OSM to update
-              </a>
+              </OsmSignInLink>
             ) : (
               <div className="flex flex-col gap-1.5">
                 <textarea

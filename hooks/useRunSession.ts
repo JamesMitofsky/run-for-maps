@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRun, type RunStop, type StopStatus } from "@/store/run";
 import { useOutbox } from "@/store/outbox";
 import { bearing, compass, haversine, type Pt } from "@/lib/geo";
@@ -12,7 +12,13 @@ import { useOsmStatus } from "@/components/OsmStatus";
 import PointPopup from "@/components/PointPopup";
 import { celebratePoint } from "@/lib/confetti";
 import { useHeading } from "@/lib/useHeading";
-import { archiveRoute } from "@/lib/routeArchive";
+import { archiveRoute, getArchivedRoutes } from "@/lib/routeArchive";
+import { apiFetch, isNative } from "@/lib/api";
+import { watchRunPosition, type GeoWatch } from "@/lib/geolocation";
+import { hapticSuccess } from "@/lib/haptics";
+import { keepAwake, allowSleep } from "@/lib/keepAwake";
+import { ensureNotifyPermission, notifyProximity, notifyRunComplete } from "@/lib/notify";
+import { startRunActivity, updateRunActivity, endRunActivity } from "@/lib/liveActivity";
 import { createElement } from "react";
 
 const STATUS_COLOR: Record<StopStatus, string> = {
@@ -60,7 +66,18 @@ export function useRunSession({ enabled = true }: { enabled?: boolean } = {}) {
   // above covers that first render; `finally` clears it).
   useEffect(() => {
     if (!enabled || useRun.getState().hasPlan) return;
-    fetch("/api/run")
+    // Native has no server run state (the /api/run JSON file is web-only) — recover
+    // the most recent run from the on-device route archive instead. Works offline.
+    // Deferred off the effect body so the state update doesn't cascade-render.
+    if (isNative()) {
+      Promise.resolve().then(() => {
+        const latest = getArchivedRoutes()[0];
+        if (latest?.plan?.stops?.length) useRun.getState().hydrate(latest.plan);
+        setHydrating(false);
+      });
+      return;
+    }
+    apiFetch("/api/run")
       .then((r) => r.json())
       .then((plan) => {
         if (plan && plan.stops?.length) useRun.getState().hydrate(plan);
@@ -68,20 +85,42 @@ export function useRunSession({ enabled = true }: { enabled?: boolean } = {}) {
       .finally(() => setHydrating(false));
   }, [enabled]);
 
-  // Live position — only while armed.
+  // Live position — only while armed. Native uses background geolocation so the
+  // run keeps tracking with the screen off / app backgrounded (see lib/geolocation);
+  // web uses the browser API. Points feed the same arrival/distance/archive path.
   useEffect(() => {
-    if (!enabled || !navigator.geolocation) return;
-    const id = navigator.geolocation.watchPosition(
+    if (!enabled) return;
+    let watch: GeoWatch | null = null;
+    let cancelled = false;
+    watchRunPosition(
       (p) => {
-        setPos({ lat: p.coords.latitude, lon: p.coords.longitude });
+        setPos({ lat: p.lat, lon: p.lon });
         // GPS heading is the travel direction in degrees, present only while
         // moving. Used as fallback when the compass is denied/unsupported.
-        if (p.coords.heading != null && Number.isFinite(p.coords.heading)) setGpsHeading(p.coords.heading);
+        if (p.heading != null) setGpsHeading(p.heading);
       },
-      (e) => setErr(`Location: ${e.message}`),
-      { enableHighAccuracy: true, maximumAge: 5000 },
-    );
-    return () => navigator.geolocation.clearWatch(id);
+      (msg) => setErr(`Location: ${msg}`),
+    ).then((w) => {
+      // Effect may have torn down before the async watch resolved.
+      if (cancelled) w.clear();
+      else watch = w;
+    });
+    return () => {
+      cancelled = true;
+      watch?.clear();
+    };
+  }, [enabled]);
+
+  // Keep the screen awake for the duration of the armed run (native only).
+  useEffect(() => {
+    if (!enabled) return;
+    keepAwake();
+    return () => void allowSleep();
+  }, [enabled]);
+
+  // Ask for notification permission once, when the run is armed.
+  useEffect(() => {
+    if (enabled) ensureNotifyPermission();
   }, [enabled]);
 
   const { stops, index, loop, tagKey, tagValue, added } = run;
@@ -95,6 +134,75 @@ export function useRunSession({ enabled = true }: { enabled?: boolean } = {}) {
 
   // Derived: armed manually ("I'm here") or auto within 30 m.
   const arrived = manualArrived || (distToTarget != null && distToTarget < 30);
+
+  // Proximity alert for the current target — useful when the phone is pocketed or
+  // the app is backgrounded. Fires once per target as you close within ~80 m
+  // (auto-arrival at 30 m is handled by the on-screen UI). The ref stops it from
+  // re-firing on every GPS tick.
+  const notifiedProxRef = useRef<number>(-1);
+  useEffect(() => {
+    if (!enabled || !target || distToTarget == null) return;
+    if (distToTarget < 80 && distToTarget >= 30 && notifiedProxRef.current !== index) {
+      notifiedProxRef.current = index;
+      notifyProximity(target.tags?.name || `node ${target.id}`, distToTarget);
+    }
+  }, [enabled, target, distToTarget, index]);
+
+  // Notify once when the whole route is done (the changeset can be closed even from
+  // the lock screen notification's app-open).
+  const notifiedDoneRef = useRef(false);
+  useEffect(() => {
+    if (!enabled) return;
+    if (done && !notifiedDoneRef.current) {
+      notifiedDoneRef.current = true;
+      const surveyed = stops.filter((s) => s.status !== "pending" && s.status !== "skipped").length;
+      notifyRunComplete(surveyed);
+    }
+    if (!done) notifiedDoneRef.current = false;
+  }, [enabled, done, stops]);
+
+  // iOS Live Activity (lock screen / Dynamic Island). No-op until the native
+  // RunActivity plugin + widget are added (see ios/LiveActivity/SETUP.md). Throttled
+  // to target changes + 25 m distance buckets to stay within iOS update limits.
+  const laStartedRef = useRef(false);
+  const laKeyRef = useRef("");
+  useEffect(() => {
+    if (!enabled) return;
+    if (done || !run.hasPlan || stops.length === 0) {
+      if (laStartedRef.current) {
+        endRunActivity();
+        laStartedRef.current = false;
+        laKeyRef.current = "";
+      }
+      return;
+    }
+    const state = {
+      nextName: target?.tags?.name || (target ? `node ${target.id}` : "Run"),
+      distanceToNext: distToTarget != null ? Math.round(distToTarget) : -1,
+      stopsRemaining: Math.max(0, stops.length - index),
+      totalStops: stops.length,
+    };
+    const key = `${index}:${distToTarget == null ? "x" : Math.round(distToTarget / 25)}`;
+    if (!laStartedRef.current) {
+      laStartedRef.current = true;
+      laKeyRef.current = key;
+      startRunActivity(state);
+    } else if (key !== laKeyRef.current) {
+      laKeyRef.current = key;
+      updateRunActivity(state);
+    }
+  }, [enabled, done, run.hasPlan, stops.length, index, target, distToTarget]);
+
+  // End the activity if the hook unmounts mid-run.
+  useEffect(
+    () => () => {
+      if (laStartedRef.current) {
+        endRunActivity();
+        laStartedRef.current = false;
+      }
+    },
+    [],
+  );
 
   async function persist(nextIndex: number, changesetId?: number) {
     const routeId = useRun.getState().routeId;
@@ -114,7 +222,8 @@ export function useRunSession({ enabled = true }: { enabled?: boolean } = {}) {
     // Durable on-device record of this route + every node change, kept across N
     // routes. Written first so the archive survives even if the server POST fails.
     archiveRoute({ routeId, plan, edits: useOutbox.getState().items });
-    await fetch("/api/run", {
+    // No-op on native (the archive above is the source of truth there).
+    await apiFetch("/api/run", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...plan, routeId }),
@@ -138,6 +247,7 @@ export function useRunSession({ enabled = true }: { enabled?: boolean } = {}) {
     useOutbox.getState().enqueue({ nodeId: node.id, action, tagKey, name: node.tags?.name, comment });
     run.setStatus(node.id, action as StopStatus);
     celebratePoint();
+    hapticSuccess();
     setLastSaved({ nodeId: node.id, summary: editSummary(action, tagKey, todayLocal()) });
     if (isCurrent) {
       persist(index + 1);
@@ -188,7 +298,7 @@ export function useRunSession({ enabled = true }: { enabled?: boolean } = {}) {
     setErr(null);
     setLastSaved(null);
     try {
-      const r = await fetch("/api/osm/create", {
+      const r = await apiFetch("/api/osm/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -203,6 +313,7 @@ export function useRunSession({ enabled = true }: { enabled?: boolean } = {}) {
       useOutbox.getState().setChangeset(j.changesetId);
       run.addNode({ id: j.nodeId, lat: j.lat, lon: j.lon, tags: j.tags });
       celebratePoint();
+      hapticSuccess();
       setLastSaved({ nodeId: j.nodeId, summary: j.summary });
       await persist(index);
     } catch (e) {
@@ -218,7 +329,7 @@ export function useRunSession({ enabled = true }: { enabled?: boolean } = {}) {
     try {
       const changesetId = useOutbox.getState().changesetId;
       if (changesetId) {
-        const r = await fetch("/api/osm/close", {
+        const r = await apiFetch("/api/osm/close", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ changesetId }),

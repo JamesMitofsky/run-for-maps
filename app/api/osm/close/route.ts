@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { getOsmToken } from "@/lib/osmToken";
 import { closeChangeset, changesetUrl } from "@/lib/osm";
 
 // Close the run's changeset when the run ends.
 export async function POST(req: Request) {
-  const jar = await cookies();
-  const token = jar.get("osm_token")?.value;
+  const token = await getOsmToken(req);
   if (!token) return NextResponse.json({ ok: false, error: "not signed in" }, { status: 401 });
   const { changesetId } = (await req.json()) as { changesetId?: number };
   if (!changesetId) return NextResponse.json({ ok: true });
