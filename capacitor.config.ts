@@ -28,6 +28,8 @@ const config: CapacitorConfig = {
       "api.openstreetmap.org",
       "master.apis.dev.openstreetmap.org",
       "overpass-api.de",
+      "overpass.kumi.systems",
+      "overpass.private.coffee",
       "brouter.de",
     ],
   },

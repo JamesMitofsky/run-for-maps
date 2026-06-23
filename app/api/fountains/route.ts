@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { FountainsRequest } from "@/lib/schemas";
-import { fetchFountains } from "@/lib/overpass";
+import { fetchFountains, OverpassError } from "@/lib/overpass";
 import { writeJson } from "@/lib/db";
 
 export async function POST(req: Request) {
@@ -24,6 +24,11 @@ export async function POST(req: Request) {
     }).catch(() => {});
     return NextResponse.json({ fountains });
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 502 });
+    const retryable = e instanceof OverpassError ? e.retryable : false;
+    return NextResponse.json(
+      { error: { message: (e as Error).message, retryable } },
+      // 503 (Service Unavailable) for transient overload/timeout, 502 otherwise.
+      { status: retryable ? 503 : 502 },
+    );
   }
 }

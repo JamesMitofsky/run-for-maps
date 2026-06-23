@@ -37,8 +37,107 @@ function monthsAgo(months: number): number {
   return d.getTime();
 }
 
-const OVERPASS_URL =
-  process.env.OVERPASS_URL || "https://overpass-api.de/api/interpreter";
+// Public Overpass mirrors, all serving identical ODbL OSM data. Tried in order;
+// when the primary is overloaded (504/429) we fall through to the next. An env
+// override is prepended so a self-hosted instance takes priority.
+const OVERPASS_ENDPOINTS = [
+  process.env.OVERPASS_URL,
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+  "https://overpass.private.coffee/api/interpreter",
+].filter((u): u is string => !!u);
+
+// Per-request client timeout. Slightly above the [timeout:25] server hint so a
+// hung socket doesn't wait forever, but the server gets its full budget first.
+const FETCH_TIMEOUT_MS = 30_000;
+const MAX_ATTEMPTS_PER_ENDPOINT = 2;
+
+// Error thrown when every Overpass endpoint/attempt is exhausted. Carries a
+// short, already-cleaned message (never raw HTML) plus a retryable hint so the
+// API route and UI can offer a sensible recovery path.
+export class OverpassError extends Error {
+  status: number | null;
+  retryable: boolean;
+  constructor(message: string, status: number | null, retryable: boolean) {
+    super(message);
+    this.name = "OverpassError";
+    this.status = status;
+    this.retryable = retryable;
+  }
+}
+
+// Turn an Overpass error body (often a full XHTML doc) into a short human line.
+function cleanErrorBody(status: number, body: string): string {
+  const lower = body.toLowerCase();
+  if (status === 429 || lower.includes("too many requests")) {
+    return "OpenStreetMap's data server is rate limiting requests. Please wait a moment and try again.";
+  }
+  if (lower.includes("too busy") || lower.includes("timeout") || status === 504) {
+    return "OpenStreetMap's data server is busy right now. Please try again in a moment.";
+  }
+  return `OpenStreetMap's data server returned an error (${status}). Please try again shortly.`;
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// Fetch an Overpass query with a client timeout, per-endpoint retries, and
+// fallback across mirrors. Returns the parsed JSON; throws OverpassError when
+// all options are exhausted.
+async function fetchOverpass(query: string): Promise<{ elements: OverpassEl[] }> {
+  let lastError: OverpassError | null = null;
+
+  for (const url of OVERPASS_ENDPOINTS) {
+    for (let attempt = 0; attempt < MAX_ATTEMPTS_PER_ENDPOINT; attempt++) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "User-Agent": "run-for-maps/1.0 (OSM survey tool)",
+          },
+          body: new URLSearchParams({ data: query }).toString(),
+          signal: controller.signal,
+        });
+        if (res.ok) {
+          return (await res.json()) as { elements: OverpassEl[] };
+        }
+        // 429 and 5xx are transient server-side conditions — retry/fall through.
+        const retryable = res.status === 429 || res.status >= 500;
+        lastError = new OverpassError(
+          cleanErrorBody(res.status, await res.text()),
+          res.status,
+          retryable,
+        );
+        if (!retryable) throw lastError;
+      } catch (e) {
+        if (e instanceof OverpassError) {
+          if (!e.retryable) throw e; // non-retryable status: surface immediately
+        } else {
+          // Abort (timeout) or network error — treat as retryable.
+          const aborted = (e as Error).name === "AbortError";
+          lastError = new OverpassError(
+            aborted
+              ? "OpenStreetMap's data server took too long to respond. Please try again."
+              : "Couldn't reach OpenStreetMap's data server. Check your connection and try again.",
+            null,
+            true,
+          );
+        }
+      } finally {
+        clearTimeout(timer);
+      }
+      // Short exponential backoff before the next attempt on this endpoint.
+      await sleep(500 * (attempt + 1));
+    }
+  }
+
+  throw (
+    lastError ??
+    new OverpassError("Couldn't reach OpenStreetMap's data server.", null, true)
+  );
+}
 
 type OverpassEl = {
   type: string;
@@ -77,18 +176,7 @@ export async function fetchFountains(
 ): Promise<Fountain[]> {
   const query = buildQuery(lat, lon, radiusM, tag);
   const cutoffMs = monthsAgo(recencyMonths);
-  const res = await fetch(OVERPASS_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      "User-Agent": "run-for-maps/1.0 (OSM survey tool)",
-    },
-    body: new URLSearchParams({ data: query }).toString(),
-  });
-  if (!res.ok) {
-    throw new Error(`Overpass error ${res.status}: ${await res.text()}`);
-  }
-  const json = (await res.json()) as { elements: OverpassEl[] };
+  const json = await fetchOverpass(query);
   return json.elements
     .map((el): Fountain | null => {
       const lt = el.lat ?? el.center?.lat;

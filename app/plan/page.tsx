@@ -139,6 +139,8 @@ export default function PlannerPage() {
   const [autoCount, setAutoCount] = useState(0);
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  // Whether the current error is a transient server failure worth retrying.
+  const [errRetryable, setErrRetryable] = useState(false);
 
   // Session recovery: a saved route from a previous (interrupted) session, and a
   // gate so we don't persist a draft until the initial load has run.
@@ -476,6 +478,7 @@ export default function PlannerPage() {
     setResumable(null);
     setBusy("find");
     setErr(null);
+    setErrRetryable(false);
     setStops([]);
     setLine([]);
     setPinnedIds([]);
@@ -496,7 +499,18 @@ export default function PlannerPage() {
         }),
       });
       const j = await r.json();
-      if (!r.ok) throw new Error(j.error?.formErrors?.join(", ") || j.error || "fetch failed");
+      if (!r.ok) {
+        const e = j.error;
+        // Error can be a zod flatten ({formErrors}), a structured Overpass
+        // error ({message, retryable}), or a plain string.
+        const msg =
+          e?.formErrors?.join(", ") ||
+          e?.message ||
+          (typeof e === "string" ? e : "") ||
+          "Couldn't load points. Please try again.";
+        setErrRetryable(!!e?.retryable);
+        throw new Error(msg);
+      }
       setFountains(j.fountains);
       if (j.fountains.length === 0) setErr("No matching points in radius.");
     } catch (e) {
@@ -952,7 +966,19 @@ export default function PlannerPage() {
             </div>
 
             {err && (
-              <p className="rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-sm text-red-300">{err}</p>
+              <div className="flex flex-col gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-sm text-red-300">
+                <span>{err}</span>
+                {errRetryable && (
+                  <button
+                    type="button"
+                    onClick={findPoints}
+                    disabled={busy === "find"}
+                    className="self-start rounded-md border border-red-500/40 px-2 py-1 text-xs font-medium text-red-200 hover:bg-red-500/20 disabled:opacity-50"
+                  >
+                    {busy === "find" ? "Trying…" : "Try again"}
+                  </button>
+                )}
+              </div>
             )}
 
             {/* Wizard nav */}
@@ -1185,6 +1211,16 @@ export default function PlannerPage() {
                       Remove that point (or move your nearest waypoint), then the route
                       re-plans on its own.
                     </span>
+                  )}
+                  {errRetryable && (
+                    <button
+                      type="button"
+                      onClick={findPoints}
+                      disabled={busy === "find"}
+                      className="self-start rounded-md border border-red-500/40 px-2 py-1 text-xs font-medium text-red-200 hover:bg-red-500/20 disabled:opacity-50"
+                    >
+                      {busy === "find" ? "Trying…" : "Try again"}
+                    </button>
                   )}
                 </div>
               )}
