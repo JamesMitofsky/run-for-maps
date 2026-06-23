@@ -30,6 +30,9 @@ import RunGuide from "@/components/run/RunGuide";
 import RunComplete from "@/components/run/RunComplete";
 import { useRunSession } from "@/hooks/useRunSession";
 import { celebratePoint } from "@/lib/confetti";
+import { apiFetch, isNative } from "@/lib/api";
+import { getCurrentPosition } from "@/lib/geolocation";
+import { getArchivedRoutes } from "@/lib/routeArchive";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 
@@ -200,7 +203,20 @@ export default function PlannerPage() {
   // finished run (index past the last stop) is ignored so it can't hijack a
   // fresh planning session.
   useEffect(() => {
-    fetch("/api/run")
+    // Native: recover an interrupted run from the on-device archive (no server
+    // run state). Web: read it back from /api/run. Deferred off the effect body so
+    // the state update doesn't cascade-render synchronously.
+    if (isNative()) {
+      Promise.resolve().then(() => {
+        const plan = getArchivedRoutes()[0]?.plan;
+        if (plan && plan.stops?.length && (plan.index ?? 0) < plan.stops.length) {
+          useRun.getState().hydrate(plan);
+          setPhase("run");
+        }
+      });
+      return;
+    }
+    apiFetch("/api/run")
       .then((r) => r.json())
       .then((plan) => {
         if (plan && plan.stops?.length && (plan.index ?? 0) < plan.stops.length) {
@@ -214,7 +230,7 @@ export default function PlannerPage() {
   // On mount, look for a saved route from a prior session. If one exists, offer
   // to resume it rather than restoring silently (the user may want a fresh plan).
   useEffect(() => {
-    fetch("/api/draft")
+    apiFetch("/api/draft")
       .then((r) => r.json())
       .then((d: Draft | null) => {
         if (d && d.stops?.length) setResumable(d);
@@ -245,7 +261,7 @@ export default function PlannerPage() {
       distanceM,
       autoCount,
     };
-    fetch("/api/draft", {
+    apiFetch("/api/draft", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(draft),
@@ -297,7 +313,7 @@ export default function PlannerPage() {
   // Drop the saved route — the user wants to start fresh.
   function dismissDraft() {
     setResumable(null);
-    fetch("/api/draft", { method: "DELETE" }).catch(() => {});
+    apiFetch("/api/draft", { method: "DELETE" }).catch(() => {});
   }
 
   function recenter(p: Pt) {
@@ -407,7 +423,7 @@ export default function PlannerPage() {
     setClosingEdits(true);
     setErr(null);
     try {
-      const r = await fetch("/api/osm/close", {
+      const r = await apiFetch("/api/osm/close", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ changesetId }),
@@ -431,10 +447,9 @@ export default function PlannerPage() {
 
   function geolocate() {
     setErr(null);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => recenter({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-      (e) => setErr(`Geolocation failed: ${e.message}`),
-    );
+    getCurrentPosition()
+      .then((p) => recenter({ lat: p.lat, lon: p.lon }))
+      .catch((e) => setErr(`Geolocation failed: ${(e as Error).message}`));
   }
 
   async function searchAddr() {
@@ -469,7 +484,7 @@ export default function PlannerPage() {
     setHasRoute(false);
     setIslandPt(null);
     try {
-      const r = await fetch("/api/fountains", {
+      const r = await apiFetch("/api/fountains", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -543,7 +558,7 @@ export default function PlannerPage() {
         return;
       }
       const points = [center, ...ordered.map((n) => ({ lat: n.lat, lon: n.lon }))];
-      const r = await fetch("/api/route", {
+      const r = await apiFetch("/api/route", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ points, loop: lp }),
@@ -596,7 +611,7 @@ export default function PlannerPage() {
     const fresh = () => seq === planRequestSeq;
     try {
       const points = [center, ...reversed.map((f) => ({ lat: f.lat, lon: f.lon }))];
-      const r = await fetch("/api/route", {
+      const r = await apiFetch("/api/route", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ points, loop }),
@@ -632,13 +647,13 @@ export default function PlannerPage() {
       distanceM,
     };
     setPlan(plan);
-    await fetch("/api/run", {
+    await apiFetch("/api/run", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...plan, index: 0 }),
     });
     // Route promoted to an active run; drop the planner draft so we don't re-offer it.
-    fetch("/api/draft", { method: "DELETE" }).catch(() => {});
+    apiFetch("/api/draft", { method: "DELETE" }).catch(() => {});
     // Stay on this map — just hand the side panel over to the live run.
     setPhase("run");
   }
@@ -760,7 +775,7 @@ export default function PlannerPage() {
   return (
     <main
       ref={scope}
-      className="relative flex min-h-screen w-screen flex-col bg-paper font-body text-ink md:block md:h-screen md:overflow-hidden"
+      className="safe-pb relative flex min-h-screen w-screen flex-col bg-paper font-body text-ink md:block md:h-screen md:overflow-hidden"
     >
       {/* Mobile: map sits at the top with a fixed height and the panel flows below it.
           Desktop (md+): map fills the screen and the cards float on top. */}
@@ -783,7 +798,7 @@ export default function PlannerPage() {
         {phase === "run" && session.needsCompassPermission && (
           <button
             onClick={session.requestCompass}
-            className="absolute bottom-3 right-3 z-[1000] flex items-center gap-1.5 rounded-full bg-paper/95 px-3 py-1.5 text-xs font-semibold text-sky-deep shadow-md"
+            className="safe-bottom-3 absolute right-3 z-[1000] flex items-center gap-1.5 rounded-full bg-paper/95 px-3 py-1.5 text-xs font-semibold text-sky-deep shadow-md"
           >
             <CompassIcon size={16} weight="fill" />
             Enable compass
@@ -794,7 +809,7 @@ export default function PlannerPage() {
       {/* Top bar: OSM status, floating over the map. Hidden during a run so the
           map is the topmost element on the route — nothing overlaps its top edge. */}
       {phase !== "run" && (
-        <header className="pointer-events-none absolute inset-x-0 top-0 z-[1000] flex flex-wrap items-center justify-start gap-3 p-4 md:p-5">
+        <header className="safe-top pointer-events-none absolute inset-x-0 z-[1000] flex flex-wrap items-center justify-start gap-3 p-4 md:p-5">
           <div className="pointer-events-auto">
             <OsmStatusBar />
           </div>

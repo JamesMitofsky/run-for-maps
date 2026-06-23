@@ -4,6 +4,7 @@ import { FlagCheckeredIcon } from "@phosphor-icons/react";
 import type { RunSession } from "@/hooks/useRunSession";
 import { useOutbox, outboxCounts } from "@/store/outbox";
 import SyncStatus from "@/components/SyncStatus";
+import { canShare, shareRun } from "@/lib/share";
 
 type Tone = "light" | "dark";
 
@@ -81,6 +82,19 @@ export default function RunComplete({
             >
               View {editCount} {editCount === 1 ? "edit" : "edits"} on OpenStreetMap →
             </a>
+          )}
+          {closed?.changesetUrl && canShare() && (
+            <button
+              onClick={() =>
+                shareRun(
+                  closed.changesetUrl!,
+                  `I surveyed ${editCount} OpenStreetMap ${editCount === 1 ? "point" : "points"} on a run with ROSM.`,
+                )
+              }
+              className={`w-full rounded border py-3 font-semibold ${tone === "dark" ? "border-white/15 text-cream-dim" : "border-neutral-300 text-neutral-700"}`}
+            >
+              Share run
+            </button>
           )}
           <button onClick={onExit} className={`w-full rounded py-3 font-semibold ${t.primary}`}>
             Done

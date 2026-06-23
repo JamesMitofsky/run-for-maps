@@ -42,7 +42,7 @@ export default function RunPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col bg-paper text-ink">
+    <main className="safe-pb flex min-h-screen flex-col bg-paper text-ink">
       <div className="relative h-[42vh] w-full">
         <MapView
           center={session.center}
@@ -57,7 +57,7 @@ export default function RunPage() {
         {session.needsCompassPermission && (
           <button
             onClick={session.requestCompass}
-            className="absolute bottom-3 right-3 z-[1000] flex items-center gap-1.5 rounded-full bg-paper/95 px-3 py-1.5 text-xs font-semibold text-sky-deep shadow-md"
+            className="safe-bottom-3 absolute right-3 z-[1000] flex items-center gap-1.5 rounded-full bg-paper/95 px-3 py-1.5 text-xs font-semibold text-sky-deep shadow-md"
           >
             <CompassIcon size={16} weight="fill" />
             Enable compass

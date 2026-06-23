@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { EditAction } from "@/lib/schemas";
 import { editSummary, todayLocal } from "@/lib/editSummary";
 import { idbGetAll, idbPut, idbClearOutbox, idbGetMeta, idbSetMeta } from "@/lib/idb";
+import { apiFetch } from "@/lib/api";
 
 // Where a queued edit is in its journey to OSM.
 //   pending  — written locally, not yet sent (offline, or just enqueued)
@@ -127,7 +128,7 @@ export const useOutbox = create<OutboxState>((set, get) => {
 
           persist({ ...item, syncState: "sending" });
           try {
-            const r = await fetch("/api/osm/edit", {
+            const r = await apiFetch("/api/osm/edit", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({

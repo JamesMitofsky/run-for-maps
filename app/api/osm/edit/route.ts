@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { getOsmToken } from "@/lib/osmToken";
 import { EditRequest } from "@/lib/schemas";
 import {
   openChangeset,
@@ -14,8 +14,7 @@ import { appendJson } from "@/lib/db";
 import { editSummary } from "@/lib/editSummary";
 
 export async function POST(req: Request) {
-  const jar = await cookies();
-  const token = jar.get("osm_token")?.value;
+  const token = await getOsmToken(req);
   if (!token) return NextResponse.json({ error: "not signed in to OSM" }, { status: 401 });
 
   const parsed = EditRequest.safeParse(await req.json());

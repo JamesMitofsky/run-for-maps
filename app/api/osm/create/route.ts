@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { getOsmToken } from "@/lib/osmToken";
 import { CreateNodeRequest } from "@/lib/schemas";
 import { openChangeset, createNode, todayIso, changesetUrl } from "@/lib/osm";
 import { appendJson } from "@/lib/db";
@@ -8,8 +8,7 @@ import { appendJson } from "@/lib/db";
 // isn't yet in OSM. Tags it with the point type being surveyed plus a
 // check_date (it was just observed).
 export async function POST(req: Request) {
-  const jar = await cookies();
-  const token = jar.get("osm_token")?.value;
+  const token = await getOsmToken(req);
   if (!token) return NextResponse.json({ error: "not signed in to OSM" }, { status: 401 });
 
   const parsed = CreateNodeRequest.safeParse(await req.json());
