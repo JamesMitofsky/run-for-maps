@@ -15,7 +15,6 @@ import {
   ArrowRightIcon,
   ArrowsLeftRightIcon,
   SlidersHorizontalIcon,
-  CompassIcon,
 } from "@phosphor-icons/react";
 import { planRoute } from "@/lib/plan";
 import { fmtDist, milesToMeters, type Pt } from "@/lib/geo";
@@ -28,6 +27,7 @@ import PointPopup, { type PointEdit } from "@/components/PointPopup";
 import SyncStatus from "@/components/SyncStatus";
 import RunGuide from "@/components/run/RunGuide";
 import RunComplete from "@/components/run/RunComplete";
+import CompassEnableModal from "@/components/run/CompassEnableModal";
 import { useRunSession } from "@/hooks/useRunSession";
 import { celebratePoint } from "@/lib/confetti";
 import { apiFetch, isNative } from "@/lib/api";
@@ -809,14 +809,11 @@ export default function PlannerPage() {
           onMapClick={phase === "run" ? undefined : handleMapClick}
           className="absolute inset-0 h-full w-full"
         />
-        {phase === "run" && session.needsCompassPermission && (
-          <button
-            onClick={session.requestCompass}
-            className="safe-bottom-3 absolute right-3 z-[1000] flex items-center gap-1.5 rounded-full bg-paper/95 px-3 py-1.5 text-xs font-semibold text-sky-deep shadow-md"
-          >
-            <CompassIcon size={16} weight="fill" />
-            Enable compass
-          </button>
+        {phase === "run" && (
+          <CompassEnableModal
+            open={session.needsCompassPermission}
+            onEnable={session.requestCompass}
+          />
         )}
       </div>
 
