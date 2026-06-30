@@ -48,6 +48,7 @@ export default function RunPage() {
           center={session.center}
           zoom={16}
           recenterKey={session.recenterKey}
+          fitPoints={session.fitPoints}
           markers={session.markers}
           line={session.line}
           userPos={session.userPos}

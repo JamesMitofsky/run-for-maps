@@ -399,7 +399,13 @@ export function useRunSession({ enabled = true }: { enabled?: boolean } = {}) {
       ? [target.lat, target.lon]
       : [run.start.lat, run.start.lon];
 
-  const recenterKey = pos ? `${pos.lat.toFixed(4)},${pos.lon.toFixed(4)}` : "t";
+  // Fit user + next target both in view when both known; else just center.
+  const fitPoints: [number, number][] | undefined =
+    pos && target ? [[pos.lat, pos.lon], [target.lat, target.lon]] : undefined;
+
+  const recenterKey =
+    (pos ? `${pos.lat.toFixed(4)},${pos.lon.toFixed(4)}` : "t") +
+    (target ? `|${target.lat.toFixed(4)},${target.lon.toFixed(4)}` : "");
   const userPos: [number, number] | null = pos ? [pos.lat, pos.lon] : null;
 
   return {
@@ -412,6 +418,7 @@ export function useRunSession({ enabled = true }: { enabled?: boolean } = {}) {
     needsCompassPermission,
     requestCompass,
     recenterKey,
+    fitPoints,
     // lifecycle
     hydrating,
     done,

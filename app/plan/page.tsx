@@ -798,6 +798,7 @@ export default function PlannerPage() {
           center={phase === "run" ? session.center : viewCenter}
           zoom={phase === "run" ? 16 : 14}
           recenterKey={phase === "run" ? session.recenterKey : viewKey}
+          fitPoints={phase === "run" ? session.fitPoints : undefined}
           markers={
             phase === "run"
               ? session.markers

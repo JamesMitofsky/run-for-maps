@@ -38,6 +38,9 @@ type Props = {
   // Fired when the user drags the map, so callers can drop "follow me" mode.
   onUserPan?: () => void;
   recenterKey?: string; // change to force recenter on `center`
+  // When set (>=2 points), the map zooms to fit all points instead of just
+  // centering on `center`. Used to keep user + next target both in view.
+  fitPoints?: [number, number][];
   className?: string;
 };
 
@@ -109,10 +112,22 @@ function MarkerView({ m }: { m: MapMarker }) {
   );
 }
 
-function Recenter({ center, recenterKey }: { center: [number, number]; recenterKey?: string }) {
+function Recenter({
+  center,
+  recenterKey,
+  fitPoints,
+}: {
+  center: [number, number];
+  recenterKey?: string;
+  fitPoints?: [number, number][];
+}) {
   const map = useMap();
   useEffect(() => {
-    map.setView(center);
+    if (fitPoints && fitPoints.length >= 2) {
+      map.fitBounds(L.latLngBounds(fitPoints), { padding: [60, 60], maxZoom: 16 });
+    } else {
+      map.setView(center);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recenterKey]);
   return null;
@@ -152,6 +167,7 @@ export default function MapView({
   onMapClick,
   onUserPan,
   recenterKey,
+  fitPoints,
   className,
 }: Props) {
   return (
@@ -174,7 +190,7 @@ export default function MapView({
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <Recenter center={center} recenterKey={recenterKey} />
+      <Recenter center={center} recenterKey={recenterKey} fitPoints={fitPoints} />
       <ClickHandler onMapClick={onMapClick} onUserPan={onUserPan} />
       {line && line.length > 1 && <Polyline positions={line} pathOptions={{ color: "#2563eb", weight: 5, opacity: 0.8 }} />}
       {markers.map((m) => (
