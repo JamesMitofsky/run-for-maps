@@ -420,12 +420,21 @@ export default function LandingPage() {
               Running for Open-Sourced Maps
             </span>
           </Link>
-          <Link
-            href="/plan"
-            className="rounded-full border border-ink bg-ink px-5 py-2 text-sm font-bold text-paper transition hover:bg-transparent hover:text-ink"
-          >
-            Plan a route
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/public-fountains"
+              className="group inline-flex items-center gap-2 rounded-full border border-ink px-5 py-2 text-sm font-bold text-ink transition hover:bg-ink hover:text-paper"
+            >
+              <MapTrifoldIcon size={16} weight="bold" />
+              Fountains near you
+            </Link>
+            <Link
+              href="/plan"
+              className="rounded-full border border-ink bg-ink px-5 py-2 text-sm font-bold text-paper transition hover:bg-transparent hover:text-ink"
+            >
+              Plan a route
+            </Link>
+          </div>
         </nav>
       </header>
 
@@ -583,13 +592,6 @@ export default function LandingPage() {
             >
               Plan a route
               <ArrowRightIcon size={20} weight="bold" className="transition-transform group-hover:translate-x-1" />
-            </Link>
-            <Link
-              href="/public-fountains"
-              className="group inline-flex items-center gap-2 rounded-full border border-ink px-9 py-4 text-lg font-bold text-ink transition hover:bg-ink hover:text-paper"
-            >
-              <MapTrifoldIcon size={20} weight="bold" />
-              Fountains near you
             </Link>
           </motion.div>
         </div>
