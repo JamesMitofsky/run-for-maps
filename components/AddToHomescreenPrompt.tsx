@@ -1,0 +1,87 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { DeviceMobileIcon, XIcon } from "@phosphor-icons/react";
+import { isNative } from "@/lib/api";
+
+// Caught right before sign-in: a mobile visitor on the plain website (not the
+// installed PWA and not the native build). The planner leans on a long-lived,
+// offline-tolerant session, and a browser tab is the shakiest place to run it —
+// so we nudge them to install to the homescreen first. Fully bypassable: this is
+// a heads-up, not a gate.
+//
+// Detection is client-only (guards SSR): mobile pointer + touch, and NOT already
+// running standalone (display-mode / iOS navigator.standalone), and NOT native.
+function shouldPrompt(): boolean {
+  if (typeof window === "undefined" || isNative()) return false;
+  const standalone =
+    window.matchMedia("(display-mode: standalone)").matches ||
+    // iOS Safari exposes standalone here instead of via display-mode.
+    (window.navigator as unknown as { standalone?: boolean }).standalone === true;
+  const mobile =
+    window.matchMedia("(pointer: coarse)").matches && "ontouchstart" in window;
+  return mobile && !standalone;
+}
+
+export default function AddToHomescreenPrompt() {
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    if (shouldPrompt()) setShow(true);
+  }, []);
+
+  return (
+    <AnimatePresence>
+      {show && (
+        <motion.div
+          className="fixed inset-0 z-[1200] grid place-items-center p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <div
+            className="absolute inset-0 bg-ink/30 backdrop-blur-sm"
+            onClick={() => setShow(false)}
+          />
+          <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="a2hs-title"
+            className="relative flex w-full max-w-xs flex-col items-center gap-3 rounded-2xl border border-sky-deep/30 bg-paper p-6 text-center shadow-2xl"
+            initial={{ opacity: 0, scale: 0.94, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.94, y: 8 }}
+          >
+            <button
+              onClick={() => setShow(false)}
+              aria-label="Dismiss"
+              className="absolute right-3 top-3 text-ink-dim/70 hover:text-ink"
+            >
+              <XIcon size={18} />
+            </button>
+
+            <span className="grid h-14 w-14 place-items-center rounded-full bg-sky-deep/10 text-sky-deep">
+              <DeviceMobileIcon size={30} weight="fill" />
+            </span>
+
+            <h2 id="a2hs-title" className="font-display text-base font-bold text-ink">
+              Add this to your homescreen
+            </h2>
+            <p className="text-sm text-ink-dim">
+              Add it to your home screen via the Share button. It&rsquo;ll be way more
+              stable than using the site on your phone.
+            </p>
+
+            <button
+              onClick={() => setShow(false)}
+              className="mt-1 text-xs font-medium text-ink-dim hover:text-ink"
+            >
+              Continue anyway
+            </button>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}

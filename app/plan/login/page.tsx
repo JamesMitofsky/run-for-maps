@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useOsmStatus } from "@/components/OsmStatus";
 import OsmSignInLink from "@/components/OsmSignInLink";
+import AddToHomescreenPrompt from "@/components/AddToHomescreenPrompt";
 
 // Dedicated sign-in page for the planner. The planner gates on OSM auth and
 // sends unauthenticated users here; once logged in we bounce back to /plan.
@@ -18,6 +19,7 @@ export default function PlanLoginPage() {
 
   return (
     <main className="relative flex h-screen w-screen items-center justify-center overflow-hidden bg-paper font-body text-ink">
+      <AddToHomescreenPrompt />
       <Link
         href="/"
         className="absolute left-4 top-4 z-10 flex items-center gap-2 rounded-full border border-paper-line bg-paper/80 px-4 py-2 font-display text-lg font-bold tracking-tight backdrop-blur md:left-5 md:top-5"
