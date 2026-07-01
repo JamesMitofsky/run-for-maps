@@ -1,0 +1,10 @@
+.next/
+out/
+build/
+node_modules/
+ios/
+.api-stash/
+data/
+pnpm-lock.yaml
+next-env.d.ts
+public/

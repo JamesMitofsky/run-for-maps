@@ -70,3 +70,50 @@ Local JSON files under `data/` (gitignored): `fountains-cache.json`, `current-ru
 
 OSM Overpass, BRouter, Nominatim (geocoding), and OSM tiles — all public and rate-limited;
 be gentle. No keys required except your OSM OAuth client ID.
+
+## Contributing
+
+### Before you start
+
+- Open an issue describing the bug or change before writing code for anything non-trivial,
+  so the approach can be agreed on first.
+- One logical change per pull request. Keep unrelated refactors out of the diff.
+- All write-back testing goes through the OSM **sandbox** (`master.apis.dev.openstreetmap.org`),
+  never the live API. Do not commit edits that hit production OSM.
+
+### Local setup
+
+```bash
+pnpm install
+cp .env.example .env.local   # set OSM_CLIENT_ID (see "OSM OAuth2" above)
+pnpm dev
+```
+
+Node ≥ 20 and pnpm are required. Use pnpm — do not add a `package-lock.json` or `yarn.lock`.
+
+### Before opening a PR
+
+```bash
+pnpm lint      # eslint, must pass with no errors
+pnpm build     # next build, must succeed
+```
+
+- TypeScript strict mode is on; do not introduce `any` or `@ts-ignore` to silence errors.
+- Match the existing code style; no formatter config is shipped, so keep diffs minimal and
+  consistent with surrounding code.
+- Don't commit anything under `data/` — it is gitignored runtime state.
+
+### Commit and PR conventions
+
+- Conventional Commits for messages: `feat(scope): …`, `fix(scope): …`, `chore: …`.
+  See `git log` for existing scopes (`fountains`, `landing`, `plan`, `pwa`, …).
+- PR description: what changed, why, and how it was tested. Note whether write-back was
+  verified against the sandbox.
+- Rebase on the target branch before requesting review; keep history linear.
+
+### Scope of contributions
+
+Useful areas: new OSM tag presets, additional lifecycle mappings, routing-profile options,
+geolocation/compass accuracy on the `/run` view, and offline/PWA behavior. Changes that write
+to OSM must preserve the single-changeset-per-run guarantee and the lifecycle tag convention
+documented above.
