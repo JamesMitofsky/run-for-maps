@@ -149,19 +149,28 @@ type OverpassEl = {
 };
 
 // Build a query for nodes/ways/relations matching key=value within radius.
+// With `includeDisused`, also match the OSM lifecycle-prefixed variants
+// (disused:key / abandoned:key) so out-of-service points come back too; the
+// prefix is preserved in each element's tags for client-side classification.
 export function buildQuery(
   lat: number,
   lon: number,
   radiusM: number,
   tag: TagFilter,
+  includeDisused = false,
 ): string {
-  const sel = `["${tag.key}"="${tag.value}"]`;
   const around = `(around:${Math.round(radiusM)},${lat},${lon})`;
+  const prefixes = includeDisused ? ["", "disused:", "abandoned:"] : [""];
+  const stmts = prefixes
+    .flatMap((prefix) => {
+      const sel = `["${prefix}${tag.key}"="${tag.value}"]`;
+      return [`node${sel}${around};`, `way${sel}${around};`, `relation${sel}${around};`];
+    })
+    .map((s) => `  ${s}`)
+    .join("\n");
   return `[out:json][timeout:25];
 (
-  node${sel}${around};
-  way${sel}${around};
-  relation${sel}${around};
+${stmts}
 );
 out center tags;`;
 }
@@ -173,8 +182,9 @@ export async function fetchFountains(
   tag: TagFilter,
   recencyMode: RecencyMode = "any",
   recencyMonths = 6,
+  includeDisused = false,
 ): Promise<Fountain[]> {
-  const query = buildQuery(lat, lon, radiusM, tag);
+  const query = buildQuery(lat, lon, radiusM, tag, includeDisused);
   const cutoffMs = monthsAgo(recencyMonths);
   const json = await fetchOverpass(query);
   return json.elements

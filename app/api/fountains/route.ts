@@ -8,9 +8,17 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
-  const { lat, lon, radiusM, tag, recencyMode, recencyMonths } = parsed.data;
+  const { lat, lon, radiusM, tag, recencyMode, recencyMonths, includeDisused } = parsed.data;
   try {
-    const fountains = await fetchFountains(lat, lon, radiusM, tag, recencyMode, recencyMonths);
+    const fountains = await fetchFountains(
+      lat,
+      lon,
+      radiusM,
+      tag,
+      recencyMode,
+      recencyMonths,
+      includeDisused,
+    );
     // Cache write is best-effort; a failure must not break the response.
     await writeJson("fountains-cache.json", {
       at: new Date().toISOString(),

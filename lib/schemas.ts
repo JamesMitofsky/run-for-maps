@@ -41,6 +41,10 @@ export const FountainsRequest = z.object({
   tag: TagFilterSchema,
   recencyMode: RecencyMode.default("any"),
   recencyMonths: z.number().positive().default(6),
+  // Also fetch lifecycle-prefixed variants (disused:/abandoned:) so out-of-service
+  // points can be surfaced and filtered client-side. Off by default so the survey
+  // tool keeps seeing only active points.
+  includeDisused: z.boolean().default(false),
 });
 
 // Create a brand-new OSM node at a surveyed location, tagged with the point

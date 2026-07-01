@@ -576,13 +576,20 @@ export default function LandingPage() {
       <section className="relative overflow-hidden border-t border-paper-line">
         <Contours className="pointer-events-none absolute inset-0 h-full w-full text-ink/[0.05]" />
         <div className="relative mx-auto max-w-5xl px-5 py-24 text-center md:py-32">
-          <motion.div {...fadeUp} className="mt-10">
+          <motion.div {...fadeUp} className="mt-10 flex flex-wrap items-center justify-center gap-4">
             <Link
               href="/plan"
               className="group inline-flex items-center gap-2 rounded-full bg-ink px-9 py-4 text-lg font-bold text-paper transition hover:gap-3"
             >
               Plan a route
               <ArrowRightIcon size={20} weight="bold" className="transition-transform group-hover:translate-x-1" />
+            </Link>
+            <Link
+              href="/public-fountains"
+              className="group inline-flex items-center gap-2 rounded-full border border-ink px-9 py-4 text-lg font-bold text-ink transition hover:bg-ink hover:text-paper"
+            >
+              <MapTrifoldIcon size={20} weight="bold" />
+              Fountains near you
             </Link>
           </motion.div>
         </div>
