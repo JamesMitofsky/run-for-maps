@@ -398,9 +398,10 @@ export default function LandingPage() {
             </Link>
             <Link
               href="/plan"
-              className="rounded-full border border-ink bg-ink px-5 py-2 text-sm font-bold text-paper transition hover:bg-transparent hover:text-ink"
+              className="group inline-flex items-center gap-2 rounded-full border border-ink bg-ink px-5 py-2 text-sm font-bold text-paper transition hover:bg-transparent hover:text-ink"
             >
               Plan a route
+              <ArrowRightIcon size={16} weight="bold" className="transition-transform group-hover:translate-x-1" />
             </Link>
           </div>
         </nav>
@@ -421,27 +422,14 @@ export default function LandingPage() {
             <span className="text-sky-deep">public maps</span>
           </motion.h1>
 
-          <div className="mt-10 grid gap-8 md:grid-cols-[1fr_auto] md:items-end">
+          <div className="mt-10">
             <motion.p
               {...fadeUp}
               transition={{ ...fadeUp.transition, delay: 0.12 }}
               className="max-w-xl text-lg leading-relaxed text-ink-dim"
             >
-              Your everyday run is public service opportunity
+              Plan your runs to crowdsource public map data
             </motion.p>
-
-            <motion.div
-              {...fadeUp}
-              transition={{ ...fadeUp.transition, delay: 0.18 }}
-            >
-              <Link
-                href="/plan"
-                className="group flex items-center gap-2 rounded-full bg-ink px-7 py-3.5 text-base font-bold text-paper transition hover:gap-3"
-              >
-                Plan a route
-                <ArrowRightIcon size={18} weight="bold" className="transition-transform group-hover:translate-x-1" />
-              </Link>
-            </motion.div>
           </div>
 
           {/* Sample-route label, sitting tightly above the map plate. */}

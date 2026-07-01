@@ -15,6 +15,7 @@ import {
   ArrowRightIcon,
   ArrowsLeftRightIcon,
   SlidersHorizontalIcon,
+  DeviceMobileIcon,
 } from "@phosphor-icons/react";
 import { planRoute } from "@/lib/plan";
 import { fmtDist, milesToMeters, type Pt } from "@/lib/geo";
@@ -101,6 +102,17 @@ export default function PlannerPage() {
   // navigation, so the map never reloads under the user.
   const [phase, setPhase] = useState<"config" | "map" | "run">("config");
   const [step, setStep] = useState(0);
+
+  // Route planning + the live run rely on the phone's GPS and compass, so the
+  // planner is gated to mobile. null = not yet determined (avoids an SSR flash
+  // of the wrong screen before the client can check the device).
+  const [isMobileDevice, setIsMobileDevice] = useState<boolean | null>(null);
+  useEffect(() => {
+    setIsMobileDevice(
+      isNative() ||
+        (window.matchMedia("(pointer: coarse)").matches && "ontouchstart" in window),
+    );
+  }, []);
 
   // The live run, fed from the shared hook. Armed only once we reach the run
   // phase so the location prompt doesn't fire while building a route.
@@ -198,10 +210,11 @@ export default function PlannerPage() {
     { dependencies: [phase], scope },
   );
 
-  // Status resolved to logged-out → bounce to the dedicated sign-in page.
+  // Status resolved to logged-out → bounce to the dedicated sign-in page. Only
+  // on mobile; desktop users see the "plan on your phone" intercept instead.
   useEffect(() => {
-    if (osm && !osm.loggedIn) router.replace("/plan/login");
-  }, [osm, router]);
+    if (isMobileDevice && osm && !osm.loggedIn) router.replace("/plan/login");
+  }, [isMobileDevice, osm, router]);
 
   // On mount, recover an in-progress run (the run now lives here, not on a
   // separate page — a reload mid-survey must drop straight back into it). A
@@ -783,6 +796,34 @@ export default function PlannerPage() {
   const sizingReady =
     sizeMode === "distance" ? (targetMi || 0) > 0 : pinned.length > 0 || vias.length > 0;
   const planHint = sizeMode === "distance" ? "Enter a target distance above." : null;
+
+  // Not a phone → intercept. You navigate the route on foot with your phone's
+  // GPS/compass, so planning belongs there too. Blank while the check resolves.
+  if (isMobileDevice === null) {
+    return <main className="h-screen w-screen bg-paper" />;
+  }
+  if (!isMobileDevice) {
+    return (
+      <main className="flex min-h-screen w-screen items-center justify-center bg-paper px-6 font-body text-ink">
+        <div className="flex max-w-md flex-col items-center gap-5 text-center">
+          <DeviceMobileIcon size={48} weight="duotone" className="text-sky-deep" />
+          <h1 className="font-display text-2xl font-bold leading-tight">
+            Plan this on your phone
+          </h1>
+          <p className="text-ink-dim">
+            Routes have to be planned on your phone since that&apos;s how you
+            navigate around!
+          </p>
+          <a
+            href="/"
+            className="rounded-full border border-ink px-5 py-2 text-sm font-bold text-ink transition hover:bg-ink hover:text-paper"
+          >
+            Back home
+          </a>
+        </div>
+      </main>
+    );
+  }
 
   // Gate the whole planner behind OSM sign-in — no map until logged in. Once the
   // status resolves to logged-out, send the user to the dedicated sign-in page.
