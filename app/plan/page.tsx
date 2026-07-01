@@ -18,7 +18,7 @@ import {
 } from "@phosphor-icons/react";
 import { planRoute } from "@/lib/plan";
 import { fmtDist, milesToMeters, type Pt } from "@/lib/geo";
-import type { Fountain, EditAction, RecencyMode } from "@/lib/schemas";
+import type { Fountain, EditAction, EditExtras, RecencyMode } from "@/lib/schemas";
 import { useRun, type RunStop, type StopStatus } from "@/store/run";
 import { useOutbox, outboxCounts } from "@/store/outbox";
 import type { MapMarker } from "@/components/MapView";
@@ -162,7 +162,7 @@ export default function PlannerPage() {
         summary: it.summary,
         syncState: it.syncState,
         changesetUrl: it.changesetUrl,
-        comment: it.comment,
+        extras: it.extras,
       };
     }
     return m;
@@ -411,9 +411,9 @@ export default function PlannerPage() {
   // Update a point straight from the map. Offline-first: queued on-device and
   // celebrated immediately, then sent to OSM in the background. Edits batch into
   // one changeset (opened by the API on the first successful send).
-  function updatePoint(nodeId: number, action: EditAction, name?: string, comment?: string) {
+  function updatePoint(nodeId: number, action: EditAction, name?: string, extras?: EditExtras) {
     setErr(null);
-    useOutbox.getState().enqueue({ nodeId, action, tagKey: tag.key, name, comment });
+    useOutbox.getState().enqueue({ nodeId, action, tagKey: tag.key, name, extras });
     celebratePoint();
     useOutbox.getState().flush();
   }
@@ -738,7 +738,7 @@ export default function PlannerPage() {
             edit={edit}
             busy={false}
             onToggleRoute={() => toggleStop(f.id)}
-            onAction={(action, comment) => updatePoint(f.id, action, markLabel(f), comment)}
+            onAction={(action, extras) => updatePoint(f.id, action, markLabel(f), extras)}
           />
         ),
       };
