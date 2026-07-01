@@ -47,13 +47,10 @@ export async function watchPosition(
 ): Promise<GeoWatch> {
   const enableHighAccuracy = opts.highAccuracy ?? true;
   const maximumAge = opts.maximumAge ?? 5000;
-  const id = await Geolocation.watchPosition(
-    { enableHighAccuracy, maximumAge },
-    (pos, err) => {
-      if (err) return onError(err.message ?? String(err));
-      if (pos) onPoint(toPoint(pos.coords));
-    },
-  );
+  const id = await Geolocation.watchPosition({ enableHighAccuracy, maximumAge }, (pos, err) => {
+    if (err) return onError(err.message ?? String(err));
+    if (pos) onPoint(toPoint(pos.coords));
+  });
   return { clear: () => void Geolocation.clearWatch({ id }) };
 }
 

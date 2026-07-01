@@ -28,14 +28,14 @@ export default function CompassEnableModal({
           exit={{ opacity: 0 }}
         >
           <div
-            className="absolute inset-0 bg-ink/30 backdrop-blur-sm"
+            className="bg-ink/30 absolute inset-0 backdrop-blur-sm"
             onClick={() => setDismissed(true)}
           />
           <motion.div
             role="dialog"
             aria-modal="true"
             aria-labelledby="compass-modal-title"
-            className="relative flex w-full max-w-xs flex-col items-center gap-3 rounded-2xl border border-sky-deep/30 bg-paper p-6 text-center shadow-2xl"
+            className="border-sky-deep/30 bg-paper relative flex w-full max-w-xs flex-col items-center gap-3 rounded-2xl border p-6 text-center shadow-2xl"
             initial={{ opacity: 0, scale: 0.94, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.94, y: 8 }}
@@ -43,33 +43,33 @@ export default function CompassEnableModal({
             <button
               onClick={() => setDismissed(true)}
               aria-label="Dismiss"
-              className="absolute right-3 top-3 text-ink-dim/70 hover:text-ink"
+              className="text-ink-dim/70 hover:text-ink absolute top-3 right-3"
             >
               <XIcon size={18} />
             </button>
 
-            <span className="grid h-14 w-14 place-items-center rounded-full bg-sky-deep/10 text-sky-deep">
+            <span className="bg-sky-deep/10 text-sky-deep grid h-14 w-14 place-items-center rounded-full">
               <CompassIcon size={30} weight="fill" />
             </span>
 
-            <h2 id="compass-modal-title" className="font-display text-base font-bold text-ink">
+            <h2 id="compass-modal-title" className="font-display text-ink text-base font-bold">
               Turn on the compass
             </h2>
-            <p className="text-sm text-ink-dim">
+            <p className="text-ink-dim text-sm">
               See which way you&rsquo;re facing on the map so the direction arrow points to your
               next stop.
             </p>
 
             <button
               onClick={onEnable}
-              className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-full bg-sky-deep px-4 py-2.5 text-sm font-semibold text-paper shadow-md"
+              className="bg-sky-deep text-paper mt-1 flex w-full items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-semibold shadow-md"
             >
               <CompassIcon size={16} weight="fill" />
               Enable compass
             </button>
             <button
               onClick={() => setDismissed(true)}
-              className="text-xs font-medium text-ink-dim hover:text-ink"
+              className="text-ink-dim hover:text-ink text-xs font-medium"
             >
               Not now
             </button>

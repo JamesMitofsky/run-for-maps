@@ -39,7 +39,11 @@ async function notify(id: number, title: string, body: string): Promise<void> {
 }
 
 export function notifyProximity(name: string, meters: number): Promise<void> {
-  return notify(ID.proximity, "Survey point ahead", `${name} — about ${Math.round(meters)} m away.`);
+  return notify(
+    ID.proximity,
+    "Survey point ahead",
+    `${name} — about ${Math.round(meters)} m away.`,
+  );
 }
 
 export function notifyRunComplete(count: number): Promise<void> {

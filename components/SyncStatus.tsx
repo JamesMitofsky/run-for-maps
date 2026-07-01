@@ -57,7 +57,9 @@ export default function SyncStatus({
   const working = retrying || c.sending > 0;
 
   return (
-    <div className={`flex w-full flex-col gap-3 rounded-2xl border p-4 text-left text-sm ${t.card} ${className}`}>
+    <div
+      className={`flex w-full flex-col gap-3 rounded-2xl border p-4 text-left text-sm ${t.card} ${className}`}
+    >
       <div className="flex items-center gap-2 font-semibold">
         {allSent ? (
           <>
@@ -90,7 +92,7 @@ export default function SyncStatus({
           type="button"
           onClick={onRetry}
           disabled={working}
-          className="flex items-center justify-center gap-2 rounded-full bg-ink py-2 text-sm font-semibold text-paper transition hover:bg-ink-soft disabled:opacity-50"
+          className="bg-ink text-paper hover:bg-ink-soft flex items-center justify-center gap-2 rounded-full py-2 text-sm font-semibold transition disabled:opacity-50"
         >
           <ArrowsClockwiseIcon size={16} className={working ? "animate-spin" : ""} />
           {working ? "Retrying…" : "Retry all missed sends"}

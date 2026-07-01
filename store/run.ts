@@ -4,12 +4,7 @@ import type { Pt } from "@/lib/geo";
 import type { Turn } from "@/lib/brouter";
 
 export type StopStatus =
-  | "pending"
-  | "confirm"
-  | "dog_only"
-  | "out_of_order"
-  | "removed"
-  | "skipped";
+  "pending" | "confirm" | "dog_only" | "out_of_order" | "removed" | "skipped";
 
 export type RunStop = Fountain & { status: StopStatus };
 
@@ -94,6 +89,5 @@ export const useRun = create<RunState>((set) => ({
   setIndex: (i) => set({ index: i }),
   setChangeset: (id) => set({ changesetId: id }),
   addNode: (f) => set((s) => ({ added: [...s.added, f] })),
-  reset: () =>
-    set({ ...empty, index: 0, changesetId: undefined, routeId: "", hasPlan: false }),
+  reset: () => set({ ...empty, index: 0, changesetId: undefined, routeId: "", hasPlan: false }),
 }));

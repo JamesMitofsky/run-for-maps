@@ -30,19 +30,21 @@ export default function RunPage() {
   }
 
   if (session.hydrating) {
-    return <main className="grid min-h-screen place-items-center bg-paper text-ink-dim">Loading…</main>;
+    return (
+      <main className="bg-paper text-ink-dim grid min-h-screen place-items-center">Loading…</main>
+    );
   }
 
   if (session.done) {
     return (
-      <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center bg-paper p-6 text-ink">
+      <main className="bg-paper text-ink mx-auto flex min-h-screen max-w-md flex-col justify-center p-6">
         <RunComplete session={session} tone="light" onExit={goHome} />
       </main>
     );
   }
 
   return (
-    <main className="safe-pb flex min-h-screen flex-col bg-paper text-ink">
+    <main className="safe-pb bg-paper text-ink flex min-h-screen flex-col">
       <div className="relative h-[42vh] w-full">
         <MapView
           center={session.center}

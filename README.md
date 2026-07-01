@@ -18,7 +18,7 @@ state back to OSM (`check_date`, `disused:`, `abandoned:`) as you go.
 State mapping (OSM lifecycle convention):
 
 | Action       | Effect on the node                                                |
-| ------------ | ---------------------------------------------------------------- |
+| ------------ | ----------------------------------------------------------------- |
 | Working      | set `check_date=<today>`                                          |
 | Out of order | move `amenity=drinking_water` → `disused:amenity=...`, stamp date |
 | Removed      | move → `abandoned:amenity=...`, stamp date                        |
@@ -91,16 +91,33 @@ pnpm dev
 
 Node ≥ 20 and pnpm are required. Use pnpm — do not add a `package-lock.json` or `yarn.lock`.
 
+### Code style
+
+Formatting and lint style are enforced, not a matter of taste — everyone ships the same style.
+
+- **Prettier** (`.prettierrc.json`) owns all formatting. Config: 2-space indent, double quotes,
+  semicolons, trailing commas, 100-col width, LF endings. Tailwind classes are auto-sorted by
+  `prettier-plugin-tailwindcss`.
+- **ESLint** (`eslint.config.mjs`) owns code correctness; `eslint-config-prettier` disables any
+  rule that would fight Prettier.
+- **`.editorconfig`** sets editor defaults so files are consistent before Prettier even runs.
+- A **husky** `pre-commit` hook runs **lint-staged**, which auto-fixes and formats staged files.
+  Do not bypass it with `--no-verify`.
+
+Do not hand-tune formatting or add per-file overrides; change the shared config in a dedicated
+PR if the style itself needs to change.
+
 ### Before opening a PR
 
 ```bash
-pnpm lint      # eslint, must pass with no errors
-pnpm build     # next build, must succeed
+pnpm format        # apply Prettier to the whole tree
+pnpm lint          # eslint, must pass with no errors (pnpm lint:fix to auto-fix)
+pnpm build         # next build, must succeed
 ```
 
+`pnpm format:check` is the CI-equivalent read-only check.
+
 - TypeScript strict mode is on; do not introduce `any` or `@ts-ignore` to silence errors.
-- Match the existing code style; no formatter config is shipped, so keep diffs minimal and
-  consistent with surrounding code.
 - Don't commit anything under `data/` — it is gitignored runtime state.
 
 ### Commit and PR conventions

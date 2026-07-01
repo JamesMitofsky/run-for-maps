@@ -36,7 +36,12 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-body), system-ui, -apple-system, Arial, sans-serif;
+  font-family:
+    var(--font-body),
+    system-ui,
+    -apple-system,
+    Arial,
+    sans-serif;
 }
 
 /* iOS safe-area helpers. The app draws edge-to-edge (viewport-fit=cover), so

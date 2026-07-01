@@ -133,10 +133,7 @@ async function fetchOverpass(query: string): Promise<{ elements: OverpassEl[] }>
     }
   }
 
-  throw (
-    lastError ??
-    new OverpassError("Couldn't reach OpenStreetMap's data server.", null, true)
-  );
+  throw lastError ?? new OverpassError("Couldn't reach OpenStreetMap's data server.", null, true);
 }
 
 type OverpassEl = {

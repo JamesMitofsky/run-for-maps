@@ -135,12 +135,9 @@ export function useRunSession({ enabled = true }: { enabled?: boolean } = {}) {
   // Next turn-by-turn maneuver: where we are along the route (meters traveled),
   // then the first precomputed turn still ahead of us. Travel-relative — the HUD
   // rotates an arrow by `angle` (0 = straight on), no compass needed.
-  const traveledM = pos && run.routeCoords.length > 1
-    ? nearestCumDistOnPath(run.routeCoords, pos)
-    : 0;
-  const nextTurn = pos
-    ? run.turns.find((tn) => tn.distM > traveledM + 5) ?? null
-    : null;
+  const traveledM =
+    pos && run.routeCoords.length > 1 ? nearestCumDistOnPath(run.routeCoords, pos) : 0;
+  const nextTurn = pos ? (run.turns.find((tn) => tn.distM > traveledM + 5) ?? null) : null;
   const distToTurn = nextTurn ? nextTurn.distM - traveledM : null;
 
   // Derived: armed manually ("I'm here") or auto within 30 m.
@@ -257,7 +254,9 @@ export function useRunSession({ enabled = true }: { enabled?: boolean } = {}) {
   function recordFor(node: RunStop, action: EditAction, extras?: EditExtras) {
     const isCurrent = !!target && node.id === target.id;
     setErr(null);
-    useOutbox.getState().enqueue({ nodeId: node.id, action, tagKey, name: node.tags?.name, extras });
+    useOutbox
+      .getState()
+      .enqueue({ nodeId: node.id, action, tagKey, name: node.tags?.name, extras });
     run.setStatus(node.id, action as StopStatus);
     celebratePoint();
     hapticSuccess();
@@ -434,7 +433,12 @@ export function useRunSession({ enabled = true }: { enabled?: boolean } = {}) {
 
   // Fit user + next target both in view when both known; else just center.
   const fitPoints: [number, number][] | undefined =
-    pos && target ? [[pos.lat, pos.lon], [target.lat, target.lon]] : undefined;
+    pos && target
+      ? [
+          [pos.lat, pos.lon],
+          [target.lat, target.lon],
+        ]
+      : undefined;
 
   const recenterKey =
     (pos ? `${pos.lat.toFixed(4)},${pos.lon.toFixed(4)}` : "t") +

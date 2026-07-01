@@ -12,7 +12,10 @@ const svg = readFileSync(resolve(ROOT, "public/icons/icon.svg"));
 mkdirSync(resolve(ROOT, "assets"), { recursive: true });
 
 // 1024² opaque app icon (iOS forbids transparency in the marketing icon).
-await sharp(svg).resize(1024, 1024).flatten({ background: INK }).png()
+await sharp(svg)
+  .resize(1024, 1024)
+  .flatten({ background: INK })
+  .png()
   .toFile(resolve(ROOT, "assets/icon.png"));
 
 // 2732² splash: ink field with the logo centered (~30% width). One file serves

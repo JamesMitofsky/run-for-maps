@@ -79,7 +79,11 @@ function pickup(
     let bestIdx = -1;
     let bestR = -1;
     for (let r = 0; r < remaining.length; r++) {
-      const node: PlanNode = { lat: remaining[r].lat, lon: remaining[r].lon, fountain: remaining[r] };
+      const node: PlanNode = {
+        lat: remaining[r].lat,
+        lon: remaining[r].lon,
+        fountain: remaining[r],
+      };
       for (let idx = 0; idx <= cur.length; idx++) {
         const cand = cur.slice(0, idx).concat(node, cur.slice(idx));
         const delta = total(start, cand, loop) - base;
@@ -128,7 +132,11 @@ export function planRoute({
       remaining.sort((a, b) => haversine(cur, a) - haversine(cur, b));
       let added = false;
       for (let i = 0; i < remaining.length; i++) {
-        const node: PlanNode = { lat: remaining[i].lat, lon: remaining[i].lon, fountain: remaining[i] };
+        const node: PlanNode = {
+          lat: remaining[i].lat,
+          lon: remaining[i].lon,
+          fountain: remaining[i],
+        };
         if (total(start, [...order, node], loop) <= budget) {
           order.push(node);
           cur = remaining[i];

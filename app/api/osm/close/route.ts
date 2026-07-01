@@ -15,7 +15,10 @@ export async function POST(req: Request) {
     // Edits already PUT are live regardless; the changeset also auto-closes
     // server-side after idle. Surface the exact error so the user knows.
     return NextResponse.json(
-      { ok: false, error: `${(e as Error).message} (edits already saved; changeset auto-closes later)` },
+      {
+        ok: false,
+        error: `${(e as Error).message} (edits already saved; changeset auto-closes later)`,
+      },
       { status: 502 },
     );
   }

@@ -201,5 +201,12 @@ export function outboxCounts(items: OutboxItem[]) {
     else pending++;
   }
   // "unsent" = anything not yet confirmed by OSM.
-  return { sent, pending, sending, failed, unsent: pending + sending + failed, total: items.length };
+  return {
+    sent,
+    pending,
+    sending,
+    failed,
+    unsent: pending + sending + failed,
+    total: items.length,
+  };
 }

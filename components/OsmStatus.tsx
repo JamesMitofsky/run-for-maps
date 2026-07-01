@@ -23,8 +23,7 @@ export function useOsmStatus() {
   return { status, refresh };
 }
 
-const SIGN_IN_CLASS =
-  "font-semibold underline decoration-sky-deep decoration-2 underline-offset-4";
+const SIGN_IN_CLASS = "font-semibold underline decoration-sky-deep decoration-2 underline-offset-4";
 
 export default function OsmStatusBar() {
   const { status } = useOsmStatus();
