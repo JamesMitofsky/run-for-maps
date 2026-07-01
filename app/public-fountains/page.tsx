@@ -9,6 +9,7 @@ import {
   CrosshairIcon,
   DropIcon,
   DogIcon,
+  MagnifyingGlassIcon,
   SpinnerIcon,
   WrenchIcon,
 } from "@phosphor-icons/react";
@@ -16,11 +17,12 @@ import type { Fountain } from "@/lib/schemas";
 import type { MapMarker } from "@/components/MapView";
 import { apiFetch } from "@/lib/api";
 import { getCurrentPosition } from "@/lib/geolocation";
+import { lastCheckedMs } from "@/lib/checkDate";
 import { fmtDist, haversine, milesToMeters, type Pt } from "@/lib/geo";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 
-// Default radius to look for fountains around the user; user can override.
+// Default radius to look for fountains around the search point; user can override.
 const DEFAULT_RADIUS_MI = 1;
 // Keep user-entered radius sane before it hits the API / display.
 const MIN_RADIUS_MI = 0.1;
@@ -29,12 +31,26 @@ const clampRadius = (mi: number) => Math.min(MAX_RADIUS_MI, Math.max(MIN_RADIUS_
 const radiusLabel = (mi: number) => `${mi} ${mi === 1 ? "mile" : "miles"}`;
 // We only care about human drinking water for the public view.
 const TAG = { key: "amenity", value: "drinking_water" } as const;
+// Verified within this window counts as recently checked.
+const FRESH_MONTHS = 12;
 
 type Svc = "in" | "out";
 type Water = "human" | "dog";
+// Recency of the last on-the-ground verification (OSM check_date & friends).
+type Recency = "fresh" | "stale" | "never";
+// Where the search anchor came from: GPS fix or a pin dropped on the map.
+type Anchor = "gps" | "pin";
 // A fountain with its distance and its filter classifications, precomputed once.
-type Ranked = { f: Fountain; distM: number | null; svc: Svc; water: Water };
-type Counts = { inN: number; outN: number; humanN: number; dogN: number };
+type Ranked = { f: Fountain; distM: number | null; svc: Svc; water: Water; rec: Recency };
+type Counts = {
+  inN: number;
+  outN: number;
+  humanN: number;
+  dogN: number;
+  freshN: number;
+  staleN: number;
+  neverN: number;
+};
 
 // True when OSM tags flag this point as not human-potable (dog water).
 function isDogWater(tags: Record<string, string>): boolean {
@@ -53,6 +69,12 @@ function isOutOfService(tags: Record<string, string>): boolean {
 const svcOf = (tags: Record<string, string>): Svc => (isOutOfService(tags) ? "out" : "in");
 const waterOf = (tags: Record<string, string>): Water => (isDogWater(tags) ? "dog" : "human");
 
+function recencyOf(tags: Record<string, string>, cutoffMs: number): Recency {
+  const checked = lastCheckedMs(tags);
+  if (checked == null) return "never";
+  return checked >= cutoffMs ? "fresh" : "stale";
+}
+
 function fountainName(f: Fountain): string {
   return f.tags.name ?? `Fountain #${f.id}`;
 }
@@ -64,8 +86,10 @@ function FountainPopup({ f, distM }: { f: Fountain; distM: number | null }) {
     <div className="flex w-52 flex-col gap-1 text-neutral-800">
       <div className="leading-tight font-semibold">{fountainName(f)}</div>
       {distM != null && <div className="text-xs text-neutral-500">{fmtDist(distM)} away</div>}
-      {f.tags.check_date && (
+      {f.tags.check_date ? (
         <div className="text-xs text-neutral-500">Last checked in OSM: {f.tags.check_date}</div>
+      ) : (
+        <div className="text-xs text-neutral-500">Never verified on the ground</div>
       )}
       {isDogWater(f.tags) && (
         <div className="mt-1 flex items-center gap-1 text-xs font-medium text-violet-700">
@@ -125,38 +149,42 @@ function PillRow({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
+// Toggle a value in a Set-typed filter without mutating the original.
+function toggled<T>(set: Set<T>, v: T): Set<T> {
+  const n = new Set(set);
+  if (n.has(v)) n.delete(v);
+  else n.add(v);
+  return n;
+}
+
 function FilterPills({
   svc,
   setSvc,
   water,
   setWater,
+  rec,
+  setRec,
   counts,
 }: {
   svc: Set<Svc>;
   setSvc: (s: Set<Svc>) => void;
   water: Set<Water>;
   setWater: (s: Set<Water>) => void;
+  rec: Set<Recency>;
+  setRec: (s: Set<Recency>) => void;
   counts: Counts;
 }) {
-  const toggleSvc = (v: Svc) => {
-    const n = new Set(svc);
-    if (n.has(v)) n.delete(v);
-    else n.add(v);
-    setSvc(n);
-  };
-  const toggleWater = (v: Water) => {
-    const n = new Set(water);
-    if (n.has(v)) n.delete(v);
-    else n.add(v);
-    setWater(n);
-  };
   return (
     <div className="flex flex-col gap-2.5">
       <PillRow label="Service">
-        <Pill active={svc.has("in")} count={counts.inN} onClick={() => toggleSvc("in")}>
+        <Pill active={svc.has("in")} count={counts.inN} onClick={() => setSvc(toggled(svc, "in"))}>
           In service
         </Pill>
-        <Pill active={svc.has("out")} count={counts.outN} onClick={() => toggleSvc("out")}>
+        <Pill
+          active={svc.has("out")}
+          count={counts.outN}
+          onClick={() => setSvc(toggled(svc, "out"))}
+        >
           Out of service
         </Pill>
       </PillRow>
@@ -164,53 +192,92 @@ function FilterPills({
         <Pill
           active={water.has("human")}
           count={counts.humanN}
-          onClick={() => toggleWater("human")}
+          onClick={() => setWater(toggled(water, "human"))}
         >
           Human
         </Pill>
-        <Pill active={water.has("dog")} count={counts.dogN} onClick={() => toggleWater("dog")}>
+        <Pill
+          active={water.has("dog")}
+          count={counts.dogN}
+          onClick={() => setWater(toggled(water, "dog"))}
+        >
           Dog
+        </Pill>
+      </PillRow>
+      <PillRow label="Verified">
+        <Pill
+          active={rec.has("fresh")}
+          count={counts.freshN}
+          onClick={() => setRec(toggled(rec, "fresh"))}
+        >
+          Past year
+        </Pill>
+        <Pill
+          active={rec.has("stale")}
+          count={counts.staleN}
+          onClick={() => setRec(toggled(rec, "stale"))}
+        >
+          Older
+        </Pill>
+        <Pill
+          active={rec.has("never")}
+          count={counts.neverN}
+          onClick={() => setRec(toggled(rec, "never"))}
+        >
+          Never
         </Pill>
       </PillRow>
     </div>
   );
 }
 
-// Panel header: title, locate button, filters, and load/count status. Shared by
-// the mobile bottom sheet and the desktop side panel.
+// Panel header: title, locate button, radius + search controls, filters, and
+// status. Shared by the mobile bottom sheet and the desktop side panel.
 function PanelHead({
   busy,
   err,
+  searched,
+  anchor,
   visibleN,
   counts,
   svc,
   setSvc,
   water,
   setWater,
+  rec,
+  setRec,
   radiusMi,
   onRadiusChange,
   onLocate,
+  onSearch,
 }: {
   busy: boolean;
   err: string | null;
+  searched: boolean;
+  anchor: Anchor | null;
   visibleN: number;
   counts: Counts;
   svc: Set<Svc>;
   setSvc: (s: Set<Svc>) => void;
   water: Set<Water>;
   setWater: (s: Set<Water>) => void;
+  rec: Set<Recency>;
+  setRec: (s: Set<Recency>) => void;
   radiusMi: number;
   onRadiusChange: (mi: number) => void;
   onLocate: () => void;
+  onSearch: () => void;
 }) {
   // Local draft so the user can freely type (incl. an empty field) before we
-  // commit a clamped number on submit/blur.
+  // commit a clamped number on submit/blur. `radiusMi` only changes through
+  // `commit`, so the draft is resynced right here — no effect needed.
   const [draft, setDraft] = useState(String(radiusMi));
-  useEffect(() => setDraft(String(radiusMi)), [radiusMi]);
 
   const commit = () => {
     const n = Number(draft);
-    onRadiusChange(Number.isFinite(n) && n > 0 ? clampRadius(n) : radiusMi);
+    const next = Number.isFinite(n) && n > 0 ? clampRadius(n) : radiusMi;
+    setDraft(String(next));
+    onRadiusChange(next);
   };
 
   return (
@@ -222,7 +289,11 @@ function PanelHead({
             Fountains near you
           </h1>
           <p className="text-ink-dim text-sm">
-            Public drinking water within {radiusLabel(radiusMi)}, from OpenStreetMap.
+            {searched
+              ? `Public drinking water within ${radiusLabel(radiusMi)} of your ${
+                  anchor === "pin" ? "pin" : "location"
+                }, from OpenStreetMap.`
+              : "Tap the map to drop a pin, or use the locate button, then search."}
           </p>
         </div>
         <button
@@ -235,48 +306,66 @@ function PanelHead({
         </button>
       </div>
 
+      {/* Radius + explicit search. Enter in the field commits and searches. */}
       <form
         onSubmit={(e) => {
           e.preventDefault();
           commit();
+          onSearch();
         }}
-        className="flex items-center gap-2"
+        className="flex flex-col gap-2"
       >
-        <label
-          htmlFor="radius-mi"
-          className="text-ink-dim text-[11px] font-semibold tracking-wide uppercase"
-        >
-          Radius
-        </label>
-        <input
-          id="radius-mi"
-          type="number"
-          inputMode="decimal"
-          min={MIN_RADIUS_MI}
-          max={MAX_RADIUS_MI}
-          step={0.1}
-          value={draft}
+        <div className="flex items-center gap-2">
+          <label
+            htmlFor="radius-mi"
+            className="text-ink-dim text-[11px] font-semibold tracking-wide uppercase"
+          >
+            Radius
+          </label>
+          <input
+            id="radius-mi"
+            type="number"
+            inputMode="decimal"
+            min={MIN_RADIUS_MI}
+            max={MAX_RADIUS_MI}
+            step={0.1}
+            value={draft}
+            disabled={busy}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commit}
+            className="border-paper-line bg-paper/40 text-ink focus:border-sky-deep/60 w-20 rounded-lg border px-2 py-1 text-sm transition outline-none disabled:opacity-40"
+          />
+          <span className="text-ink-dim text-sm">miles</span>
+        </div>
+        <button
+          type="submit"
           disabled={busy}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={commit}
-          className="border-paper-line bg-paper/40 text-ink focus:border-sky-deep/60 w-20 rounded-lg border px-2 py-1 text-sm transition outline-none disabled:opacity-40"
-        />
-        <span className="text-ink-dim text-sm">miles</span>
+          className="bg-sky-deep text-ink hover:bg-sky-deep/85 flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition disabled:opacity-40"
+        >
+          {busy ? (
+            <SpinnerIcon size={16} className="animate-spin" />
+          ) : (
+            <MagnifyingGlassIcon size={16} />
+          )}
+          {busy ? "Searching…" : anchor === "pin" ? "Search around pin" : "Search"}
+        </button>
       </form>
 
-      <FilterPills svc={svc} setSvc={setSvc} water={water} setWater={setWater} counts={counts} />
-
-      {busy && (
-        <div className="text-ink-dim flex justify-center py-2">
-          <SpinnerIcon size={24} className="animate-spin" />
-        </div>
-      )}
+      <FilterPills
+        svc={svc}
+        setSvc={setSvc}
+        water={water}
+        setWater={setWater}
+        rec={rec}
+        setRec={setRec}
+        counts={counts}
+      />
 
       {err && (
         <div className="flex flex-col gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-sm text-red-700">
           <span>{err}</span>
           <button
-            onClick={onLocate}
+            onClick={onSearch}
             disabled={busy}
             className="self-start rounded-md border border-red-500/40 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-500/10 disabled:opacity-50"
           >
@@ -285,7 +374,7 @@ function PanelHead({
         </div>
       )}
 
-      {!busy && !err && (
+      {searched && !busy && !err && (
         <span className="bg-sky/15 text-sky-deep w-fit rounded-full px-2 py-0.5 text-xs font-semibold">
           {visibleN} shown
         </span>
@@ -379,40 +468,72 @@ function BottomSheet({ head, body }: { head: ReactNode; body: ReactNode }) {
 }
 
 const DEFAULT_CENTER: [number, number] = [38.9072, -77.0369];
+// Neutral dark pin for the dropped search anchor — distinct from fountain colors.
+const PIN_COLOR = "#334155";
 
 export default function PublicFountainsPage() {
+  // GPS fix (blue dot) — set only when the user asks to locate.
   const [pos, setPos] = useState<Pt | null>(null);
+  // Search anchor: the GPS fix or a pin dropped on the map. No anchor until the
+  // user picks one; searching with none acquires a GPS fix first.
+  const [center, setCenter] = useState<Pt | null>(null);
+  const [anchor, setAnchor] = useState<Anchor | null>(null);
+  // Anchor the last successful search actually ran from, so distances keep
+  // referring to the results even if the user moves the pin before re-searching.
+  const [searchedAt, setSearchedAt] = useState<Pt | null>(null);
   const [recenterKey, setRecenterKey] = useState("init");
   const [fountains, setFountains] = useState<Fountain[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [radiusMi, setRadiusMi] = useState(DEFAULT_RADIUS_MI);
-  // Read inside the stable locateAndLoad callback without stale closures.
-  const radiusRef = useRef(radiusMi);
-  radiusRef.current = radiusMi;
-  // Filters: default to in-service only; both water types on.
+  // Filters: default to in-service only; both water types and all recencies on.
   const [svc, setSvc] = useState<Set<Svc>>(() => new Set<Svc>(["in"]));
   const [water, setWater] = useState<Set<Water>>(() => new Set<Water>(["human", "dog"]));
+  const [rec, setRec] = useState<Set<Recency>>(() => new Set<Recency>(["fresh", "stale", "never"]));
 
-  // Locate, then fetch the drinking-water points around that location. We ask for
-  // out-of-service variants too so the Service filter has something to reveal.
-  const locateAndLoad = useCallback(async () => {
+  // Acquire a GPS fix and make it the search anchor. Does not search — that
+  // stays an explicit action.
+  const locate = useCallback(async () => {
     setBusy(true);
     setErr(null);
     try {
       const p = await getCurrentPosition().catch(() => {
-        throw new Error("Couldn't get your location. Allow location access and retry.");
+        throw new Error(
+          "Couldn't get your location. Allow location access, or drop a pin on the map instead.",
+        );
       });
       const here = { lat: p.lat, lon: p.lon };
       setPos(here);
+      setCenter(here);
+      setAnchor("gps");
       setRecenterKey(`${here.lat},${here.lon}`);
+      return here;
+    } catch (e) {
+      setErr((e as Error).message);
+      return null;
+    } finally {
+      setBusy(false);
+    }
+  }, []);
 
+  // Fetch the drinking-water points around the anchor; with no anchor yet, fall
+  // back to acquiring the GPS fix first. We ask for out-of-service variants too
+  // so the Service filter has something to reveal.
+  const search = useCallback(async () => {
+    let at = center;
+    if (!at) {
+      at = await locate();
+      if (!at) return; // locate already surfaced the error
+    }
+    setBusy(true);
+    setErr(null);
+    try {
       const r = await apiFetch("/api/fountains", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...here,
-          radiusM: milesToMeters(radiusRef.current),
+          ...at,
+          radiusM: milesToMeters(radiusMi),
           tag: TAG,
           recencyMode: "any",
           includeDisused: true,
@@ -426,91 +547,97 @@ export default function PublicFountainsPage() {
         );
       }
       setFountains(j.fountains as Fountain[]);
+      setSearchedAt(at);
     } catch (e) {
       setErr((e as Error).message);
     } finally {
       setBusy(false);
     }
+  }, [center, radiusMi, locate]);
+
+  // Dropping a pin moves the search anchor; results refresh on the next search.
+  const dropPin = useCallback((lat: number, lon: number) => {
+    setCenter({ lat, lon });
+    setAnchor("pin");
   }, []);
 
-  // Commit a new radius and re-query around the known location. Skips the fetch
-  // if the value didn't change or we don't have a fix yet (mount effect covers that).
-  const applyRadius = useCallback(
-    (mi: number) => {
-      if (mi === radiusRef.current) return;
-      radiusRef.current = mi;
-      setRadiusMi(mi);
-      if (pos) locateAndLoad();
-    },
-    [pos, locateAndLoad],
-  );
-
-  useEffect(() => {
-    // Deferred off the effect body so the initial state updates don't
-    // cascade-render synchronously (matches the planner's mount pattern).
-    Promise.resolve().then(locateAndLoad);
-  }, [locateAndLoad]);
-
-  // Fountains sorted nearest-first, each tagged with distance + filter classes.
+  // Fountains sorted nearest-first (from the searched anchor), each tagged with
+  // distance + filter classes.
   const ranked = useMemo<Ranked[]>(() => {
+    const cutoff = new Date();
+    cutoff.setMonth(cutoff.getMonth() - FRESH_MONTHS);
+    const cutoffMs = cutoff.getTime();
     return fountains
       .map((f) => ({
         f,
-        distM: pos ? haversine(pos, f) : null,
+        distM: searchedAt ? haversine(searchedAt, f) : null,
         svc: svcOf(f.tags),
         water: waterOf(f.tags),
+        rec: recencyOf(f.tags, cutoffMs),
       }))
       .sort((a, b) => (a.distM ?? Infinity) - (b.distM ?? Infinity));
-  }, [fountains, pos]);
+  }, [fountains, searchedAt]);
 
-  // Per-category totals for the pill counts (independent of the other dimension).
+  // Per-category totals for the pill counts (independent of the other dimensions).
   const counts = useMemo<Counts>(() => {
-    let inN = 0;
-    let outN = 0;
-    let humanN = 0;
-    let dogN = 0;
+    const c: Counts = { inN: 0, outN: 0, humanN: 0, dogN: 0, freshN: 0, staleN: 0, neverN: 0 };
     for (const r of ranked) {
-      if (r.svc === "in") inN++;
-      else outN++;
-      if (r.water === "human") humanN++;
-      else dogN++;
+      if (r.svc === "in") c.inN++;
+      else c.outN++;
+      if (r.water === "human") c.humanN++;
+      else c.dogN++;
+      if (r.rec === "fresh") c.freshN++;
+      else if (r.rec === "stale") c.staleN++;
+      else c.neverN++;
     }
-    return { inN, outN, humanN, dogN };
+    return c;
   }, [ranked]);
 
   const visible = useMemo(
-    () => ranked.filter((r) => svc.has(r.svc) && water.has(r.water)),
-    [ranked, svc, water],
+    () => ranked.filter((r) => svc.has(r.svc) && water.has(r.water) && rec.has(r.rec)),
+    [ranked, svc, water, rec],
   );
 
-  const markers: MapMarker[] = useMemo(
-    () =>
-      visible.map(({ f, distM, svc: s, water: w }) => ({
-        id: f.id,
-        lat: f.lat,
-        lon: f.lon,
-        color: s === "out" ? "#9ca3af" : w === "dog" ? "#7c3aed" : "#0284c7",
-        dimmed: s === "out",
-        popup: <FountainPopup f={f} distM={distM} />,
-      })),
-    [visible],
-  );
+  const markers: MapMarker[] = useMemo(() => {
+    const ms: MapMarker[] = visible.map(({ f, distM, svc: s, water: w }) => ({
+      id: f.id,
+      lat: f.lat,
+      lon: f.lon,
+      color: s === "out" ? "#9ca3af" : w === "dog" ? "#7c3aed" : "#0284c7",
+      dimmed: s === "out",
+      popup: <FountainPopup f={f} distM={distM} />,
+    }));
+    // The dropped pin itself; a GPS anchor is already marked by the blue dot.
+    if (center && anchor === "pin") {
+      ms.push({ id: "search-pin", lat: center.lat, lon: center.lon, color: PIN_COLOR });
+    }
+    return ms;
+  }, [visible, center, anchor]);
 
-  const viewCenter: [number, number] = pos ? [pos.lat, pos.lon] : DEFAULT_CENTER;
+  const viewCenter: [number, number] = center
+    ? [center.lat, center.lon]
+    : pos
+      ? [pos.lat, pos.lon]
+      : DEFAULT_CENTER;
 
   const head = (
     <PanelHead
       busy={busy}
       err={err}
+      searched={searchedAt != null}
+      anchor={anchor}
       visibleN={visible.length}
       counts={counts}
       svc={svc}
       setSvc={setSvc}
       water={water}
       setWater={setWater}
+      rec={rec}
+      setRec={setRec}
       radiusMi={radiusMi}
-      onRadiusChange={applyRadius}
-      onLocate={locateAndLoad}
+      onRadiusChange={setRadiusMi}
+      onLocate={locate}
+      onSearch={search}
     />
   );
   const body = null;
@@ -524,7 +651,13 @@ export default function PublicFountainsPage() {
           zoom={15}
           recenterKey={recenterKey}
           markers={markers}
+          circle={
+            center
+              ? { center: [center.lat, center.lon], radiusM: milesToMeters(radiusMi) }
+              : undefined
+          }
           userPos={pos ? [pos.lat, pos.lon] : undefined}
+          onMapClick={dropPin}
           className="absolute inset-0 h-full w-full"
         />
       </div>

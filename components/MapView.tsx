@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Circle,
   MapContainer,
   TileLayer,
   Marker,
@@ -42,6 +43,8 @@ type Props = {
   markers?: MapMarker[];
   // polyline as [lat, lon][]
   line?: [number, number][];
+  // Radius indicator (e.g. search-area preview) drawn under the markers.
+  circle?: { center: [number, number]; radiusM: number };
   userPos?: [number, number] | null;
   // Compass heading in degrees (0 = north, clockwise). Draws a direction cone.
   userHeading?: number | null;
@@ -183,6 +186,7 @@ export default function MapView({
   scrollWheelZoom = interactive,
   markers = [],
   line,
+  circle,
   userPos,
   userHeading,
   onMapClick,
@@ -214,6 +218,13 @@ export default function MapView({
       <StripAttributionPrefix />
       <Recenter center={center} recenterKey={recenterKey} fitPoints={fitPoints} />
       <ClickHandler onMapClick={onMapClick} onUserPan={onUserPan} />
+      {circle && (
+        <Circle
+          center={circle.center}
+          radius={circle.radiusM}
+          pathOptions={{ color: "#0284c7", weight: 1.5, opacity: 0.5, fillOpacity: 0.06 }}
+        />
+      )}
       {line && line.length > 1 && (
         <Polyline positions={line} pathOptions={{ color: "#2563eb", weight: 5, opacity: 0.8 }} />
       )}
