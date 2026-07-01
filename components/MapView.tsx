@@ -123,6 +123,16 @@ function MarkerView({ m }: { m: MapMarker }) {
   );
 }
 
+// Drop the "Leaflet" prefix (with flag) from the attribution control, keeping
+// only the required OSM credit.
+function StripAttributionPrefix() {
+  const map = useMap();
+  useEffect(() => {
+    map.attributionControl?.setPrefix(false);
+  }, [map]);
+  return null;
+}
+
 function Recenter({
   center,
   recenterKey,
@@ -201,6 +211,7 @@ export default function MapView({
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
+      <StripAttributionPrefix />
       <Recenter center={center} recenterKey={recenterKey} fitPoints={fitPoints} />
       <ClickHandler onMapClick={onMapClick} onUserPan={onUserPan} />
       {line && line.length > 1 && (
