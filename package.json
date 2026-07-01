@@ -7,10 +7,23 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky",
     "build:capacitor": "node scripts/build-capacitor.mjs",
     "cap:sync": "pnpm build:capacitor && cap sync ios",
     "ios": "pnpm cap:sync && cap open ios",
     "ios:run": "pnpm cap:sync && cap run ios"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,mjs,cjs}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,css,md,yml,yaml}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "@capacitor-community/background-geolocation": "^1.2.26",
@@ -51,6 +64,11 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.8",
+    "prettier": "^3.9.4",
+    "prettier-plugin-tailwindcss": "^0.8.0",
     "sharp": "^0.35.2",
     "tailwindcss": "^4",
     "typescript": "^5"

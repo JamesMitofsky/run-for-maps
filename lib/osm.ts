@@ -3,10 +3,8 @@
 import crypto from "crypto";
 import type { EditAction, EditExtras } from "./schemas";
 
-export const OAUTH_BASE =
-  process.env.OSM_OAUTH_BASE || "https://www.openstreetmap.org";
-export const API_BASE =
-  process.env.OSM_API_BASE || "https://api.openstreetmap.org";
+export const OAUTH_BASE = process.env.OSM_OAUTH_BASE || "https://www.openstreetmap.org";
+export const API_BASE = process.env.OSM_API_BASE || "https://api.openstreetmap.org";
 const CLIENT_ID = process.env.OSM_CLIENT_ID || "";
 const CLIENT_SECRET = process.env.OSM_CLIENT_SECRET || ""; // optional (confidential client)
 const SCOPE = "read_prefs write_api";
@@ -15,10 +13,7 @@ const CREATED_BY = "run-for-maps";
 // ---- PKCE ----
 export function makePkce() {
   const verifier = crypto.randomBytes(32).toString("base64url");
-  const challenge = crypto
-    .createHash("sha256")
-    .update(verifier)
-    .digest("base64url");
+  const challenge = crypto.createHash("sha256").update(verifier).digest("base64url");
   return { verifier, challenge };
 }
 

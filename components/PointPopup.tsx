@@ -85,7 +85,7 @@ export default function PointPopup({
   return (
     <div className="flex w-56 flex-col gap-2 text-neutral-800">
       <div>
-        <div className="font-semibold leading-tight">{name}</div>
+        <div className="leading-tight font-semibold">{name}</div>
         {fountain.tags.check_date && (
           <div className="text-xs text-neutral-500">
             Last checked in OSM: {fountain.tags.check_date}
@@ -100,14 +100,16 @@ export default function PointPopup({
 
       {edit ? (
         <div className="flex flex-col gap-1 rounded bg-neutral-50 p-2 text-xs text-neutral-700">
-          <div className="font-medium text-neutral-800">{STATUS_LABEL[edit.status] ?? "Updated"}</div>
+          <div className="font-medium text-neutral-800">
+            {STATUS_LABEL[edit.status] ?? "Updated"}
+          </div>
           <div>{edit.summary}</div>
           {edit.extras?.seasonal && (
             <div className="flex items-center gap-1 text-sky-700">
               <SnowflakeIcon size={14} /> Seasonal
             </div>
           )}
-          {edit.extras?.note && <div className="italic text-neutral-600">“{edit.extras.note}”</div>}
+          {edit.extras?.note && <div className="text-neutral-600 italic">“{edit.extras.note}”</div>}
           <SyncBadge state={edit.syncState} />
           {edit.changesetUrl && (
             <a

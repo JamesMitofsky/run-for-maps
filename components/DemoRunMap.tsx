@@ -25,17 +25,47 @@ const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 const DC_CENTER: [number, number] = [38.9068, -77.0331];
 
 const DC_FOUNTAINS: Fountain[] = [
-  { id: 1, lat: 38.92548, lon: -77.03205, tags: { name: "Meridian Hill Park", check_date: "2019-06-14" } },
+  {
+    id: 1,
+    lat: 38.92548,
+    lon: -77.03205,
+    tags: { name: "Meridian Hill Park", check_date: "2019-06-14" },
+  },
   { id: 2, lat: 38.93047, lon: -77.03617, tags: { name: "Upshur Park" } },
-  { id: 3, lat: 38.91665, lon: -77.02586, tags: { name: "LeDroit Park", check_date: "2021-03-02" } },
-  { id: 4, lat: 38.90981, lon: -77.02821, tags: { name: "Logan Circle", check_date: "2018-09-27" } },
+  {
+    id: 3,
+    lat: 38.91665,
+    lon: -77.02586,
+    tags: { name: "LeDroit Park", check_date: "2021-03-02" },
+  },
+  {
+    id: 4,
+    lat: 38.90981,
+    lon: -77.02821,
+    tags: { name: "Logan Circle", check_date: "2018-09-27" },
+  },
   { id: 5, lat: 38.90998, lon: -77.03762, tags: { name: "Stead Park" } },
-  { id: 6, lat: 38.88672, lon: -76.99649, tags: { name: "Lincoln Park", check_date: "2020-05-11" } },
+  {
+    id: 6,
+    lat: 38.88672,
+    lon: -76.99649,
+    tags: { name: "Lincoln Park", check_date: "2020-05-11" },
+  },
   { id: 7, lat: 38.8831, lon: -76.99871, tags: { name: "Folger Park" } },
-  { id: 8, lat: 38.88887, lon: -77.01979, tags: { name: "National Mall", check_date: "2017-08-19" } },
+  {
+    id: 8,
+    lat: 38.88887,
+    lon: -77.01979,
+    tags: { name: "National Mall", check_date: "2017-08-19" },
+  },
   { id: 9, lat: 38.88897, lon: -77.02442, tags: { name: "Smithsonian Castle" } },
   { id: 10, lat: 38.90495, lon: -77.06792, tags: { name: "Georgetown Waterfront" } },
-  { id: 11, lat: 38.91023, lon: -77.06672, tags: { name: "Montrose Park", check_date: "2022-11-03" } },
+  {
+    id: 11,
+    lat: 38.91023,
+    lon: -77.06672,
+    tags: { name: "Montrose Park", check_date: "2022-11-03" },
+  },
 ];
 
 const DC_ROUTE: [number, number][] = [
@@ -447,7 +477,7 @@ export default function DemoRunMap({ className }: { className?: string }) {
         userHeading={userHeading}
       />
       {/* Chips sit above tiles/markers (z ≤ 600) but below open popups (z 700). */}
-      <div className="pointer-events-none absolute right-3 top-3 z-[650] rounded-full border border-ink/10 bg-paper/90 px-2 py-0.5 font-mono text-[0.55rem] font-medium uppercase tracking-[0.14em] text-ink backdrop-blur-sm">
+      <div className="border-ink/10 bg-paper/90 text-ink pointer-events-none absolute top-3 right-3 z-[650] rounded-full border px-2 py-0.5 font-mono text-[0.55rem] font-medium tracking-[0.14em] uppercase backdrop-blur-sm">
         {target ? `${surveyed}/${DC_FOUNTAINS.length} recorded` : "Route complete ✓"}
       </div>
     </div>

@@ -95,8 +95,18 @@ export const POINT_TYPES: PointType[] = [
   { key: "amenity", value: "telephone", label: "Telephone", group: "Street furniture" },
   { key: "amenity", value: "clock", label: "Clock", group: "Street furniture" },
   { key: "emergency", value: "fire_hydrant", label: "Fire hydrant", group: "Street furniture" },
-  { key: "emergency", value: "defibrillator", label: "Defibrillator (AED)", group: "Street furniture" },
-  { key: "man_made", value: "surveillance", label: "Surveillance camera", group: "Street furniture" },
+  {
+    key: "emergency",
+    value: "defibrillator",
+    label: "Defibrillator (AED)",
+    group: "Street furniture",
+  },
+  {
+    key: "man_made",
+    value: "surveillance",
+    label: "Surveillance camera",
+    group: "Street furniture",
+  },
   { key: "man_made", value: "tower", label: "Tower", group: "Street furniture" },
   { key: "man_made", value: "water_well", label: "Water well", group: "Street furniture" },
   { key: "natural", value: "tree", label: "Tree", group: "Street furniture" },
@@ -117,5 +127,4 @@ export const ptKey = (pt: { key: string; value: string }) => `${pt.key}=${pt.val
 
 /** Human label for a tag pair, falling back to the de-underscored value. */
 export const ptLabel = (key: string, value: string): string =>
-  POINT_TYPES.find((p) => p.key === key && p.value === value)?.label ??
-  value.replace(/_/g, " ");
+  POINT_TYPES.find((p) => p.key === key && p.value === value)?.label ?? value.replace(/_/g, " ");

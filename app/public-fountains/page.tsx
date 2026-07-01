@@ -25,8 +25,7 @@ const DEFAULT_RADIUS_MI = 1;
 // Keep user-entered radius sane before it hits the API / display.
 const MIN_RADIUS_MI = 0.1;
 const MAX_RADIUS_MI = 25;
-const clampRadius = (mi: number) =>
-  Math.min(MAX_RADIUS_MI, Math.max(MIN_RADIUS_MI, mi));
+const clampRadius = (mi: number) => Math.min(MAX_RADIUS_MI, Math.max(MIN_RADIUS_MI, mi));
 const radiusLabel = (mi: number) => `${mi} ${mi === 1 ? "mile" : "miles"}`;
 // We only care about human drinking water for the public view.
 const TAG = { key: "amenity", value: "drinking_water" } as const;
@@ -47,9 +46,7 @@ function isDogWater(tags: Record<string, string>): boolean {
 // a standalone `disused=yes` is also honored.
 function isOutOfService(tags: Record<string, string>): boolean {
   return (
-    tags["disused:amenity"] != null ||
-    tags["abandoned:amenity"] != null ||
-    tags.disused === "yes"
+    tags["disused:amenity"] != null || tags["abandoned:amenity"] != null || tags.disused === "yes"
   );
 }
 
@@ -65,14 +62,10 @@ function fountainName(f: Fountain): string {
 function FountainPopup({ f, distM }: { f: Fountain; distM: number | null }) {
   return (
     <div className="flex w-52 flex-col gap-1 text-neutral-800">
-      <div className="font-semibold leading-tight">{fountainName(f)}</div>
-      {distM != null && (
-        <div className="text-xs text-neutral-500">{fmtDist(distM)} away</div>
-      )}
+      <div className="leading-tight font-semibold">{fountainName(f)}</div>
+      {distM != null && <div className="text-xs text-neutral-500">{fmtDist(distM)} away</div>}
       {f.tags.check_date && (
-        <div className="text-xs text-neutral-500">
-          Last checked in OSM: {f.tags.check_date}
-        </div>
+        <div className="text-xs text-neutral-500">Last checked in OSM: {f.tags.check_date}</div>
       )}
       {isDogWater(f.tags) && (
         <div className="mt-1 flex items-center gap-1 text-xs font-medium text-violet-700">
@@ -124,7 +117,7 @@ function Pill({
 function PillRow({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      <span className="mr-0.5 text-[11px] font-semibold uppercase tracking-wide text-ink-dim">
+      <span className="text-ink-dim mr-0.5 text-[11px] font-semibold tracking-wide uppercase">
         {label}
       </span>
       {children}
@@ -168,7 +161,11 @@ function FilterPills({
         </Pill>
       </PillRow>
       <PillRow label="Water">
-        <Pill active={water.has("human")} count={counts.humanN} onClick={() => toggleWater("human")}>
+        <Pill
+          active={water.has("human")}
+          count={counts.humanN}
+          onClick={() => toggleWater("human")}
+        >
           Human
         </Pill>
         <Pill active={water.has("dog")} count={counts.dogN} onClick={() => toggleWater("dog")}>
@@ -220,11 +217,11 @@ function PanelHead({
     <div className="flex flex-col gap-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-0.5">
-          <h1 className="flex items-center gap-2 font-display text-xl font-bold leading-tight">
+          <h1 className="font-display flex items-center gap-2 text-xl leading-tight font-bold">
             <DropIcon size={22} weight="duotone" className="text-sky-deep" />
             Fountains near you
           </h1>
-          <p className="text-sm text-ink-dim">
+          <p className="text-ink-dim text-sm">
             Public drinking water within {radiusLabel(radiusMi)}, from OpenStreetMap.
           </p>
         </div>
@@ -232,7 +229,7 @@ function PanelHead({
           onClick={onLocate}
           disabled={busy}
           title="Use my location"
-          className="shrink-0 rounded-lg border border-paper-line bg-paper/40 px-3 py-2 text-ink transition hover:border-sky-deep/60 hover:text-sky-deep disabled:opacity-40"
+          className="border-paper-line bg-paper/40 text-ink hover:border-sky-deep/60 hover:text-sky-deep shrink-0 rounded-lg border px-3 py-2 transition disabled:opacity-40"
         >
           <CrosshairIcon size={18} />
         </button>
@@ -245,7 +242,10 @@ function PanelHead({
         }}
         className="flex items-center gap-2"
       >
-        <label htmlFor="radius-mi" className="text-[11px] font-semibold uppercase tracking-wide text-ink-dim">
+        <label
+          htmlFor="radius-mi"
+          className="text-ink-dim text-[11px] font-semibold tracking-wide uppercase"
+        >
           Radius
         </label>
         <input
@@ -259,15 +259,15 @@ function PanelHead({
           disabled={busy}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={commit}
-          className="w-20 rounded-lg border border-paper-line bg-paper/40 px-2 py-1 text-sm text-ink outline-none transition focus:border-sky-deep/60 disabled:opacity-40"
+          className="border-paper-line bg-paper/40 text-ink focus:border-sky-deep/60 w-20 rounded-lg border px-2 py-1 text-sm transition outline-none disabled:opacity-40"
         />
-        <span className="text-sm text-ink-dim">miles</span>
+        <span className="text-ink-dim text-sm">miles</span>
       </form>
 
       <FilterPills svc={svc} setSvc={setSvc} water={water} setWater={setWater} counts={counts} />
 
       {busy && (
-        <div className="flex justify-center py-2 text-ink-dim">
+        <div className="text-ink-dim flex justify-center py-2">
           <SpinnerIcon size={24} className="animate-spin" />
         </div>
       )}
@@ -286,7 +286,7 @@ function PanelHead({
       )}
 
       {!busy && !err && (
-        <span className="w-fit rounded-full bg-sky/15 px-2 py-0.5 text-xs font-semibold text-sky-deep">
+        <span className="bg-sky/15 text-sky-deep w-fit rounded-full px-2 py-0.5 text-xs font-semibold">
           {visibleN} shown
         </span>
       )}
@@ -353,7 +353,7 @@ function BottomSheet({ head, body }: { head: ReactNode; body: ReactNode }) {
         if (snap === "full") return snapTo(info.offset.y > 60 ? "peek" : "full");
         return snapTo(info.offset.y < -60 ? "full" : "peek");
       }}
-      className="safe-pb fixed inset-x-0 bottom-0 z-[1000] flex h-[88dvh] flex-col rounded-t-2xl border-t border-paper-line bg-paper/95 shadow-xl backdrop-blur md:hidden"
+      className="safe-pb border-paper-line bg-paper/95 fixed inset-x-0 bottom-0 z-[1000] flex h-[88dvh] flex-col rounded-t-2xl border-t shadow-xl backdrop-blur md:hidden"
     >
       <div ref={peekRef} className="shrink-0">
         <div
@@ -369,11 +369,11 @@ function BottomSheet({ head, body }: { head: ReactNode; body: ReactNode }) {
           }}
           className="flex cursor-grab touch-none justify-center py-3 active:cursor-grabbing"
         >
-          <div className="h-1.5 w-10 rounded-full bg-paper-line" />
+          <div className="bg-paper-line h-1.5 w-10 rounded-full" />
         </div>
         <div className="px-5">{head}</div>
       </div>
-      <div className="flex-1 overflow-y-auto overscroll-contain px-5 pb-4 pt-3">{body}</div>
+      <div className="flex-1 overflow-y-auto overscroll-contain px-5 pt-3 pb-4">{body}</div>
     </motion.div>
   );
 }
@@ -516,7 +516,7 @@ export default function PublicFountainsPage() {
   const body = null;
 
   return (
-    <main className="relative h-dvh w-screen overflow-hidden bg-paper font-body text-ink">
+    <main className="bg-paper font-body text-ink relative h-dvh w-screen overflow-hidden">
       {/* Map: full-bleed under the floating UI at every size. */}
       <div className="absolute inset-0">
         <MapView
@@ -533,7 +533,7 @@ export default function PublicFountainsPage() {
       <header className="safe-top pointer-events-none absolute inset-x-0 z-[1000] flex items-center p-4 md:p-5">
         <Link
           href="/"
-          className="pointer-events-auto flex items-center gap-1.5 rounded-full border border-paper-line bg-paper/90 px-3 py-1.5 text-xs font-semibold text-ink-dim shadow-sm backdrop-blur transition hover:text-ink"
+          className="border-paper-line bg-paper/90 text-ink-dim hover:text-ink pointer-events-auto flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold shadow-sm backdrop-blur transition"
         >
           <ArrowLeftIcon size={14} />
           Home
@@ -545,7 +545,7 @@ export default function PublicFountainsPage() {
 
       {/* Desktop: right-anchored floating panel. */}
       <div className="pointer-events-none hidden md:absolute md:inset-y-0 md:right-0 md:left-auto md:z-[1000] md:flex md:items-center md:p-6">
-        <section className="pointer-events-auto flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-paper-line bg-paper/95 p-6 shadow-xl backdrop-blur md:max-h-[calc(100vh-3rem)] md:overflow-y-auto">
+        <section className="border-paper-line bg-paper/95 pointer-events-auto flex w-full max-w-sm flex-col gap-4 rounded-2xl border p-6 shadow-xl backdrop-blur md:max-h-[calc(100vh-3rem)] md:overflow-y-auto">
           {head}
           {body}
         </section>

@@ -1,6 +1,14 @@
 "use client";
 
-import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap, useMapEvents } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Polyline,
+  Popup,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, type ReactNode } from "react";
@@ -206,7 +214,9 @@ export default function MapView({
       <StripAttributionPrefix />
       <Recenter center={center} recenterKey={recenterKey} fitPoints={fitPoints} />
       <ClickHandler onMapClick={onMapClick} onUserPan={onUserPan} />
-      {line && line.length > 1 && <Polyline positions={line} pathOptions={{ color: "#2563eb", weight: 5, opacity: 0.8 }} />}
+      {line && line.length > 1 && (
+        <Polyline positions={line} pathOptions={{ color: "#2563eb", weight: 5, opacity: 0.8 }} />
+      )}
       {markers.map((m) => (
         <MarkerView key={m.id} m={m} />
       ))}

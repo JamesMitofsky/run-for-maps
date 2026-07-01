@@ -77,7 +77,13 @@ function nameNear(pt: Pt, named: NamedPoint[]): string | undefined {
 function extractTurns(coords: [number, number][], named: NamedPoint[]): Turn[] {
   const pt = (c: [number, number]): Pt => ({ lon: c[0], lat: c[1] });
   const turns: Turn[] = [];
-  let cluster: { startI: number; lastI: number; startDist: number; lastDist: number; sum: number } | null = null;
+  let cluster: {
+    startI: number;
+    lastI: number;
+    startDist: number;
+    lastDist: number;
+    sum: number;
+  } | null = null;
 
   const flush = () => {
     if (cluster && Math.abs(cluster.sum) >= TURN_MIN_DEG) {

@@ -258,7 +258,7 @@ export default function RunGuide({
           Kept outside the animated/transformed block so `fixed` anchors to the
           viewport. Hidden while a confirm dialog is up. */}
       {!pending && (
-        <div className="fixed bottom-4 right-4 z-50 flex gap-2">
+        <div className="fixed right-4 bottom-4 z-50 flex gap-2">
           {index > 0 && (
             <button
               title="Back to previous stop"

@@ -91,7 +91,7 @@ export default function RunComplete({
                   `I surveyed ${editCount} OpenStreetMap ${editCount === 1 ? "point" : "points"} on a run with ROSM.`,
                 )
               }
-              className={`w-full rounded border py-3 font-semibold ${tone === "dark" ? "border-white/15 text-cream-dim" : "border-neutral-300 text-neutral-700"}`}
+              className={`w-full rounded border py-3 font-semibold ${tone === "dark" ? "text-cream-dim border-white/15" : "border-neutral-300 text-neutral-700"}`}
             >
               Share run
             </button>
@@ -111,8 +111,8 @@ export default function RunComplete({
           </button>
           {sync.unsent > 0 && (
             <p className={`w-full text-sm ${t.note}`}>
-              Send the remaining {sync.unsent} {sync.unsent === 1 ? "edit" : "edits"} before
-              closing the changeset.
+              Send the remaining {sync.unsent} {sync.unsent === 1 ? "edit" : "edits"} before closing
+              the changeset.
             </p>
           )}
           {finishErr && <p className={`w-full rounded p-2 text-sm ${t.err}`}>{finishErr}</p>}

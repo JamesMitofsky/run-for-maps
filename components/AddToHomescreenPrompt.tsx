@@ -19,8 +19,7 @@ function shouldPrompt(): boolean {
     window.matchMedia("(display-mode: standalone)").matches ||
     // iOS Safari exposes standalone here instead of via display-mode.
     (window.navigator as unknown as { standalone?: boolean }).standalone === true;
-  const mobile =
-    window.matchMedia("(pointer: coarse)").matches && "ontouchstart" in window;
+  const mobile = window.matchMedia("(pointer: coarse)").matches && "ontouchstart" in window;
   return mobile && !standalone;
 }
 
@@ -41,14 +40,14 @@ export default function AddToHomescreenPrompt() {
           exit={{ opacity: 0 }}
         >
           <div
-            className="absolute inset-0 bg-ink/30 backdrop-blur-sm"
+            className="bg-ink/30 absolute inset-0 backdrop-blur-sm"
             onClick={() => setShow(false)}
           />
           <motion.div
             role="dialog"
             aria-modal="true"
             aria-labelledby="a2hs-title"
-            className="relative flex w-full max-w-xs flex-col items-center gap-3 rounded-2xl border border-sky-deep/30 bg-paper p-6 text-center shadow-2xl"
+            className="border-sky-deep/30 bg-paper relative flex w-full max-w-xs flex-col items-center gap-3 rounded-2xl border p-6 text-center shadow-2xl"
             initial={{ opacity: 0, scale: 0.94, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.94, y: 8 }}
@@ -56,26 +55,26 @@ export default function AddToHomescreenPrompt() {
             <button
               onClick={() => setShow(false)}
               aria-label="Dismiss"
-              className="absolute right-3 top-3 text-ink-dim/70 hover:text-ink"
+              className="text-ink-dim/70 hover:text-ink absolute top-3 right-3"
             >
               <XIcon size={18} />
             </button>
 
-            <span className="grid h-14 w-14 place-items-center rounded-full bg-sky-deep/10 text-sky-deep">
+            <span className="bg-sky-deep/10 text-sky-deep grid h-14 w-14 place-items-center rounded-full">
               <DeviceMobileIcon size={30} weight="fill" />
             </span>
 
-            <h2 id="a2hs-title" className="font-display text-base font-bold text-ink">
+            <h2 id="a2hs-title" className="font-display text-ink text-base font-bold">
               Add this to your homescreen
             </h2>
-            <p className="text-sm text-ink-dim">
-              Add it to your home screen via the Share button. It&rsquo;ll be way more
-              stable than using the site on your phone.
+            <p className="text-ink-dim text-sm">
+              Add it to your home screen via the Share button. It&rsquo;ll be way more stable than
+              using the site on your phone.
             </p>
 
             <button
               onClick={() => setShow(false)}
-              className="mt-1 text-xs font-medium text-ink-dim hover:text-ink"
+              className="text-ink-dim hover:text-ink mt-1 text-xs font-medium"
             >
               Continue anyway
             </button>

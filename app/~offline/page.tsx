@@ -12,8 +12,8 @@ export default function OfflinePage() {
         You&apos;re offline
       </h1>
       <p className="max-w-sm text-sm text-[#b9b8ac]">
-        This page isn&apos;t cached yet. Routes and tiles you&apos;ve already
-        loaded stay available — reconnect to load anything new.
+        This page isn&apos;t cached yet. Routes and tiles you&apos;ve already loaded stay available
+        — reconnect to load anything new.
       </p>
       <p className="text-xs text-[#b9b8ac]/70">ROSM keeps working in the field.</p>
     </main>
