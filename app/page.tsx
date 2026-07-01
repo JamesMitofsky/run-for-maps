@@ -7,12 +7,7 @@ import NativeEntryRedirect from "@/components/NativeEntryRedirect";
 import {
   ArrowRightIcon,
   MapTrifoldIcon,
-  PathIcon,
-  PersonSimpleRunIcon,
-  RulerIcon,
   GlobeHemisphereWestIcon,
-  CompassIcon,
-  CheckCircleIcon,
 } from "@phosphor-icons/react";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
@@ -376,33 +371,6 @@ function Label({ children }: { children: React.ReactNode }) {
   );
 }
 
-const STEPS = [
-  {
-    icon: MapTrifoldIcon,
-    n: "01",
-    title: "Set a center point",
-    body: "Search an address, tap the map, or use your live location. OSM features matching a tag (default amenity=drinking_water) are fetched within a radius via the Overpass API.",
-  },
-  {
-    icon: RulerIcon,
-    n: "02",
-    title: "Set a target distance",
-    body: "Choose how far to run. A distance-bounded subset of the fetched points is selected, so a large area can be split across multiple runs.",
-  },
-  {
-    icon: PathIcon,
-    n: "03",
-    title: "Generate the route",
-    body: "Selected points are ordered and threaded into a runnable footpath route via the BRouter pedestrian routing engine (foot-fast profile). Loop or one-way.",
-  },
-  {
-    icon: PersonSimpleRunIcon,
-    n: "04",
-    title: "Run and record",
-    body: "Run the route with turn-toward-next-point guidance. At each point, record its state — written back to OSM under a single changeset.",
-  },
-];
-
 export default function LandingPage() {
   return (
     <main className="paper-grain relative bg-paper font-body text-ink">
@@ -448,9 +416,9 @@ export default function LandingPage() {
             transition={{ ...fadeUp.transition, delay: 0.05 }}
             className="max-w-5xl font-display text-[clamp(2.6rem,8.5vw,6.5rem)] font-bold uppercase leading-[0.9] tracking-tight"
           >
-            Contribute to <span className="text-sky-deep">public maps</span>
+            Runner-sourced
             <br />
-            on your runs
+            <span className="text-sky-deep">public maps</span>
           </motion.h1>
 
           <div className="mt-10 grid gap-8 md:grid-cols-[1fr_auto] md:items-end">
@@ -459,8 +427,7 @@ export default function LandingPage() {
               transition={{ ...fadeUp.transition, delay: 0.12 }}
               className="max-w-xl text-lg leading-relaxed text-ink-dim"
             >
-              Runners already visit every corner of the city—updating
-              community data is a match made in heaven.
+              Your everyday run is public service opportunity
             </motion.p>
 
             <motion.div
@@ -513,71 +480,53 @@ export default function LandingPage() {
         <div className="mx-auto grid max-w-6xl gap-12 px-5 py-20 md:grid-cols-2 md:py-28">
           <motion.div {...fadeUp}>
             <h2 className="font-display text-[clamp(2rem,5vw,3.4rem)] font-bold leading-[1.05] tracking-tight">
-              ROSM makes it easy for runners to contribute to a
-              <span className="text-sky-deep"> public resource</span>
+              Keeping map data <span className="text-sky-deep">public</span> is
+              important
             </h2>
             <p className="mt-6 text-lg leading-relaxed text-ink-dim">
-              Crowdsourced map data degrades over time. Point features — drinking
-              fountains, benches, and similar nodes — are tagged once and rarely
-              rechecked. Aerial imagery can&apos;t confirm whether a fountain still
-              works or a node still exists on the ground.
+              Crowdsourced map data degrades over time. Places like drinking
+              fountains, benches, and similar nodes (which Apple and Google
+              don&apos;t even track, data sovereignty aside) are often tagged once
+              and never re-verified.
             </p>
             <p className="mt-4 text-lg leading-relaxed text-ink-dim">
-              ROSM closes the loop by routing runs past unverified points so their
-              real-world state can be observed and recorded easily into OSM.
+              This app aims to solve the verification problem by routing runs past
+              these unverified points so their real-world state can be observed
+              and recorded into the Open Street Maps platform (the crowd-sourced,
+              non-profit alternative to Google Maps).
             </p>
           </motion.div>
 
-          <motion.ul {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.1 }} className="flex flex-col gap-4">
-            {[
-              { icon: CompassIcon, h: "On-foot guidance", b: "Mobile-first run view: live distance and a compass arrow pointing toward the next point on the route." },
-              { icon: CheckCircleIcon, h: "OSM lifecycle mapping", b: "Working sets check_date; out-of-order moves the tag to disused:; removed moves it to abandoned: — each stamped with today's date." },
-              { icon: GlobeHemisphereWestIcon, h: "Single attributed changeset", b: "All edits from one run commit under one OSM changeset, attributed to your OSM account via OAuth2." },
-            ].map((f) => {
-              const Icon = f.icon;
-              return (
-                <li key={f.h} className="flex gap-4 rounded-2xl border border-paper-line bg-paper p-5">
-                  <Icon size={28} weight="bold" className="mt-0.5 shrink-0 text-sky-deep" />
-                  <div>
-                    <h3 className="font-display font-semibold">{f.h}</h3>
-                    <p className="mt-1 text-sm text-ink-dim">{f.b}</p>
-                  </div>
-                </li>
-              );
-            })}
-          </motion.ul>
+          <motion.div {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.1 }} className="flex self-start">
+            <div className="flex gap-4 rounded-2xl border border-paper-line bg-paper px-5 py-8">
+              <GlobeHemisphereWestIcon size={28} weight="bold" className="mt-0.5 shrink-0 text-sky-deep" />
+              <p className="text-lg leading-relaxed text-ink-dim">
+                Right now, the focus is on documenting fountains as a public
+                amenity, and once this proof of concept is locked down, branching
+                out to recording and maintaining data for other public amenities.
+                Things like public restrooms, picnic tables, parks, etc.
+              </p>
+            </div>
+          </motion.div>
         </div>
       </section>
 
-      {/* HOW IT WORKS */}
+      {/* HOW TO CONTRIBUTE */}
       <section id="how" className="border-t border-paper-line">
         <div className="mx-auto max-w-6xl px-5 py-20 md:py-28">
           <motion.div {...fadeUp}>
             <h2 className="font-display text-[clamp(2rem,5.5vw,3.6rem)] font-bold uppercase leading-tight tracking-tight">
-              How it works
+              How to contribute
             </h2>
+            <p className="mt-8 max-w-2xl text-lg leading-relaxed text-ink-dim">
+              If you have feedback on your experience using ROSM or want to
+              contribute to the code, shoot me a message at{" "}
+              <a href="mailto:james@btv.dev" className="text-sky-deep underline">
+                james@btv.dev
+              </a>
+              .
+            </p>
           </motion.div>
-
-          <div className="mt-12 grid gap-px overflow-hidden rounded-3xl border border-paper-line bg-paper-line sm:grid-cols-2">
-            {STEPS.map((step) => {
-              const Icon = step.icon;
-              return (
-                <div
-                  key={step.n}
-                  className="group relative bg-paper p-8 transition hover:bg-paper-deep"
-                >
-                  <div className="flex items-start justify-between">
-                    <Icon size={36} weight="duotone" className="text-sky-deep" />
-                    <span className="font-display text-5xl font-bold text-ink/10">
-                      {step.n}
-                    </span>
-                  </div>
-                  <h3 className="mt-6 font-display text-xl font-semibold">{step.title}</h3>
-                  <p className="mt-2 text-ink-dim">{step.body}</p>
-                </div>
-              );
-            })}
-          </div>
         </div>
       </section>
 
