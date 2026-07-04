@@ -252,7 +252,7 @@ export default function LandingPage() {
             />{" "}
             by{" "}
             <a
-              href="https://jamesm.it"
+              href="https://jamesm.it/about"
               target="_blank"
               rel="noopener noreferrer"
               className="text-ink decoration-sky-deep/50 hover:decoration-sky-deep font-medium underline underline-offset-4"
