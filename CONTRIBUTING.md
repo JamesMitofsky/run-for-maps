@@ -34,15 +34,49 @@ Formatting and lint style are enforced, not a matter of taste — everyone ships
 Do not hand-tune formatting or add per-file overrides; change the shared config in a dedicated
 PR if the style itself needs to change.
 
+## Tests
+
+Unit/integration tests live in `tests/` and run on [Vitest](https://vitest.dev):
+
+```bash
+pnpm test            # run the whole suite once
+pnpm test:watch      # watch mode while developing
+pnpm test:coverage   # v8 coverage report (text + html)
+```
+
+Layout mirrors the source tree: `tests/lib/**` (geo math, route planning, OSM tag
+transforms, Overpass/BRouter clients), `tests/store/**` (run + outbox stores),
+`tests/hooks/**` (the live run session), and `tests/api/**` (every `/api` route
+handler, including the OAuth PKCE flow and the 409-retry edit path).
+
+Conventions:
+
+- Default environment is node; browser-flavored suites start with a
+  `// @vitest-environment jsdom` docblock (see `tests/setup.ts` for shared setup).
+- All network I/O is mocked — the suite must pass offline and never touch the
+  real OSM/Overpass/BRouter APIs.
+- New features need tests in the matching directory; bug fixes need a test that
+  fails before the fix.
+
 ## Before opening a PR
 
 ```bash
 pnpm format        # apply Prettier to the whole tree
 pnpm lint          # eslint, must pass with no errors (pnpm lint:fix to auto-fix)
+pnpm typecheck     # tsc --noEmit, must pass
+pnpm test          # vitest, must pass
 pnpm build         # next build, must succeed
 ```
 
 `pnpm format:check` is the CI-equivalent read-only check.
+
+### CI / deployment gate
+
+`.github/workflows/ci.yml` runs Prettier, ESLint, `tsc`, the Vitest suite and a
+production `next build` on every PR targeting `main` and on every push to `main`.
+Vercel deploys `main` on push, so keep the **Quality** and **Build** checks
+required (GitHub → Settings → Branches → protect `main`) — that makes a green
+suite the precondition for anything reaching production.
 
 - TypeScript strict mode is on; do not introduce `any` or `@ts-ignore` to silence errors.
 - Don't commit anything under `data/` — it is gitignored runtime state.
