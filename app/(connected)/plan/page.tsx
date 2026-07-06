@@ -197,7 +197,7 @@ export default function PlannerPage() {
   // Status resolved to logged-out → bounce to the dedicated sign-in page. Only
   // on mobile; desktop users see the "plan on your phone" intercept instead.
   useEffect(() => {
-    if (isMobileDevice && osm && !osm.loggedIn) router.replace("/plan/login");
+    if (isMobileDevice && osm && !osm.loggedIn) router.replace("/login?returnTo=/plan");
   }, [isMobileDevice, osm, router]);
 
   // On mount, recover an in-progress run (the run now lives here, not on a

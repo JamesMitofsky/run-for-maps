@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { FlagCheckeredIcon } from "@phosphor-icons/react";
 import type { RunSession } from "@/hooks/useRunSession";
 import { useOutbox, outboxCounts } from "@/store/outbox";
+import { useRun } from "@/store/run";
 import SyncStatus from "@/components/SyncStatus";
 import { canShare, shareRun } from "@/lib/share";
 
@@ -41,6 +43,9 @@ export default function RunComplete({
 }) {
   const t = TONE[tone];
   const outboxItems = useOutbox((s) => s.items);
+  // For "View this run": the archive is keyed by this id and already durably
+  // written, so the link works even after the stores reset.
+  const routeId = useRun((s) => s.routeId);
   const { stops, finishing, finishErr, closed, finish } = session;
 
   const counts = stops.reduce<Record<string, number>>((a, s) => {
@@ -96,8 +101,19 @@ export default function RunComplete({
               Share run
             </button>
           )}
-          <button onClick={onExit} className={`w-full rounded py-3 font-semibold ${t.primary}`}>
-            Done
+          {routeId && (
+            <Link
+              href={`/profile/runs/${routeId}`}
+              className={`block w-full rounded py-3 text-center font-semibold ${t.primary}`}
+            >
+              View this run
+            </Link>
+          )}
+          <button
+            onClick={onExit}
+            className={`w-full rounded border py-3 font-semibold ${tone === "dark" ? "text-cream-dim border-white/15" : "border-neutral-300 text-neutral-700"}`}
+          >
+            Plan another route
           </button>
         </>
       ) : (

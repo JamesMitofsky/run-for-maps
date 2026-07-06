@@ -1,21 +1,30 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useOsmStatus } from "@/components/OsmStatus";
 import OsmSignInLink from "@/components/OsmSignInLink";
 import AddToHomescreenPrompt from "@/components/AddToHomescreenPrompt";
 
-// Dedicated sign-in page for the planner. The planner gates on OSM auth and
-// sends unauthenticated users here; once logged in we bounce back to /plan.
-export default function PlanLoginPage() {
+// Same shape as the server's isSafeReturnTo (lib/osm.ts, node-only module):
+// in-app paths only, no protocol-relative escapes.
+function safeReturnTo(p: string | null): string {
+  if (p && p.startsWith("/") && !p.startsWith("//") && !p.startsWith("/\\")) return p;
+  return "/plan";
+}
+
+// App-wide sign-in gate. Pages that need an OSM account send users here with
+// ?returnTo=<path>; once logged in we bounce them back where they came from.
+function LoginContent() {
   const router = useRouter();
+  const params = useSearchParams();
+  const returnTo = safeReturnTo(params.get("returnTo"));
   const { status: osm } = useOsmStatus();
 
   useEffect(() => {
-    if (osm?.loggedIn) router.replace("/plan");
-  }, [osm?.loggedIn, router]);
+    if (osm?.loggedIn) router.replace(returnTo);
+  }, [osm?.loggedIn, router, returnTo]);
 
   return (
     <main className="bg-paper font-body text-ink relative flex h-screen w-screen items-center justify-center overflow-hidden">
@@ -36,8 +45,8 @@ export default function PlanLoginPage() {
             Connect your OpenStreetMap account
           </h1>
           <p className="text-ink-dim text-sm">
-            The planner edits real OSM data. Sign in with your OpenStreetMap account to open the map
-            and start building routes.
+            ROSM records real OSM data under your name. Sign in with your OpenStreetMap account to
+            continue.
           </p>
         </div>
         <OsmSignInLink className="bg-ink text-paper hover:bg-ink-soft flex items-center justify-center gap-2 rounded-full px-5 py-3 font-bold transition">
@@ -45,5 +54,14 @@ export default function PlanLoginPage() {
         </OsmSignInLink>
       </section>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  // useSearchParams needs a Suspense boundary during prerender.
+  return (
+    <Suspense fallback={<main className="bg-paper h-screen w-screen" />}>
+      <LoginContent />
+    </Suspense>
   );
 }

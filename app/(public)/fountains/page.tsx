@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
-import { ArrowLeftIcon } from "@phosphor-icons/react";
+import { ArrowLeftIcon, PathIcon } from "@phosphor-icons/react";
 import type { Fountain } from "@/lib/schemas";
 import type { MapMarker } from "@/components/MapView";
 import AccountChip from "@/components/AccountChip";
@@ -229,6 +229,17 @@ export default function FountainsPage() {
 
       {/* Connected + edited this session: sync review + changeset close. */}
       <EditSyncPanel osmEdits={osmEdits} />
+
+      {/* The browser is the funnel top: found fountains → go survey them. */}
+      {searchedAt != null && visible.length > 0 && (
+        <Link
+          href="/plan"
+          className="text-sky-deep hover:text-sky-deep/80 flex w-fit items-center gap-1.5 text-sm font-semibold transition"
+        >
+          <PathIcon size={16} />
+          Plan a run past fountains like these →
+        </Link>
+      )}
     </div>
   );
   const body = null;

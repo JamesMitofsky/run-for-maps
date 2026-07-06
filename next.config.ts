@@ -20,6 +20,8 @@ const nextConfig: NextConfig = isCapacitor
         return [
           // Old URL for the fountain browser — keep bookmarks/PWA shortcuts alive.
           { source: "/public-fountains", destination: "/fountains", permanent: true },
+          // Sign-in moved from the planner-scoped URL to an app-wide gate.
+          { source: "/plan/login", destination: "/login?returnTo=/plan", permanent: true },
         ];
       },
       async headers() {

@@ -3,9 +3,15 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
+import HomeRunCard from "@/components/HomeRunCard";
 import NativeEntryRedirect from "@/components/NativeEntryRedirect";
 import SiteNav from "@/components/SiteNav";
-import { ArrowRightIcon, GithubLogoIcon, GlobeHemisphereWestIcon, HeartIcon } from "@phosphor-icons/react";
+import {
+  ArrowRightIcon,
+  GithubLogoIcon,
+  GlobeHemisphereWestIcon,
+  HeartIcon,
+} from "@phosphor-icons/react";
 
 const DemoRunMap = dynamic(() => import("@/components/DemoRunMap"), { ssr: false });
 
@@ -90,7 +96,7 @@ export default function LandingPage() {
             <span className="text-sky-deep">public maps</span>
           </motion.h1>
 
-          <div className="mt-10">
+          <div className="mt-10 flex flex-col items-start gap-6">
             <motion.p
               {...fadeUp}
               transition={{ ...fadeUp.transition, delay: 0.12 }}
@@ -98,6 +104,8 @@ export default function LandingPage() {
             >
               Plan your runs to crowdsource public map data
             </motion.p>
+            {/* Returning users: resume an in-flight run or revisit history. */}
+            <HomeRunCard />
           </div>
 
           {/* Sample-route label, sitting tightly above the map plate. */}
