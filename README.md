@@ -95,4 +95,7 @@ Free word association:
 
 ## Contributing
 
+Pull requests welcome! The project lives at
+[github.com/JamesMitofsky/run-for-maps](https://github.com/JamesMitofsky/run-for-maps).
+
 See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, code style, and PR conventions.

@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import NativeEntryRedirect from "@/components/NativeEntryRedirect";
 import SiteNav from "@/components/SiteNav";
-import { ArrowRightIcon, GlobeHemisphereWestIcon, HeartIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon, GithubLogoIcon, GlobeHemisphereWestIcon, HeartIcon } from "@phosphor-icons/react";
 
 const DemoRunMap = dynamic(() => import("@/components/DemoRunMap"), { ssr: false });
 
@@ -178,6 +178,15 @@ export default function LandingPage() {
               </a>
               .
             </p>
+            <a
+              href="https://github.com/JamesMitofsky/run-for-maps"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="border-paper-line hover:border-ink/20 mt-8 inline-flex items-center gap-3 rounded-full border px-6 py-3 font-medium transition"
+            >
+              <GithubLogoIcon size={20} weight="bold" />
+              Pull requests welcome
+            </a>
           </motion.div>
         </div>
       </section>
