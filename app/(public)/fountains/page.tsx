@@ -221,7 +221,7 @@ export default function FountainsPage() {
           <span className="text-ink">
             Connect your OpenStreetMap account to record fountain updates from the map.
           </span>
-          <OsmSignInLink className="bg-ink text-paper hover:bg-ink-soft w-fit rounded-full px-4 py-1.5 text-xs font-bold transition">
+          <OsmSignInLink className="bg-ink text-paper hover:bg-ink-soft w-fit rounded-sm px-4 py-1.5 text-xs font-bold transition">
             Connect with OpenStreetMap
           </OsmSignInLink>
         </div>
@@ -268,7 +268,7 @@ export default function FountainsPage() {
       <header className="safe-top pointer-events-none absolute inset-x-0 z-[1000] flex items-center justify-between p-4 md:p-5">
         <Link
           href="/"
-          className="border-paper-line bg-paper/90 text-ink-dim hover:text-ink pointer-events-auto flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold shadow-sm backdrop-blur transition"
+          className="border-paper-line bg-paper/90 text-ink-dim hover:text-ink pointer-events-auto flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-xs font-semibold shadow-sm backdrop-blur transition"
         >
           <ArrowLeftIcon size={14} />
           Home

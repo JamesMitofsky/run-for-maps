@@ -49,7 +49,7 @@ function LoginContent() {
             continue.
           </p>
         </div>
-        <OsmSignInLink className="bg-ink text-paper hover:bg-ink-soft flex items-center justify-center gap-2 rounded-full px-5 py-3 font-bold transition">
+        <OsmSignInLink className="bg-ink text-paper hover:bg-ink-soft flex items-center justify-center gap-2 rounded-sm px-5 py-3 font-bold transition">
           Sign in to OpenStreetMap
         </OsmSignInLink>
       </section>

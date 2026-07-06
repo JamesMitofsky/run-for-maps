@@ -16,7 +16,7 @@ export default function EditSyncPanel({ osmEdits }: { osmEdits: OsmEdits }) {
         <button
           onClick={closeEdits}
           disabled={closingEdits || outboxUnsent > 0}
-          className="border-paper-line text-ink-dim hover:border-sky-deep/60 hover:text-sky-deep w-full rounded-full border py-1.5 text-xs font-semibold transition disabled:opacity-40"
+          className="border-paper-line text-ink-dim hover:border-sky-deep/60 hover:text-sky-deep w-full rounded-sm border py-1.5 text-xs font-semibold transition disabled:opacity-40"
         >
           {closingEdits ? "Closing changeset…" : "Close changeset"}
         </button>

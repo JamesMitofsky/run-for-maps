@@ -29,7 +29,7 @@ export default function Button({
   return (
     <button
       type={type}
-      className={`rounded-full transition disabled:opacity-40 ${VARIANT[variant]} ${SIZE[size]} ${className}`}
+      className={`rounded-sm transition disabled:opacity-40 ${VARIANT[variant]} ${SIZE[size]} ${className}`}
       {...rest}
     />
   );

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ArrowLeftIcon, ArrowSquareOutIcon } from "@phosphor-icons/react";
-import SiteNav from "@/components/SiteNav";
 import Panel from "@/components/ui/Panel";
 import { SyncBadge } from "@/components/SyncStatus";
 import type { MapMarker } from "@/components/MapView";
@@ -42,8 +41,7 @@ function RunDetailContent() {
 
   if (route === null) {
     return (
-      <main className="bg-paper font-body text-ink min-h-screen">
-        <SiteNav />
+      <main className="bg-paper font-body text-ink">
         <div className="mx-auto flex max-w-2xl flex-col items-start gap-4 px-5 py-8">
           <h1 className="font-display text-2xl font-bold">Run not found</h1>
           <p className="text-ink-dim text-sm">
@@ -85,8 +83,7 @@ function RunDetailContent() {
   const surveyed = plan.stops.filter((s) => s.status !== "pending" && s.status !== "skipped");
 
   return (
-    <main className="bg-paper font-body text-ink min-h-screen">
-      <SiteNav />
+    <main className="bg-paper font-body text-ink">
       <div className="mx-auto flex max-w-2xl flex-col gap-4 px-5 py-8">
         <Link
           href="/profile"

@@ -92,7 +92,7 @@ export default function SyncStatus({
           type="button"
           onClick={onRetry}
           disabled={working}
-          className="bg-ink text-paper hover:bg-ink-soft flex items-center justify-center gap-2 rounded-full py-2 text-sm font-semibold transition disabled:opacity-50"
+          className="bg-ink text-paper hover:bg-ink-soft flex items-center justify-center gap-2 rounded-sm py-2 text-sm font-semibold transition disabled:opacity-50"
         >
           <ArrowsClockwiseIcon size={16} className={working ? "animate-spin" : ""} />
           {working ? "Retrying…" : "Retry all missed sends"}

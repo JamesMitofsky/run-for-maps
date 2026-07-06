@@ -62,7 +62,7 @@ export default function CompassEnableModal({
 
             <button
               onClick={onEnable}
-              className="bg-sky-deep text-paper mt-1 flex w-full items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-semibold shadow-md"
+              className="bg-sky-deep text-paper mt-1 flex w-full items-center justify-center gap-1.5 rounded-sm px-4 py-2.5 text-sm font-semibold shadow-md"
             >
               <CompassIcon size={16} weight="fill" />
               Enable compass

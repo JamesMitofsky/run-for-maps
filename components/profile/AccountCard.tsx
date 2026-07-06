@@ -30,7 +30,7 @@ export default function AccountCard() {
           Your runs are saved on this device either way — connecting lets you send fountain updates
           to OpenStreetMap under your name.
         </p>
-        <OsmSignInLink className="bg-ink text-paper hover:bg-ink-soft w-fit rounded-full px-5 py-2 text-sm font-bold transition">
+        <OsmSignInLink className="bg-ink text-paper hover:bg-ink-soft w-fit rounded-sm px-5 py-2 text-sm font-bold transition">
           Connect with OpenStreetMap
         </OsmSignInLink>
       </Panel>
@@ -71,7 +71,7 @@ export default function AccountCard() {
       )}
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="font-display truncate text-lg font-bold">
-          {user?.username ?? "Signed in to OSM"}
+          {user?.username ?? "Connected to OSM"}
         </span>
         <span className="text-ink-dim flex items-center gap-2 text-xs">
           {!status.live && (

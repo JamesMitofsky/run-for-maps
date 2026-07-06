@@ -14,7 +14,7 @@ export default function SegmentedControl<K extends string>({
 }) {
   return (
     <div
-      className={`border-paper-line flex overflow-hidden rounded-lg border ${textSize === "xs" ? "text-xs" : "text-sm"}`}
+      className={`border-paper-line flex overflow-hidden rounded-sm border ${textSize === "xs" ? "text-xs" : "text-sm"}`}
     >
       {options.map((o) => (
         <button

@@ -3,13 +3,12 @@
 import Link from "next/link";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRightIcon, ListIcon, MapTrifoldIcon, XIcon } from "@phosphor-icons/react";
+import { ListIcon, MapTrifoldIcon, XIcon } from "@phosphor-icons/react";
 import AccountChip from "@/components/AccountChip";
 
 // The site pages, in nav order. `cta` renders as the filled primary action.
 const NAV_LINKS = [
   { href: "/fountains", label: "Fountains near you", icon: MapTrifoldIcon },
-  { href: "/plan", label: "Plan a route", icon: ArrowRightIcon, cta: true },
 ] as const;
 
 // Top-of-page navigation, mobile-first: a hamburger opens a full-width sheet of
@@ -42,7 +41,7 @@ export default function SiteNav() {
               aria-expanded={open}
               aria-controls="site-nav-menu"
               aria-label={open ? "Close menu" : "Open menu"}
-              className="border-ink text-ink hover:bg-ink hover:text-paper rounded-full border p-2 transition"
+              className="border-ink text-ink hover:bg-ink hover:text-paper rounded-sm border p-2 transition"
             >
               {open ? <XIcon size={20} weight="bold" /> : <ListIcon size={20} weight="bold" />}
             </button>
@@ -54,10 +53,10 @@ export default function SiteNav() {
               <Link
                 key={href}
                 href={href}
-                className={`group inline-flex items-center gap-2 rounded-full border px-5 py-2 text-sm font-bold whitespace-nowrap transition ${
+                className={`group inline-flex items-center gap-2 text-sm font-semibold whitespace-nowrap transition ${
                   "cta" in l && l.cta
-                    ? "border-ink bg-ink text-paper hover:text-ink hover:bg-transparent"
-                    : "border-ink text-ink hover:bg-ink hover:text-paper"
+                    ? "border-ink bg-ink text-paper hover:bg-ink-soft rounded-sm border px-5 py-2 font-bold"
+                    : "text-ink-dim hover:text-ink px-1 py-2"
                 }`}
               >
                 {label}

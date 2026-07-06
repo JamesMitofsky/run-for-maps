@@ -13,9 +13,7 @@ export default function RunHistoryList({ routes }: { routes: ArchivedRoute[] }) 
     <Panel className="flex flex-col gap-3 p-5">
       <h2 className="font-display text-lg font-bold">Run history</h2>
       {routes.length === 0 ? (
-        <p className="text-ink-dim text-sm">
-          No runs on this device yet. Plan a route and the survey lands here automatically.
-        </p>
+        <p className="text-ink-dim text-sm">No runs on this device yet.</p>
       ) : (
         <ul className="divide-paper-line flex flex-col divide-y">
           {routes.map((r) => (

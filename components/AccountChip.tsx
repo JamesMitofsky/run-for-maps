@@ -20,7 +20,7 @@ export default function AccountChip({ showName = false }: { showName?: boolean }
 
   if (!status.loggedIn) {
     return (
-      <OsmSignInLink className="border-paper-line bg-paper/90 text-ink-dim hover:text-ink flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold shadow-sm backdrop-blur transition">
+      <OsmSignInLink className="border-paper-line bg-paper/90 text-ink-dim hover:text-ink flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-xs font-semibold shadow-sm backdrop-blur transition">
         Sign in
       </OsmSignInLink>
     );

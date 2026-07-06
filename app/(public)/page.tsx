@@ -190,10 +190,10 @@ export default function LandingPage() {
               href="https://github.com/JamesMitofsky/run-for-maps"
               target="_blank"
               rel="noopener noreferrer"
-              className="border-paper-line hover:border-ink/20 mt-8 inline-flex items-center gap-3 rounded-full border px-6 py-3 font-medium transition"
+              className="border-paper-line hover:border-ink/20 mt-8 inline-flex items-center gap-3 rounded-sm border px-6 py-3 font-medium transition"
             >
+              Open a pull request!
               <GithubLogoIcon size={20} weight="bold" />
-              Pull requests welcome
             </a>
           </motion.div>
         </div>
@@ -208,10 +208,10 @@ export default function LandingPage() {
             className="mt-10 flex flex-wrap items-center justify-center gap-4"
           >
             <Link
-              href="/plan"
-              className="group bg-ink text-paper inline-flex items-center gap-2 rounded-full px-9 py-4 text-lg font-bold transition hover:gap-3"
+              href="/login?returnTo=/plan"
+              className="group bg-ink text-paper inline-flex items-center gap-2 rounded-sm px-9 py-4 text-lg font-bold transition hover:gap-3"
             >
-              Plan a route
+              Connect with OSM to begin!
               <ArrowRightIcon
                 size={20}
                 weight="bold"
