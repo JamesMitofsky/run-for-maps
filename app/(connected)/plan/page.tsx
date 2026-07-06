@@ -21,18 +21,18 @@ import {
 import { planRoute } from "@/lib/plan";
 import { fmtDist, milesToMeters, type Pt } from "@/lib/geo";
 import type { Turn } from "@/lib/brouter";
-import type { Fountain, EditAction, EditExtras, RecencyMode } from "@/lib/schemas";
-import { useRun, type RunStop, type StopStatus } from "@/store/run";
-import { useOutbox, outboxCounts } from "@/store/outbox";
+import type { Fountain, RecencyMode } from "@/lib/schemas";
+import { useRun, type RunStop } from "@/store/run";
 import type { MapMarker } from "@/components/MapView";
 import OsmStatusBar, { useOsmStatus } from "@/components/OsmStatus";
-import PointPopup, { type PointEdit } from "@/components/PointPopup";
-import SyncStatus from "@/components/SyncStatus";
+import PointPopup from "@/components/PointPopup";
+import EditSyncPanel from "@/components/EditSyncPanel";
 import RunGuide from "@/components/run/RunGuide";
 import RunComplete from "@/components/run/RunComplete";
 import CompassEnableModal from "@/components/run/CompassEnableModal";
 import { useRunSession } from "@/hooks/useRunSession";
-import { celebratePoint } from "@/lib/confetti";
+import { useOsmEdits } from "@/hooks/useOsmEdits";
+import { EDIT_COLOR, EDIT_LABEL } from "@/lib/editStatus";
 import { apiFetch, isNative } from "@/lib/api";
 import { getCurrentPosition } from "@/lib/geolocation";
 import { getArchivedRoutes } from "@/lib/routeArchive";
@@ -57,20 +57,6 @@ type Draft = {
   distanceM: number;
   turns: Turn[];
   autoCount: number;
-};
-
-// Marker colors for points already updated in OSM this session.
-const EDIT_COLOR: Partial<Record<StopStatus, string>> = {
-  confirm: "#16a34a",
-  dog_only: "#7c3aed",
-  out_of_order: "#d97706",
-  removed: "#dc2626",
-};
-const EDIT_LABEL: Partial<Record<StopStatus, string>> = {
-  confirm: "✓",
-  dog_only: "🐕",
-  out_of_order: "!",
-  removed: "✕",
 };
 
 // Recency filter modes, shown as a segmented control in the radius step.
@@ -168,24 +154,8 @@ export default function PlannerPage() {
 
   // Direct OSM edits made from the map, before any run. Backed by the offline
   // outbox: saved on-device first, sent to OSM in the background.
-  const outboxItems = useOutbox((s) => s.items);
-  const outboxChangeset = useOutbox((s) => s.changesetId);
-  const [closingEdits, setClosingEdits] = useState(false);
-
-  // Latest queued edit per node, for the marker color/label + popup feedback.
-  const edits = useMemo(() => {
-    const m: Record<number, PointEdit> = {};
-    for (const it of outboxItems) {
-      m[it.nodeId] = {
-        status: it.action as StopStatus,
-        summary: it.summary,
-        syncState: it.syncState,
-        changesetUrl: it.changesetUrl,
-        extras: it.extras,
-      };
-    }
-    return m;
-  }, [outboxItems]);
+  const osmEdits = useOsmEdits({ tagKey: tag.key, onError: setErr });
+  const { edits, updatePoint } = osmEdits;
 
   const scope = useRef<HTMLElement>(null);
 
@@ -430,41 +400,6 @@ export default function PlannerPage() {
     setExcludedIds(excludes);
     replan({ excludes });
   }
-
-  // Update a point straight from the map. Offline-first: queued on-device and
-  // celebrated immediately, then sent to OSM in the background. Edits batch into
-  // one changeset (opened by the API on the first successful send).
-  function updatePoint(nodeId: number, action: EditAction, name?: string, extras?: EditExtras) {
-    setErr(null);
-    useOutbox.getState().enqueue({ nodeId, action, tagKey: tag.key, name, extras });
-    celebratePoint();
-    useOutbox.getState().flush();
-  }
-
-  // Close the open edit changeset so it's not left dangling on OSM.
-  async function closeEdits() {
-    const changesetId = useOutbox.getState().changesetId;
-    if (!changesetId) return;
-    setClosingEdits(true);
-    setErr(null);
-    try {
-      const r = await apiFetch("/api/osm/close", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ changesetId }),
-      });
-      const j = await r.json();
-      if (!r.ok || j.ok === false) throw new Error(j.error || "close failed");
-      useOutbox.getState().setChangeset(undefined);
-    } catch (e) {
-      setErr((e as Error).message);
-    } finally {
-      setClosingEdits(false);
-    }
-  }
-
-  const editCount = Object.keys(edits).length;
-  const outboxUnsent = outboxCounts(outboxItems).unsent;
 
   function markLabel(f: Fountain) {
     return f.tags.name ?? "Unnamed fountain";
@@ -1245,21 +1180,7 @@ export default function PlannerPage() {
                 </div>
               )}
 
-              {editCount > 0 && (
-                <div className="flex flex-col gap-2">
-                  {/* Offline-first review: what reached OSM + retry missed sends. */}
-                  <SyncStatus tone="light" />
-                  {outboxChangeset && (
-                    <button
-                      onClick={closeEdits}
-                      disabled={closingEdits || outboxUnsent > 0}
-                      className="border-paper-line text-ink-dim hover:border-sky-deep/60 hover:text-sky-deep w-full rounded-full border py-1.5 text-xs font-semibold transition disabled:opacity-40"
-                    >
-                      {closingEdits ? "Closing changeset…" : "Close changeset"}
-                    </button>
-                  )}
-                </div>
-              )}
+              <EditSyncPanel osmEdits={osmEdits} />
 
               {err && (
                 <div className="flex flex-col gap-1 rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-sm text-red-300">

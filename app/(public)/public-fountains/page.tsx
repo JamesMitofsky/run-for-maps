@@ -12,19 +12,18 @@ import {
   SpinnerIcon,
   WrenchIcon,
 } from "@phosphor-icons/react";
-import type { EditAction, EditExtras, Fountain } from "@/lib/schemas";
-import type { StopStatus } from "@/store/run";
+import type { Fountain } from "@/lib/schemas";
 import type { MapMarker } from "@/components/MapView";
 import BottomSheet from "@/components/BottomSheet";
-import PointPopup, { type PointEdit } from "@/components/PointPopup";
-import SyncStatus from "@/components/SyncStatus";
+import PointPopup from "@/components/PointPopup";
+import EditSyncPanel from "@/components/EditSyncPanel";
 import OsmSignInLink from "@/components/OsmSignInLink";
 import { useOsmStatus } from "@/components/OsmStatus";
-import { useOutbox, outboxCounts } from "@/store/outbox";
+import { useOsmEdits } from "@/hooks/useOsmEdits";
+import { EDIT_COLOR, EDIT_LABEL } from "@/lib/editStatus";
 import { apiFetch } from "@/lib/api";
 import { getCurrentPosition } from "@/lib/geolocation";
 import { lastCheckedMs } from "@/lib/checkDate";
-import { celebratePoint } from "@/lib/confetti";
 import { fmtDist, haversine, milesToMeters, type Pt } from "@/lib/geo";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
@@ -394,21 +393,6 @@ const DEFAULT_CENTER: [number, number] = [38.9072, -77.0369];
 // Neutral dark pin for the dropped search anchor — distinct from fountain colors.
 const PIN_COLOR = "#334155";
 
-// Marker colors/labels for points updated in OSM this session — matches the
-// planner's palette so an edit reads the same everywhere.
-const EDIT_COLOR: Partial<Record<StopStatus, string>> = {
-  confirm: "#16a34a",
-  dog_only: "#7c3aed",
-  out_of_order: "#d97706",
-  removed: "#dc2626",
-};
-const EDIT_LABEL: Partial<Record<StopStatus, string>> = {
-  confirm: "✓",
-  dog_only: "🐕",
-  out_of_order: "!",
-  removed: "✕",
-};
-
 export default function PublicFountainsPage() {
   // OSM connection gates editing: signed in → points are editable; otherwise the
   // popups stay read-only and the panel offers a connect button.
@@ -431,60 +415,10 @@ export default function PublicFountainsPage() {
   const [svc, setSvc] = useState<Set<Svc>>(() => new Set<Svc>(["in"]));
   const [water, setWater] = useState<Set<Water>>(() => new Set<Water>(["human", "dog"]));
   const [rec, setRec] = useState<Set<Recency>>(() => new Set<Recency>(["fresh", "stale", "never"]));
-  const [closingEdits, setClosingEdits] = useState(false);
-
-  const outboxItems = useOutbox((s) => s.items);
-  const outboxChangeset = useOutbox((s) => s.changesetId);
-
-  // Latest queued edit per node, for the marker color/label + popup feedback.
-  const edits = useMemo(() => {
-    const m: Record<number, PointEdit> = {};
-    for (const it of outboxItems) {
-      m[it.nodeId] = {
-        status: it.action as StopStatus,
-        summary: it.summary,
-        syncState: it.syncState,
-        changesetUrl: it.changesetUrl,
-        extras: it.extras,
-      };
-    }
-    return m;
-  }, [outboxItems]);
-
-  // Record an update straight from the map. Offline-first: queued on-device and
-  // celebrated immediately, then sent to OSM in the background. Edits batch into
-  // one changeset (opened by the API on the first successful send).
-  function updatePoint(nodeId: number, action: EditAction, name?: string, extras?: EditExtras) {
-    setErr(null);
-    useOutbox.getState().enqueue({ nodeId, action, tagKey: TAG.key, name, extras });
-    celebratePoint();
-    useOutbox.getState().flush();
-  }
-
-  // Close the open edit changeset so it's not left dangling on OSM.
-  async function closeEdits() {
-    const changesetId = useOutbox.getState().changesetId;
-    if (!changesetId) return;
-    setClosingEdits(true);
-    setErr(null);
-    try {
-      const r = await apiFetch("/api/osm/close", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ changesetId }),
-      });
-      const j = await r.json();
-      if (!r.ok || j.ok === false) throw new Error(j.error || "close failed");
-      useOutbox.getState().setChangeset(undefined);
-    } catch (e) {
-      setErr((e as Error).message);
-    } finally {
-      setClosingEdits(false);
-    }
-  }
-
-  const editCount = Object.keys(edits).length;
-  const outboxUnsent = outboxCounts(outboxItems).unsent;
+  // Direct OSM edits made from the map (signed in only). Backed by the offline
+  // outbox: saved on-device first, sent to OSM in the background.
+  const osmEdits = useOsmEdits({ tagKey: TAG.key, onError: setErr });
+  const { edits, updatePoint } = osmEdits;
 
   // Acquire a GPS fix and make it the search anchor. Does not search — that
   // stays an explicit action.
@@ -628,7 +562,7 @@ export default function PublicFountainsPage() {
       ms.push({ id: "search-pin", lat: center.lat, lon: center.lon, color: PIN_COLOR });
     }
     return ms;
-  }, [visible, center, anchor, loggedIn, edits]);
+  }, [visible, center, anchor, loggedIn, edits, updatePoint]);
 
   const viewCenter: [number, number] = center
     ? [center.lat, center.lon]
@@ -671,20 +605,7 @@ export default function PublicFountainsPage() {
       )}
 
       {/* Connected + edited this session: sync review + changeset close. */}
-      {editCount > 0 && (
-        <div className="flex flex-col gap-2">
-          <SyncStatus tone="light" />
-          {outboxChangeset && (
-            <button
-              onClick={closeEdits}
-              disabled={closingEdits || outboxUnsent > 0}
-              className="border-paper-line text-ink-dim hover:border-sky-deep/60 hover:text-sky-deep w-full rounded-full border py-1.5 text-xs font-semibold transition disabled:opacity-40"
-            >
-              {closingEdits ? "Closing changeset…" : "Close changeset"}
-            </button>
-          )}
-        </div>
-      )}
+      <EditSyncPanel osmEdits={osmEdits} />
     </div>
   );
   const body = null;

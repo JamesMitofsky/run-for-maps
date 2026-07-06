@@ -19,16 +19,8 @@ import { hapticSuccess } from "@/lib/haptics";
 import { keepAwake, allowSleep } from "@/lib/keepAwake";
 import { ensureNotifyPermission, notifyProximity, notifyRunComplete } from "@/lib/notify";
 import { startRunActivity, updateRunActivity, endRunActivity } from "@/lib/liveActivity";
+import { STATUS_COLOR } from "@/lib/editStatus";
 import { createElement } from "react";
-
-const STATUS_COLOR: Record<StopStatus, string> = {
-  pending: "#9ca3af",
-  confirm: "#16a34a",
-  dog_only: "#7c3aed",
-  out_of_order: "#d97706",
-  removed: "#dc2626",
-  skipped: "#6b7280",
-};
 
 // Everything the active-run UI needs, in one place: live GPS, the guidance
 // derived from it, the OSM-recording actions, and the data the (shared) map is
