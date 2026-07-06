@@ -17,6 +17,9 @@
 /.next/
 /out/
 
+# capacitor — temp stash of app/api during the static-export build
+/.api-stash/
+
 # production
 /build
 

@@ -1,14 +1,10 @@
 import { create } from "zustand";
 import type { Fountain } from "@/lib/schemas";
 import type { Pt } from "@/lib/geo";
+import type { Turn } from "@/lib/brouter";
 
 export type StopStatus =
-  | "pending"
-  | "confirm"
-  | "dog_only"
-  | "out_of_order"
-  | "removed"
-  | "skipped";
+  "pending" | "confirm" | "dog_only" | "out_of_order" | "removed" | "skipped";
 
 export type RunStop = Fountain & { status: StopStatus };
 
@@ -19,9 +15,11 @@ export type RunPlan = {
   tagValue: string; // pair with tagKey to tag newly-added nodes (e.g. drinking_water)
   stops: RunStop[];
   vias: Pt[]; // mandatory pass-through points (not survey targets)
+  pool: Fountain[]; // all nearby fountains, incl. ones off the route — shown dimmed
   added: Fountain[]; // new nodes created on the fly during the run
   routeCoords: [number, number][]; // [lon,lat] from BRouter
   distanceM: number;
+  turns: Turn[]; // precomputed maneuvers along the route, for the live HUD
 };
 
 type RunState = RunPlan & {
@@ -31,7 +29,12 @@ type RunState = RunPlan & {
   hasPlan: boolean;
   setPlan: (p: RunPlan) => void;
   hydrate: (
-    p: RunPlan & { index?: number; changesetId?: number; routeId?: string },
+    p: Omit<RunPlan, "pool"> & {
+      pool?: Fountain[]; // optional: runs/archives persisted before pool existed
+      index?: number;
+      changesetId?: number;
+      routeId?: string;
+    },
   ) => void;
   setStatus: (id: number, status: StopStatus) => void;
   setIndex: (i: number) => void;
@@ -47,9 +50,11 @@ const empty: RunPlan = {
   tagValue: "drinking_water",
   stops: [],
   vias: [],
+  pool: [],
   added: [],
   routeCoords: [],
   distanceM: 0,
+  turns: [],
 };
 
 function newRouteId(): string {
@@ -70,6 +75,7 @@ export const useRun = create<RunState>((set) => ({
       ...p,
       // Back-compat: runs persisted before these fields existed.
       tagValue: p.tagValue ?? empty.tagValue,
+      pool: p.pool ?? [],
       added: p.added ?? [],
       index: p.index ?? 0,
       changesetId: p.changesetId,
@@ -83,6 +89,5 @@ export const useRun = create<RunState>((set) => ({
   setIndex: (i) => set({ index: i }),
   setChangeset: (id) => set({ changesetId: id }),
   addNode: (f) => set((s) => ({ added: [...s.added, f] })),
-  reset: () =>
-    set({ ...empty, index: 0, changesetId: undefined, routeId: "", hasPlan: false }),
+  reset: () => set({ ...empty, index: 0, changesetId: undefined, routeId: "", hasPlan: false }),
 }));

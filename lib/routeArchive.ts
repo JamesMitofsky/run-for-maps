@@ -1,6 +1,7 @@
 "use client";
 
 import type { Pt } from "@/lib/geo";
+import type { Turn } from "@/lib/brouter";
 import type { Fountain } from "@/lib/schemas";
 import type { RunStop } from "@/store/run";
 import type { OutboxItem } from "@/store/outbox";
@@ -27,9 +28,11 @@ export type ArchivedRoute = {
     tagValue: string;
     stops: RunStop[]; // carries each node's recorded status
     vias: Pt[];
+    pool?: Fountain[]; // nearby non-target fountains shown dimmed during the run
     added: Fountain[]; // nodes created on the fly
     routeCoords: [number, number][];
     distanceM: number;
+    turns: Turn[];
     index: number;
     changesetId?: number;
   };

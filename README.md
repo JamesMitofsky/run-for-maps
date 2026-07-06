@@ -18,7 +18,7 @@ state back to OSM (`check_date`, `disused:`, `abandoned:`) as you go.
 State mapping (OSM lifecycle convention):
 
 | Action       | Effect on the node                                                |
-| ------------ | ---------------------------------------------------------------- |
+| ------------ | ----------------------------------------------------------------- |
 | Working      | set `check_date=<today>`                                          |
 | Out of order | move `amenity=drinking_water` → `disused:amenity=...`, stamp date |
 | Removed      | move → `abandoned:amenity=...`, stamp date                        |
@@ -70,3 +70,29 @@ Local JSON files under `data/` (gitignored): `fountains-cache.json`, `current-ru
 
 OSM Overpass, BRouter, Nominatim (geocoding), and OSM tiles — all public and rate-limited;
 be gentle. No keys required except your OSM OAuth client ID.
+
+## Feature ideas
+
+### Support updating more POIs
+
+- [ ] Public restrooms
+- [ ] Bike racks
+
+### Naming/branding
+
+~~Crowd~~-sourced maps &nbsp;<sub>_(runner)_ ✎</sub>
+
+Free word association:
+
+- runner
+- civic
+- crowd-sourced
+- public
+- community / local
+- route / routing
+- map / mapped / mapping
+- run
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, code style, and PR conventions.

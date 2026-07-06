@@ -3,6 +3,8 @@ import { Space_Grotesk, Inter } from "next/font/google";
 import "./globals.css";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import OutboxSync from "@/components/OutboxSync";
+import NativeAuth from "@/components/NativeAuth";
+import NativeChrome from "@/components/NativeChrome";
 
 const display = Space_Grotesk({
   subsets: ["latin"],
@@ -62,6 +64,8 @@ export default function RootLayout({
         {children}
         <OutboxSync />
         <ServiceWorkerRegister />
+        <NativeAuth />
+        <NativeChrome />
       </body>
     </html>
   );

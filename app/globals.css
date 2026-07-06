@@ -9,7 +9,7 @@
   --color-cream-dim: #b9b8ac;
 
   /* Warm-paper editorial palette (landing). */
-  --color-paper: #f1ebdd;
+  --color-paper: #f7f2e8;
   --color-paper-deep: #e7dfcc;
   --color-paper-line: #d6cdb6;
   --color-sky: #abdcec;
@@ -27,10 +27,37 @@
   --foreground: #171717;
 }
 
+/* Behind everything — including the iOS rubber-band overscroll area — so the dark
+   theme never flashes white at the edges in the native app. */
+html {
+  background: var(--color-ink);
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-body), system-ui, -apple-system, Arial, sans-serif;
+  font-family:
+    var(--font-body),
+    system-ui,
+    -apple-system,
+    Arial,
+    sans-serif;
+}
+
+/* iOS safe-area helpers. The app draws edge-to-edge (viewport-fit=cover), so
+   edge-anchored overlays use these to clear the notch / Dynamic Island / home
+   indicator. Evaluate to 0 on devices without insets. */
+.safe-top {
+  top: env(safe-area-inset-top);
+}
+.safe-bottom-3 {
+  bottom: calc(0.75rem + env(safe-area-inset-bottom));
+}
+.safe-pt {
+  padding-top: env(safe-area-inset-top);
+}
+.safe-pb {
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* Keep Leaflet panes below app UI overlays. */
@@ -67,15 +94,15 @@ body {
 /*
  * Paper grain — speckled tooth over light/paper surfaces.
  * Darker noise multiplied onto the page so it reads as paper fiber.
- * Fixed so the texture stays still while content scrolls past it.
+ * Absolute so the texture scrolls with its element instead of the viewport.
  */
 .paper-grain::after {
   content: "";
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 60;
   pointer-events: none;
-  opacity: 0.5;
+  opacity: 0.12;
   mix-blend-mode: multiply;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.62' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)'/%3E%3C/svg%3E");
 }

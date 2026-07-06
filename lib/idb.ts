@@ -25,7 +25,11 @@ function open(): Promise<IDBDatabase> {
   });
 }
 
-function tx<T>(store: string, mode: IDBTransactionMode, run: (s: IDBObjectStore) => IDBRequest): Promise<T> {
+function tx<T>(
+  store: string,
+  mode: IDBTransactionMode,
+  run: (s: IDBObjectStore) => IDBRequest,
+): Promise<T> {
   return open().then(
     (db) =>
       new Promise<T>((resolve, reject) => {
@@ -76,7 +80,9 @@ export async function idbClearOutbox(): Promise<void> {
 export async function idbGetMeta<T>(key: string): Promise<T | undefined> {
   if (!available()) return undefined;
   try {
-    const row = await tx<{ key: string; value: T } | undefined>(META, "readonly", (s) => s.get(key));
+    const row = await tx<{ key: string; value: T } | undefined>(META, "readonly", (s) =>
+      s.get(key),
+    );
     return row?.value;
   } catch {
     return undefined;

@@ -1,9 +1,15 @@
 import type { MetadataRoute } from "next";
+import { APP_NAME, APP_TAGLINE, PWA_THEME_COLOR } from "@/lib/appConfig";
+
+// The manifest is fully static — pin it so `output: 'export'` (Capacitor build)
+// can emit it as a file instead of treating it as a dynamic route. Identity is
+// derived from lib/appConfig, the single source shared with capacitor.config.ts.
+export const dynamic = "force-static";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "ROSM — Running for Open-Sourced Maps",
-    short_name: "ROSM",
+    name: `${APP_NAME} — ${APP_TAGLINE}`,
+    short_name: APP_NAME,
     description:
       "Turn your run into open-map fieldwork. Plan a route past unverified OpenStreetMap points, run it with turn-by-turn cues, and fix the map from the ground.",
     id: "/",
@@ -11,8 +17,8 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: "#f1ebdd",
-    theme_color: "#f1ebdd",
+    background_color: PWA_THEME_COLOR,
+    theme_color: PWA_THEME_COLOR,
     categories: ["health", "fitness", "navigation", "sports"],
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },

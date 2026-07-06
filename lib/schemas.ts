@@ -13,6 +13,14 @@ export type Fountain = z.infer<typeof FountainSchema>;
 export const EditAction = z.enum(["confirm", "dog_only", "out_of_order", "removed"]);
 export type EditAction = z.infer<typeof EditAction>;
 
+// Optional advanced OSM facts recorded alongside an action. These become real
+// node tags (written to OSM), unlike the old local-only comment.
+export const EditExtras = z.object({
+  seasonal: z.boolean().optional(), // seasonal=yes: source runs only part of the year
+  note: z.string().max(255).optional(), // OSM note=* : public free-text on the node
+});
+export type EditExtras = z.infer<typeof EditExtras>;
+
 // Targetable OSM tag (key=value), e.g. amenity=drinking_water.
 export const TagFilterSchema = z.object({
   key: z.string().min(1),
@@ -33,6 +41,10 @@ export const FountainsRequest = z.object({
   tag: TagFilterSchema,
   recencyMode: RecencyMode.default("any"),
   recencyMonths: z.number().positive().default(6),
+  // Also fetch lifecycle-prefixed variants (disused:/abandoned:) so out-of-service
+  // points can be surfaced and filtered client-side. Off by default so the survey
+  // tool keeps seeing only active points.
+  includeDisused: z.boolean().default(false),
 });
 
 // Create a brand-new OSM node at a surveyed location, tagged with the point
@@ -55,7 +67,7 @@ export const EditRequest = z.object({
   action: EditAction,
   tagKey: z.string().default("amenity"), // primary key to lifecycle-prefix
   changesetId: z.number().optional(),
-  comment: z.string().optional(), // surveyor's free-text note for this edit
+  extras: EditExtras.optional(), // advanced OSM tags (seasonal, note)
 });
 
 // Persisted record of an edit we made (local audit log).
@@ -65,6 +77,6 @@ export const EditLogEntrySchema = z.object({
   changesetId: z.number(),
   newVersion: z.number(),
   at: z.string(), // ISO timestamp
-  comment: z.string().optional(), // surveyor's free-text note for this edit
+  extras: EditExtras.optional(), // advanced OSM tags (seasonal, note)
 });
 export type EditLogEntry = z.infer<typeof EditLogEntrySchema>;

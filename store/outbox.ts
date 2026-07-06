@@ -1,7 +1,8 @@
 import { create } from "zustand";
-import type { EditAction } from "@/lib/schemas";
+import type { EditAction, EditExtras } from "@/lib/schemas";
 import { editSummary, todayLocal } from "@/lib/editSummary";
 import { idbGetAll, idbPut, idbClearOutbox, idbGetMeta, idbSetMeta } from "@/lib/idb";
+import { apiFetch } from "@/lib/api";
 
 // Where a queued edit is in its journey to OSM.
 //   pending  — written locally, not yet sent (offline, or just enqueued)
@@ -18,7 +19,7 @@ export type OutboxItem = {
   action: EditAction;
   tagKey: string;
   name?: string; // for the review list
-  comment?: string; // surveyor's free-text note for this edit
+  extras?: EditExtras; // advanced OSM tags (seasonal, note)
   summary: string; // computed locally at enqueue, matches the server's wording
   syncState: SyncState;
   attempts: number;
@@ -41,7 +42,7 @@ type EnqueueInput = {
   action: EditAction;
   tagKey: string;
   name?: string;
-  comment?: string;
+  extras?: EditExtras;
 };
 
 type OutboxState = {
@@ -99,8 +100,8 @@ export const useOutbox = create<OutboxState>((set, get) => {
         action: input.action,
         tagKey: input.tagKey,
         name: input.name,
-        comment: input.comment,
-        summary: editSummary(input.action, input.tagKey, todayLocal()),
+        extras: input.extras,
+        summary: editSummary(input.action, input.tagKey, todayLocal(), input.extras),
         syncState: "pending",
         attempts: 0,
         createdAt: new Date().toISOString(),
@@ -127,14 +128,14 @@ export const useOutbox = create<OutboxState>((set, get) => {
 
           persist({ ...item, syncState: "sending" });
           try {
-            const r = await fetch("/api/osm/edit", {
+            const r = await apiFetch("/api/osm/edit", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 nodeId: item.nodeId,
                 action: item.action,
                 tagKey: item.tagKey,
-                comment: item.comment,
+                extras: item.extras,
                 changesetId: get().changesetId,
               }),
             });
@@ -200,5 +201,12 @@ export function outboxCounts(items: OutboxItem[]) {
     else pending++;
   }
   // "unsent" = anything not yet confirmed by OSM.
-  return { sent, pending, sending, failed, unsent: pending + sending + failed, total: items.length };
+  return {
+    sent,
+    pending,
+    sending,
+    failed,
+    unsent: pending + sending + failed,
+    total: items.length,
+  };
 }

@@ -14,8 +14,9 @@ import {
   DogIcon,
 } from "@phosphor-icons/react";
 import type { RunSession } from "@/hooks/useRunSession";
-import { fmtDist } from "@/lib/geo";
+import { fmtDist, maneuver } from "@/lib/geo";
 import SyncStatus from "@/components/SyncStatus";
+import OsmSignInLink from "@/components/OsmSignInLink";
 
 type Tone = "light" | "dark";
 
@@ -70,8 +71,8 @@ export default function RunGuide({
     index,
     target,
     distToTarget,
-    bearingTo,
-    heading,
+    nextTurn,
+    distToTurn,
     arrived,
     addLabel,
     added,
@@ -114,17 +115,30 @@ export default function RunGuide({
               </div>
             ) : (
               <>
+                {/* Travel-relative turn arrow: 0° = straight on, + = right.
+                    Falls back to "up" when no turn is ahead (final approach). */}
                 <ArrowUpIcon
                   size={40}
                   weight="bold"
-                  style={{ transform: `rotate(${bearingTo}deg)` }}
+                  style={{ transform: `rotate(${nextTurn?.angle ?? 0}deg)` }}
                   className={`${t.arrow} transition-transform`}
                 />
-                <div className="flex flex-1 items-baseline justify-center gap-2">
+                <div className="flex flex-1 flex-col items-center justify-center">
                   <div className="text-2xl font-bold">
-                    {distToTarget != null ? fmtDist(distToTarget) : "—"}
+                    {(() => {
+                      const d = distToTurn ?? distToTarget;
+                      return d != null ? fmtDist(d) : "—";
+                    })()}
                   </div>
-                  <div className={`text-sm ${t.sub}`}>head {heading}</div>
+                  <div className={`text-sm ${t.sub}`}>
+                    {nextTurn ? maneuver(nextTurn.angle) : "Continue"}
+                    {nextTurn?.name ? (
+                      <>
+                        {" onto "}
+                        <span className="font-medium">{nextTurn.name}</span>
+                      </>
+                    ) : null}
+                  </div>
                 </div>
               </>
             )}
@@ -137,13 +151,12 @@ export default function RunGuide({
           )}
 
           {!osm?.loggedIn && (
-            <a
-              href="/api/osm/auth"
+            <OsmSignInLink
               className={`rounded py-2 text-center text-sm font-semibold ${t.signin}`}
               onClick={() => setTimeout(refresh, 1000)}
             >
               Sign in to OSM to record updates
-            </a>
+            </OsmSignInLink>
           )}
 
           {arrived && (
@@ -245,7 +258,7 @@ export default function RunGuide({
           Kept outside the animated/transformed block so `fixed` anchors to the
           viewport. Hidden while a confirm dialog is up. */}
       {!pending && (
-        <div className="fixed bottom-4 right-4 z-50 flex gap-2">
+        <div className="fixed right-4 bottom-4 z-50 flex gap-2">
           {index > 0 && (
             <button
               title="Back to previous stop"
@@ -269,7 +282,7 @@ export default function RunGuide({
         <div className={`flex items-center gap-2 rounded p-2 text-sm ${t.saved}`}>
           <CheckCircleIcon size={18} className="shrink-0" />
           <span className="flex-1 text-left">
-            Saved · node {lastSaved.nodeId} · {lastSaved.summary}
+            Saved · {lastSaved.summary}
           </span>
         </div>
       )}

@@ -34,7 +34,8 @@ export function useHeading(gpsHeading: number | null) {
     };
     // `deviceorientationabsolute` carries north-referenced data where supported;
     // iOS only fires `deviceorientation` (with webkitCompassHeading).
-    const evt = "ondeviceorientationabsolute" in window ? "deviceorientationabsolute" : "deviceorientation";
+    const evt =
+      "ondeviceorientationabsolute" in window ? "deviceorientationabsolute" : "deviceorientation";
     window.addEventListener(evt, handler);
     return () => window.removeEventListener(evt, handler);
   }, []);

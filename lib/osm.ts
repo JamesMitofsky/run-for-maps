@@ -1,24 +1,26 @@
 // OSM OAuth2 (PKCE) + edit operations: changesets and node tag updates.
 // Read endpoints use .json; writes use XML per OSM API 0.6.
 import crypto from "crypto";
-import type { EditAction } from "./schemas";
+import type { EditAction, EditExtras } from "./schemas";
 
-export const OAUTH_BASE =
-  process.env.OSM_OAUTH_BASE || "https://www.openstreetmap.org";
-export const API_BASE =
-  process.env.OSM_API_BASE || "https://api.openstreetmap.org";
+export const OAUTH_BASE = process.env.OSM_OAUTH_BASE || "https://www.openstreetmap.org";
+export const API_BASE = process.env.OSM_API_BASE || "https://api.openstreetmap.org";
 const CLIENT_ID = process.env.OSM_CLIENT_ID || "";
 const CLIENT_SECRET = process.env.OSM_CLIENT_SECRET || ""; // optional (confidential client)
 const SCOPE = "read_prefs write_api";
 const CREATED_BY = "run-for-maps";
 
+// A returnTo is safe only as a same-origin relative path: one leading slash and
+// not `//`/`/\` (which browsers treat as a protocol-relative absolute URL). This
+// blocks open redirects through the OAuth flow.
+export function isSafeReturnTo(p: string): boolean {
+  return p.startsWith("/") && !p.startsWith("//") && !p.startsWith("/\\");
+}
+
 // ---- PKCE ----
 export function makePkce() {
   const verifier = crypto.randomBytes(32).toString("base64url");
-  const challenge = crypto
-    .createHash("sha256")
-    .update(verifier)
-    .digest("base64url");
+  const challenge = crypto.createHash("sha256").update(verifier).digest("base64url");
   return { verifier, challenge };
 }
 
@@ -188,6 +190,7 @@ export function applyAction(
   action: EditAction,
   tagKey: string,
   today: string,
+  extras?: EditExtras,
 ): Record<string, string> {
   const next = { ...tags };
   const lifecycle = (prefix: string) => {
@@ -224,6 +227,13 @@ export function applyAction(
       lifecycle("abandoned");
       next.check_date = today;
       break;
+  }
+  // Advanced OSM facts, merged on top of the action. A public note applies to any
+  // action; seasonal only makes sense where the source still exists (confirm /
+  // dog_only) — setting it on a disused/abandoned node would contradict itself.
+  if (extras?.note) next.note = extras.note;
+  if (extras?.seasonal && (action === "confirm" || action === "dog_only")) {
+    next.seasonal = "yes";
   }
   return next;
 }

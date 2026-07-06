@@ -1,6 +1,15 @@
 "use client";
 
-import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap, useMapEvents } from "react-leaflet";
+import {
+  Circle,
+  MapContainer,
+  TileLayer,
+  Marker,
+  Polyline,
+  Popup,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, type ReactNode } from "react";
@@ -11,6 +20,9 @@ export type MapMarker = {
   lon: number;
   color: string;
   label?: string;
+  // Render at reduced opacity — used for context-only points (e.g. nearby
+  // fountains shown during a run that aren't part of the surveyed route).
+  dimmed?: boolean;
   onClick?: () => void;
   // Rendered inside a Leaflet popup.
   popup?: ReactNode;
@@ -31,6 +43,8 @@ type Props = {
   markers?: MapMarker[];
   // polyline as [lat, lon][]
   line?: [number, number][];
+  // Radius indicator (e.g. search-area preview) drawn under the markers.
+  circle?: { center: [number, number]; radiusM: number };
   userPos?: [number, number] | null;
   // Compass heading in degrees (0 = north, clockwise). Draws a direction cone.
   userHeading?: number | null;
@@ -38,14 +52,17 @@ type Props = {
   // Fired when the user drags the map, so callers can drop "follow me" mode.
   onUserPan?: () => void;
   recenterKey?: string; // change to force recenter on `center`
+  // When set (>=2 points), the map zooms to fit all points instead of just
+  // centering on `center`. Used to keep user + next target both in view.
+  fitPoints?: [number, number][];
   className?: string;
 };
 
 // Colored pin via divIcon — avoids Leaflet's broken default marker assets.
-function pin(color: string, label?: string) {
+function pin(color: string, label?: string, dimmed?: boolean) {
   return L.divIcon({
     className: "",
-    html: `<div style="background:${color};width:22px;height:22px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;">
+    html: `<div style="opacity:${dimmed ? 0.4 : 1};background:${color};width:22px;height:22px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;">
       <span style="transform:rotate(45deg);color:#fff;font-size:11px;font-weight:700;line-height:1;">${label ?? ""}</span></div>`,
     iconSize: [22, 22],
     iconAnchor: [11, 22],
@@ -96,7 +113,7 @@ function MarkerView({ m }: { m: MapMarker }) {
     <Marker
       ref={ref}
       position={[m.lat, m.lon]}
-      icon={pin(m.color, m.label)}
+      icon={pin(m.color, m.label, m.dimmed)}
       eventHandlers={{
         click: () => m.onClick?.(),
         contextmenu: () => {
@@ -109,10 +126,32 @@ function MarkerView({ m }: { m: MapMarker }) {
   );
 }
 
-function Recenter({ center, recenterKey }: { center: [number, number]; recenterKey?: string }) {
+// Drop the "Leaflet" prefix (with flag) from the attribution control, keeping
+// only the required OSM credit.
+function StripAttributionPrefix() {
   const map = useMap();
   useEffect(() => {
-    map.setView(center);
+    map.attributionControl?.setPrefix(false);
+  }, [map]);
+  return null;
+}
+
+function Recenter({
+  center,
+  recenterKey,
+  fitPoints,
+}: {
+  center: [number, number];
+  recenterKey?: string;
+  fitPoints?: [number, number][];
+}) {
+  const map = useMap();
+  useEffect(() => {
+    if (fitPoints && fitPoints.length >= 2) {
+      map.fitBounds(L.latLngBounds(fitPoints), { padding: [60, 60], maxZoom: 16 });
+    } else {
+      map.setView(center);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recenterKey]);
   return null;
@@ -147,11 +186,13 @@ export default function MapView({
   scrollWheelZoom = interactive,
   markers = [],
   line,
+  circle,
   userPos,
   userHeading,
   onMapClick,
   onUserPan,
   recenterKey,
+  fitPoints,
   className,
 }: Props) {
   return (
@@ -174,9 +215,19 @@ export default function MapView({
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <Recenter center={center} recenterKey={recenterKey} />
+      <StripAttributionPrefix />
+      <Recenter center={center} recenterKey={recenterKey} fitPoints={fitPoints} />
       <ClickHandler onMapClick={onMapClick} onUserPan={onUserPan} />
-      {line && line.length > 1 && <Polyline positions={line} pathOptions={{ color: "#2563eb", weight: 5, opacity: 0.8 }} />}
+      {circle && (
+        <Circle
+          center={circle.center}
+          radius={circle.radiusM}
+          pathOptions={{ color: "#0284c7", weight: 1.5, opacity: 0.5, fillOpacity: 0.06 }}
+        />
+      )}
+      {line && line.length > 1 && (
+        <Polyline positions={line} pathOptions={{ color: "#2563eb", weight: 5, opacity: 0.8 }} />
+      )}
       {markers.map((m) => (
         <MarkerView key={m.id} m={m} />
       ))}

@@ -15,9 +15,6 @@ export async function POST(req: Request) {
     const err = e as RouteError;
     // `island` (when present) is the unreachable point's coords, so the client
     // can highlight exactly where the route breaks.
-    return NextResponse.json(
-      { error: err.message, island: err.island },
-      { status: 502 },
-    );
+    return NextResponse.json({ error: err.message, island: err.island }, { status: 502 });
   }
 }
