@@ -30,7 +30,7 @@ export default function ProfilePage() {
     <main className="bg-paper font-body text-ink min-h-screen">
       <SiteNav />
       <div className="mx-auto flex max-w-2xl flex-col gap-4 px-5 py-8">
-        <h1 className="font-display text-2xl leading-tight font-bold">Your runs</h1>
+        <h1 className="font-display text-2xl leading-tight font-bold">Profile</h1>
         <AccountCard />
         <ContributionStats routes={routes} />
         {/* Outbox review: edits still on their way to OSM (renders nothing when empty). */}
