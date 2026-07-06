@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import { isNative } from "@/lib/api";
 import { signInOsm } from "@/lib/osmAuth";
 
@@ -19,6 +20,7 @@ export default function OsmSignInLink({
   children: ReactNode;
   onClick?: () => void;
 }) {
+  const pathname = usePathname();
   if (isNative()) {
     return (
       <button
@@ -33,8 +35,13 @@ export default function OsmSignInLink({
       </button>
     );
   }
+  // Preserve the current page so the OAuth callback can return here (see
+  // /api/osm/auth + /api/osm/callback), instead of always bouncing to `/`.
+  const href = pathname
+    ? `/api/osm/auth?returnTo=${encodeURIComponent(pathname)}`
+    : "/api/osm/auth";
   return (
-    <a href="/api/osm/auth" className={className} onClick={onClick}>
+    <a href={href} className={className} onClick={onClick}>
       {children}
     </a>
   );

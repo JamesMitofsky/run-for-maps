@@ -10,6 +10,13 @@ const CLIENT_SECRET = process.env.OSM_CLIENT_SECRET || ""; // optional (confiden
 const SCOPE = "read_prefs write_api";
 const CREATED_BY = "run-for-maps";
 
+// A returnTo is safe only as a same-origin relative path: one leading slash and
+// not `//`/`/\` (which browsers treat as a protocol-relative absolute URL). This
+// blocks open redirects through the OAuth flow.
+export function isSafeReturnTo(p: string): boolean {
+  return p.startsWith("/") && !p.startsWith("//") && !p.startsWith("/\\");
+}
+
 // ---- PKCE ----
 export function makePkce() {
   const verifier = crypto.randomBytes(32).toString("base64url");

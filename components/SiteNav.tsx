@@ -3,18 +3,11 @@
 import Link from "next/link";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  ArrowRightIcon,
-  ListIcon,
-  MapTrifoldIcon,
-  PencilSimpleIcon,
-  XIcon,
-} from "@phosphor-icons/react";
+import { ArrowRightIcon, ListIcon, MapTrifoldIcon, XIcon } from "@phosphor-icons/react";
 
 // The site pages, in nav order. `cta` renders as the filled primary action.
 const NAV_LINKS = [
   { href: "/public-fountains", label: "Fountains near you", icon: MapTrifoldIcon },
-  { href: "/edit", label: "Edit the map", icon: PencilSimpleIcon },
   { href: "/plan", label: "Plan a route", icon: ArrowRightIcon, cta: true },
 ] as const;
 

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { exchangeToken } from "@/lib/osm";
+import { exchangeToken, isSafeReturnTo } from "@/lib/osm";
 
 // OAuth2 redirect target: verify state, exchange code, deliver the token.
 //   web    → store it in an httpOnly cookie, bounce to the app.
@@ -14,11 +14,13 @@ export async function GET(req: Request) {
   const verifier = jar.get("osm_pkce")?.value;
   const savedState = jar.get("osm_state")?.value;
   const native = jar.get("osm_native")?.value === "1";
+  const returnTo = jar.get("osm_return")?.value;
 
   const clearTransient = (res: NextResponse) => {
     res.cookies.delete("osm_pkce");
     res.cookies.delete("osm_state");
     res.cookies.delete("osm_native");
+    res.cookies.delete("osm_return");
     return res;
   };
   const fail = (msg: string) =>
@@ -41,7 +43,10 @@ export async function GET(req: Request) {
         NextResponse.redirect(`rosm://osm-callback?token=${encodeURIComponent(token)}`),
       );
     }
-    const res = NextResponse.redirect(`${url.origin}/?osm=ok`);
+    // Return to wherever sign-in started (re-validated), else home.
+    const dest = new URL(returnTo && isSafeReturnTo(returnTo) ? returnTo : "/", url.origin);
+    dest.searchParams.set("osm", "ok");
+    const res = NextResponse.redirect(dest);
     res.cookies.set("osm_token", token, {
       httpOnly: true,
       sameSite: "lax",
