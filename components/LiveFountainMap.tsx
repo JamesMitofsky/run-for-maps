@@ -34,38 +34,39 @@ const STALE_CUTOFF = 36 * MONTH_MS; // checked within three years
 // feels earned. Durations are deliberately uneven (~6s each) so it doesn't tick
 // like a metronome; the last line holds until the fetch resolves.
 const LOADING_STEPS: { text: string; ms: number }[] = [
-  { text: "Opening a socket to the OpenStreetMap servers…", ms: 5000 },
-  { text: "Compiling a query for amenity=drinking_water…", ms: 7000 },
-  { text: "Scanning OpenStreetMap nodes within 3 mi of Washington, DC…", ms: 6000 },
-  { text: "Primary mirror is busy — failing over to a backup endpoint…", ms: 8000 },
-  { text: "Streaming node geometry and tags back over the wire…", ms: 5000 },
-  { text: "Reading check_date tags to grade each fountain's freshness…", ms: 7000 },
-  { text: "Projecting lat/lon and dropping pins onto the tile layer…", ms: 6000 },
-  { text: "Reconciling the last few nodes — almost there…", ms: 9000 },
+  { text: "Opening a socket to OpenStreetMap servers…", ms: 5000 },
+  { text: "Scanning nodes within 3 mi of Washington, DC…", ms: 5000 },
+  { text: "Reading check_date tags to grade recency…", ms: 5000 },
 ];
-// Progress-bar keyframes: [elapsedMs, percent]. Slopes are deliberately uneven
-// so the bar surges and stalls instead of gliding, and it reaches 90% at 15s.
-const PROGRESS_KEYS: [number, number][] = [
-  [0, 0],
-  [1200, 22],
-  [2000, 29],
-  [4500, 55],
-  [5200, 58],
-  [8000, 72],
-  [11000, 82],
-  [15000, 90],
-];
+// Wall-clock time (ms) at which each loading step begins — cumulative sum of the
+// prior steps' durations. The bar's jumps are pinned to these boundaries so a
+// forward hop lands exactly when the text swaps to the next line.
+const STEP_STARTS: number[] = LOADING_STEPS.reduce<number[]>((acc, step, i) => {
+  acc.push(i === 0 ? 0 : acc[i - 1] + LOADING_STEPS[i - 1].ms);
+  return acc;
+}, []);
+// Percent each step JUMPS to the instant its text appears. Between boundaries the
+// bar only crawls a hair (CRAWL_GAIN), so most forward motion is the jump itself.
+const STEP_BASE = [10, 42, 74];
+const CRAWL_GAIN = 20;
 
-// Percent complete at `ms` elapsed. After 15s it creeps 90 → ~99 asymptotically
-// (never hitting 100 until the fetch actually resolves and the loader unmounts).
+// Percent complete at `ms` elapsed: jump to the current step's base the moment its
+// text shows, then crawl slowly by up to CRAWL_GAIN until the next step jumps. Past
+// the last step it creeps toward ~99 asymptotically (100 only on real resolve).
 function progressAt(ms: number): number {
-  if (ms >= 15000) return Math.min(99, 90 + 9 * (1 - Math.exp(-(ms - 15000) / 18000)));
-  for (let i = 1; i < PROGRESS_KEYS.length; i++) {
-    const [t0, p0] = PROGRESS_KEYS[i - 1];
-    const [t1, p1] = PROGRESS_KEYS[i];
-    if (ms <= t1) return p0 + ((p1 - p0) * (ms - t0)) / (t1 - t0);
-  }
-  return 90;
+  let i = 0;
+  while (i < STEP_STARTS.length - 1 && ms >= STEP_STARTS[i + 1]) i += 1;
+  const base = STEP_BASE[i];
+  const elapsedInStep = ms - STEP_STARTS[i];
+  const isLast = i === LOADING_STEPS.length - 1;
+  if (isLast) return Math.min(99, base + (99 - base) * (1 - Math.exp(-elapsedInStep / 22000)));
+  const dur = LOADING_STEPS[i].ms;
+  const t = Math.min(1, elapsedInStep / dur);
+  // easeInOut (slow after the jump, quicker mid-phrase, slow into the next jump),
+  // blended with a linear term so it never fully stalls at either end.
+  const inOut = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+  const eased = 0.4 * t + 0.6 * inOut;
+  return base + CRAWL_GAIN * eased;
 }
 
 function bucketOf(tags: Record<string, string>, nowMs: number): Bucket {
@@ -279,7 +280,7 @@ export default function LiveFountainMap({
               </div>
               <div className="bg-ink/10 h-1.5 w-full overflow-hidden rounded-full">
                 <div
-                  className="bg-sky-deep h-full rounded-full transition-[width] duration-100 ease-linear"
+                  className="bg-sky-deep h-full rounded-full transition-[width] duration-1000 ease-out"
                   style={{ width: `${progress}%` }}
                 />
               </div>
@@ -291,7 +292,7 @@ export default function LiveFountainMap({
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                  transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
                   className="text-ink-dim font-mono text-sm leading-relaxed tracking-tight"
                 >
                   {LOADING_STEPS[stepIdx].text}

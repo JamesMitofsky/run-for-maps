@@ -193,8 +193,8 @@ export default function LandingPage() {
             className="text-ink-dim mt-8 max-w-2xl text-lg leading-relaxed"
           >
             Plan a run past unverified fountains, then log each one&apos;s real-world state as you
-            pass it. Tap a point below to try it — this is an interactive replay of the run screen,
-            and every edit stays on this page.
+            pass it. This very similar to what the run screen actually looks like. This is just a
+            toy demo, so definitely tap around!
           </motion.p>
 
           <motion.div
