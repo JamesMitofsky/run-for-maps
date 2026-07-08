@@ -339,7 +339,12 @@ export function useRunSession({ enabled = true }: { enabled?: boolean } = {}) {
           body: JSON.stringify({ changesetId }),
         });
         const j = await r.json();
-        if (!r.ok || j.ok === false) throw new Error(j.error || "close failed");
+        // "was closed" = already closed (idle timeout / earlier finish) — the
+        // desired end state, so treat it as success.
+        const alreadyClosed = typeof j.error === "string" && /was closed/i.test(j.error);
+        if ((!r.ok || j.ok === false) && !alreadyClosed) throw new Error(j.error || "close failed");
+        // Drop the id so a later session can't rehydrate a closed changeset.
+        useOutbox.getState().setChangeset(undefined);
         setClosed({ changesetUrl: j.changesetUrl });
       } else {
         setClosed({});

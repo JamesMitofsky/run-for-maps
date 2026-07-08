@@ -101,6 +101,20 @@ describe("POST /api/osm/create", () => {
     expect(fetchMock.mock.calls[0][1]?.body).toContain('changeset="9"');
   });
 
+  it("reopens a fresh changeset when the provided one was already closed", async () => {
+    const fetchMock = fetchSeq(
+      text("The changeset 9 was closed at 2026-06-30 02:37:57 UTC.", 409),
+      text("88"), // recovery: open a fresh changeset
+      text("123456"),
+    );
+
+    const res = await POST(post({ ...validBody, changesetId: 9 }));
+    expect(res.status).toBe(200);
+    expect((await res.json()).changesetId).toBe(88);
+    expect(fetchMock.mock.calls[1][0]).toBe(`${API_BASE}/api/0.6/changeset/create`);
+    expect(fetchMock.mock.calls[2][1]?.body).toContain('changeset="88"');
+  });
+
   it("maps OSM failures to 502", async () => {
     fetchSeq(text("unauthorized", 401));
     const res = await POST(post(validBody));

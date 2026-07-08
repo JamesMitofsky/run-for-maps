@@ -178,6 +178,41 @@ describe("POST /api/osm/edit", () => {
     expect(vi.mocked(appendJson)).not.toHaveBeenCalled();
   });
 
+  it("reopens a fresh changeset when the provided one was already closed", async () => {
+    const fetchMock = fetchSeq(
+      nodeJson(3, { amenity: "drinking_water" }),
+      text("The changeset 9 was closed at 2026-06-30 02:37:57 UTC.", 409),
+      text("88"), // recovery: open a fresh changeset
+      nodeJson(3, { amenity: "drinking_water" }),
+      text("4"),
+    );
+
+    const res = await POST(post({ nodeId: 5, action: "confirm", changesetId: 9 }));
+    expect(res.status).toBe(200);
+    expect((await res.json()).changesetId).toBe(88);
+    expect(fetchMock.mock.calls[2][0]).toBe(`${API_BASE}/api/0.6/changeset/create`);
+    // The retried write goes into the fresh changeset.
+    expect(fetchMock.mock.calls[4][1]?.body).toContain('changeset="88"');
+  });
+
+  it("reopens at most once, then fails like any exhausted 409", async () => {
+    fetchSeq(
+      nodeJson(3, {}),
+      text("The changeset 9 was closed at 2026-06-30 02:37:57 UTC.", 409),
+      text("88"),
+      nodeJson(3, {}),
+      text("The changeset 88 was closed at 2026-06-30 03:00:00 UTC.", 409),
+      nodeJson(3, {}),
+      text("The changeset 88 was closed at 2026-06-30 03:00:00 UTC.", 409),
+      nodeJson(3, {}),
+      text("The changeset 88 was closed at 2026-06-30 03:00:00 UTC.", 409),
+    );
+
+    const res = await POST(post({ nodeId: 5, action: "confirm", changesetId: 9 }));
+    expect(res.status).toBe(502);
+    expect((await res.json()).error).toContain("was closed");
+  });
+
   it("surfaces a deleted node as an error", async () => {
     fetchSeq(text("77"), new Response(JSON.stringify({ elements: [] }), { status: 200 }));
     const res = await POST(post({ nodeId: 5, action: "confirm" }));
