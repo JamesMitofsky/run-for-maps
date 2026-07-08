@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { SignOutIcon, UserCircleIcon } from "@phosphor-icons/react";
+import { SignOutIcon } from "@phosphor-icons/react";
 import Button from "@/components/ui/Button";
-import Panel from "@/components/ui/Panel";
 import OsmSignInLink from "@/components/OsmSignInLink";
 import { useOsmStatus } from "@/components/OsmStatus";
 import { useOsmUser } from "@/hooks/useOsmUser";
@@ -12,7 +11,7 @@ import { apiFetch, isNative } from "@/lib/api";
 import { signOutOsm } from "@/lib/osmAuth";
 
 // Who you are on OSM, and the way out. Signed out → a connect card, since the
-// rest of the profile (device-local archive) still works without an account.
+// rest of the page (device-local archive) still works without an account.
 export default function AccountCard() {
   const { status } = useOsmStatus();
   const user = useOsmUser();
@@ -24,7 +23,7 @@ export default function AccountCard() {
 
   if (!status.loggedIn) {
     return (
-      <Panel className="flex flex-col gap-3 p-5">
+      <div className="flex flex-col gap-3">
         <h2 className="font-display text-lg font-bold">Connect OpenStreetMap</h2>
         <p className="text-ink-dim text-sm">
           Your runs are saved on this device either way — connecting lets you send fountain updates
@@ -33,7 +32,7 @@ export default function AccountCard() {
         <OsmSignInLink className="bg-ink text-paper hover:bg-ink-soft w-fit rounded-sm px-5 py-2 text-sm font-bold transition">
           Connect with OpenStreetMap
         </OsmSignInLink>
-      </Panel>
+      </div>
     );
   }
 
@@ -62,15 +61,10 @@ export default function AccountCard() {
   }
 
   return (
-    <Panel className="flex items-center gap-4 p-5">
-      {user?.avatarUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={user.avatarUrl} alt="" className="h-12 w-12 rounded-full object-cover" />
-      ) : (
-        <UserCircleIcon size={48} weight="duotone" className="text-sky-deep shrink-0" />
-      )}
+    <div className="flex items-center gap-4">
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="font-display truncate text-lg font-bold">
+        <span className="font-display flex items-center gap-2 truncate text-lg font-bold">
+          <span className="h-2 w-2 shrink-0 rounded-full bg-green-500" aria-hidden />
           {user?.username ?? "Connected to OSM"}
         </span>
         <span className="text-ink-dim flex items-center gap-2 text-xs">
@@ -106,6 +100,6 @@ export default function AccountCard() {
         <SignOutIcon size={14} />
         {signingOut ? "Signing out…" : "Sign out"}
       </Button>
-    </Panel>
+    </div>
   );
 }

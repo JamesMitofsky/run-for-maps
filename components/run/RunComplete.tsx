@@ -103,7 +103,7 @@ export default function RunComplete({
           )}
           {routeId && (
             <Link
-              href={`/profile/run?id=${routeId}`}
+              href={`/connected/run?id=${routeId}`}
               className={`block w-full rounded py-3 text-center font-semibold ${t.primary}`}
             >
               View this run

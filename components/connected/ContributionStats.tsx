@@ -1,6 +1,5 @@
 "use client";
 
-import Panel from "@/components/ui/Panel";
 import type { ArchivedRoute } from "@/lib/routeArchive";
 import { EDIT_LABEL, EDIT_COLOR } from "@/lib/editStatus";
 import { fmtDist } from "@/lib/geo";
@@ -29,7 +28,7 @@ export default function ContributionStats({ routes }: { routes: ArchivedRoute[] 
   }
 
   return (
-    <Panel className="flex flex-col gap-3 p-5">
+    <div className="flex flex-col gap-3">
       <h2 className="font-display text-lg font-bold">Your contributions</h2>
       <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
         <Stat label={routes.length === 1 ? "run" : "runs"} value={String(routes.length)} />
@@ -57,7 +56,7 @@ export default function ContributionStats({ routes }: { routes: ArchivedRoute[] 
           })}
         </div>
       )}
-    </Panel>
+    </div>
   );
 }
 

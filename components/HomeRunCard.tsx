@@ -78,7 +78,7 @@ export default function HomeRunCard() {
   });
   return (
     <Link
-      href="/profile"
+      href="/connected"
       className="group border-paper-line bg-paper hover:border-ink/25 inline-flex items-center gap-3 rounded-2xl border px-5 py-3 transition"
     >
       <PersonSimpleRunIcon size={22} weight="duotone" className="text-sky-deep shrink-0" />

@@ -52,6 +52,12 @@ function LoginContent() {
         <OsmSignInLink className="bg-ink text-paper hover:bg-ink-soft flex items-center justify-center gap-2 rounded-sm px-5 py-3 font-bold transition">
           Sign in to OpenStreetMap
         </OsmSignInLink>
+        <Link
+          href="/auth-explained"
+          className="text-ink-dim hover:text-ink text-center text-xs underline underline-offset-4 transition"
+        >
+          Why sign in through OpenStreetMap?
+        </Link>
       </section>
     </main>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
 import type { MapMarker } from "@/components/MapView";
@@ -94,7 +94,19 @@ export default function LiveFountainMap({
   // across re-renders (Date.now() may not run during render).
   const [nowMs, setNowMs] = useState(0);
   const [stepIdx, setStepIdx] = useState(0);
-  const [progress, setProgress] = useState(0);
+  // Progress is driven straight into the DOM (fill width + % text) from the RAF
+  // loop rather than through React state. iOS Safari stalls a CSS width
+  // transition whose target changes every frame, AND coalesces per-frame
+  // re-renders — so a state-driven bar sits at 0 then snaps to 100 when the
+  // fetch frees the main thread. Writing the node directly sidesteps both.
+  const fillRef = useRef<HTMLDivElement>(null);
+  const pctRef = useRef<HTMLSpanElement>(null);
+  const progressRef = useRef(0);
+  const applyProgress = useCallback((p: number) => {
+    progressRef.current = p;
+    if (fillRef.current) fillRef.current.style.width = `${p}%`;
+    if (pctRef.current) pctRef.current.textContent = `${Math.round(p)}%`;
+  }, []);
   // Kept mounted until the fill reaches 100% and the overlay fades out — so a
   // fast fetch still lets the bar finish its story instead of vanishing mid-way.
   const [showLoader, setShowLoader] = useState(true);
@@ -105,7 +117,7 @@ export default function LiveFountainMap({
     setBusy(true);
     setErr(null);
     setShowLoader(true);
-    setProgress(0);
+    applyProgress(0);
     try {
       const r = await apiFetch("/api/fountains", {
         method: "POST",
@@ -136,7 +148,7 @@ export default function LiveFountainMap({
     } finally {
       setBusy(false);
     }
-  }, []);
+  }, [applyProgress]);
 
   useEffect(() => {
     load();
@@ -206,24 +218,24 @@ export default function LiveFountainMap({
     if (!loading) return;
     const start = performance.now();
     let raf = requestAnimationFrame(function loop(t) {
-      setProgress(progressAt(t - start));
+      applyProgress(progressAt(t - start));
       raf = requestAnimationFrame(loop);
     });
     return () => cancelAnimationFrame(raf);
-  }, [loading]);
+  }, [loading, applyProgress]);
 
   // Fetch resolved: rush the bar from wherever the creep left off up to 100%,
   // then fade the overlay out — the effort "pays off" instead of blinking away.
   const succeeded = !busy && !err && fountains.length > 0;
   useEffect(() => {
     if (!succeeded) return;
-    const from = progress;
+    const from = progressRef.current;
     const start = performance.now();
     const DUR = 550;
     let raf = requestAnimationFrame(function run(t) {
       const k = Math.min(1, (t - start) / DUR);
       const eased = 1 - Math.pow(1 - k, 3); // easeOutCubic
-      setProgress(from + (100 - from) * eased);
+      applyProgress(from + (100 - from) * eased);
       if (k < 1) raf = requestAnimationFrame(run);
     });
     const hide = setTimeout(() => setShowLoader(false), DUR + 260);
@@ -231,9 +243,7 @@ export default function LiveFountainMap({
       cancelAnimationFrame(raf);
       clearTimeout(hide);
     };
-    // Fire once on the success transition; `progress` is intentionally a snapshot.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [succeeded]);
+  }, [succeeded, applyProgress]);
 
   // A failed fetch should reveal the error card, not sit under the loader.
   useEffect(() => {
@@ -274,14 +284,15 @@ export default function LiveFountainMap({
           >
             <div className="w-full max-w-md">
               <div className="mb-2 flex justify-end">
-                <span className="text-ink-dim font-mono text-xs tabular-nums">
-                  {Math.round(progress)}%
+                <span ref={pctRef} className="text-ink-dim font-mono text-xs tabular-nums">
+                  0%
                 </span>
               </div>
               <div className="bg-ink/10 h-1.5 w-full overflow-hidden rounded-full">
                 <div
-                  className="bg-sky-deep h-full rounded-full transition-[width] duration-1000 ease-out"
-                  style={{ width: `${progress}%` }}
+                  ref={fillRef}
+                  className="bg-sky-deep h-full rounded-full"
+                  style={{ width: 0 }}
                 />
               </div>
             </div>

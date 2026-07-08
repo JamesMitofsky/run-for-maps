@@ -8,12 +8,7 @@ import FreshnessLegend, { type Bucket } from "@/components/FreshnessLegend";
 import HomeRunCard from "@/components/HomeRunCard";
 import NativeEntryRedirect from "@/components/NativeEntryRedirect";
 import SiteNav from "@/components/SiteNav";
-import {
-  ArrowRightIcon,
-  GithubLogoIcon,
-  GlobeHemisphereWestIcon,
-  HeartIcon,
-} from "@phosphor-icons/react";
+import { ArrowRightIcon, GlobeHemisphereWestIcon, HeartIcon } from "@phosphor-icons/react";
 
 const DemoRunMap = dynamic(() => import("@/components/DemoRunMap"), { ssr: false });
 const LiveFountainMap = dynamic(() => import("@/components/LiveFountainMap"), { ssr: false });
@@ -152,8 +147,7 @@ export default function LandingPage() {
             </p>
             <p className="text-ink-dim mt-4 text-lg leading-relaxed">
               This app aims to solve the verification problem by routing runs past these unverified
-              points so their real-world state can be observed and recorded into the Open Street
-              Maps platform (the crowd-sourced, non-profit alternative to Google Maps).
+              points. This information is then saved to Open Street Map, the Wikipedia of maps.
             </p>
           </motion.div>
 
@@ -224,21 +218,22 @@ export default function LandingPage() {
               How to contribute
             </h2>
             <p className="text-ink-dim mt-8 max-w-2xl text-lg leading-relaxed">
-              If you have feedback on your experience using ROSM or want to contribute to the code,
-              shoot me a message at{" "}
+              If you want to share feedback on your experience using ROSM,{" "}
               <a href="mailto:james@btv.dev" className="text-sky-deep underline">
-                james@btv.dev
+                send me a message
               </a>
-              .
+              !
+            </p>
+            <p className="text-ink-dim mt-8 max-w-2xl text-lg leading-relaxed">
+              If you have a little experience writing code, feel free to make a pull request!
             </p>
             <a
               href="https://github.com/JamesMitofsky/run-for-maps"
               target="_blank"
               rel="noopener noreferrer"
-              className="border-paper-line hover:border-ink/20 mt-8 inline-flex items-center gap-3 rounded-sm border px-6 py-3 font-medium transition"
+              className="border-paper-line hover:border-ink/20 mt-4 inline-flex items-center gap-3 rounded-sm border px-6 py-3 font-medium transition"
             >
-              Open a pull request!
-              <GithubLogoIcon size={20} weight="bold" />
+              Github
             </a>
           </motion.div>
         </div>

@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { CaretRightIcon, CloudCheckIcon, CloudSlashIcon } from "@phosphor-icons/react";
-import Panel from "@/components/ui/Panel";
 import type { ArchivedRoute } from "@/lib/routeArchive";
 import { outboxCounts } from "@/store/outbox";
 import { fmtDist } from "@/lib/geo";
@@ -10,7 +9,7 @@ import { fmtDist } from "@/lib/geo";
 // Every run this device has recorded, newest first, each linking to its replay.
 export default function RunHistoryList({ routes }: { routes: ArchivedRoute[] }) {
   return (
-    <Panel className="flex flex-col gap-3 p-5">
+    <div className="flex flex-col gap-3">
       <h2 className="font-display text-lg font-bold">Run history</h2>
       {routes.length === 0 ? (
         <p className="text-ink-dim text-sm">No runs on this device yet.</p>
@@ -21,7 +20,7 @@ export default function RunHistoryList({ routes }: { routes: ArchivedRoute[] }) 
           ))}
         </ul>
       )}
-    </Panel>
+    </div>
   );
 }
 
@@ -38,7 +37,7 @@ function RunHistoryCard({ route }: { route: ArchivedRoute }) {
   return (
     <li>
       <Link
-        href={`/profile/run?id=${route.routeId}`}
+        href={`/connected/run?id=${route.routeId}`}
         className="hover:bg-paper-deep/50 -mx-2 flex items-center gap-3 rounded-lg px-2 py-3 transition"
       >
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
