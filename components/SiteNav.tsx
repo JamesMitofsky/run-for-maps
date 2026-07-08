@@ -4,9 +4,8 @@ import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { CompassIcon, DropIcon, ListIcon, LockKeyIcon, XIcon } from "@phosphor-icons/react";
+import { DropIcon, ListIcon, LockKeyIcon, XIcon } from "@phosphor-icons/react";
 import AccountChip, { MENU_ROW_CLASS } from "@/components/AccountChip";
-import { useOsmStatus } from "@/components/OsmStatus";
 
 // Hydration-safe client detection: returns false during SSR / first paint,
 // true once mounted on the client — without setState-in-effect.
@@ -30,9 +29,6 @@ const NAV_LINKS = [
 // inline and the drawer machinery disappears.
 export default function SiteNav() {
   const [open, setOpen] = useState(false);
-  // Drives the primary CTA: not connected → "Begin Mapping" → /login; connected
-  // → the account chip. Null while the status is still resolving (render nothing).
-  const { status } = useOsmStatus();
   // Portal target only exists client-side; gate rendering until mounted.
   const mounted = useMounted();
 
@@ -107,16 +103,7 @@ export default function SiteNav() {
                   {label}
                 </Link>
               ))}
-              {status?.loggedIn ? (
-                <AccountChip />
-              ) : status ? (
-                <Link
-                  href="/login"
-                  className="border-ink bg-ink text-paper hover:bg-ink-soft inline-flex items-center rounded-sm border px-5 py-2 text-sm font-bold whitespace-nowrap transition"
-                >
-                  Begin Mapping
-                </Link>
-              ) : null}
+              <AccountChip showSignIn={false} />
             </div>
           </div>
         </nav>
@@ -161,14 +148,11 @@ export default function SiteNav() {
                         {label}
                       </Link>
                     ))}
-                    {status?.loggedIn ? (
-                      <AccountChip variant="row" onNavigate={() => setOpen(false)} />
-                    ) : status ? (
-                      <Link href="/login" onClick={() => setOpen(false)} className={MENU_ROW_CLASS}>
-                        <CompassIcon size={20} weight="bold" className="text-ink-dim shrink-0" />
-                        Begin Mapping
-                      </Link>
-                    ) : null}
+                    <AccountChip
+                      variant="row"
+                      showSignIn={false}
+                      onNavigate={() => setOpen(false)}
+                    />
                   </div>
                 </motion.div>
               </div>

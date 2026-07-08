@@ -17,12 +17,17 @@ export const MENU_ROW_CLASS =
 // Renders nothing while the auth status resolves.
 //   variant="chip" (default) → compact header chip.
 //   variant="row"            → full-width drawer menu row matching nav links.
+//   showSignIn=false         → keep "Your Connection" even when signed out (the
+//                              /connected page is ungated), so nav shows a stable
+//                              item instead of swapping in a sign-in affordance.
 export default function AccountChip({
   variant = "chip",
   onNavigate,
+  showSignIn = true,
 }: {
   variant?: "chip" | "row";
   onNavigate?: () => void;
+  showSignIn?: boolean;
 }) {
   const { status } = useOsmStatus();
   const user = useOsmUser();
@@ -33,7 +38,7 @@ export default function AccountChip({
 
   const row = variant === "row";
 
-  if (!status.loggedIn) {
+  if (!status.loggedIn && showSignIn) {
     return (
       <OsmSignInLink
         onClick={onNavigate}
