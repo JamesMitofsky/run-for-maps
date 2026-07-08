@@ -415,6 +415,30 @@ describe("finish and reset", () => {
     expect(result.current.closed).toEqual({ changesetUrl: "https://osm.test/cs/42" });
     const closeCall = apiFetchMock.mock.calls.find((c) => c[0] === "/api/osm/close");
     expect(JSON.parse(closeCall![1]?.body as string)).toEqual({ changesetId: 42 });
+    // The closed id is dropped so a later session can't rehydrate it.
+    expect(useOutbox.getState().changesetId).toBeUndefined();
+  });
+
+  it("treats an already-closed changeset as finished and drops the stale id", async () => {
+    arm();
+    const { result } = renderHook(() => useRunSession());
+    act(() => useOutbox.getState().setChangeset(42));
+    apiFetchMock.mockImplementation(async (path) =>
+      path === "/api/osm/close"
+        ? jsonRes(
+            {
+              ok: false,
+              error: "close changeset 409: The changeset 42 was closed at 2026-06-30 02:37:57 UTC.",
+            },
+            502,
+          )
+        : jsonRes(null),
+    );
+
+    await act(async () => result.current.finish());
+    expect(result.current.finishErr).toBeNull();
+    expect(result.current.closed).toEqual({});
+    expect(useOutbox.getState().changesetId).toBeUndefined();
   });
 
   it("finishes cleanly when no changeset was ever opened", async () => {

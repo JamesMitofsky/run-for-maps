@@ -77,6 +77,12 @@ export class OsmApiError extends Error {
   }
 }
 
+// A 409 whose body says the changeset "was closed" (idle timeout, prior finish,
+// stale persisted id) — distinct from a 409 version conflict on the node itself.
+export function isChangesetClosed(e: unknown): boolean {
+  return e instanceof OsmApiError && e.status === 409 && /was closed/i.test(e.body);
+}
+
 function escapeXml(s: string): string {
   return (
     s

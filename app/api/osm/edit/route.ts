@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { z } from "zod";
 import { getOsmToken } from "@/lib/osmToken";
 import { EditRequest } from "@/lib/schemas";
 import {
@@ -9,9 +10,46 @@ import {
   todayIso,
   changesetUrl,
   OsmApiError,
+  isChangesetClosed,
 } from "@/lib/osm";
 import { appendJson } from "@/lib/db";
 import { editSummary } from "@/lib/editSummary";
+
+const CHANGESET_COMMENT = "Survey: drinking water / amenity status check";
+const MAX_ATTEMPTS = 3;
+
+// One write attempt: re-read the node so the version sent always matches the
+// current db version (OSM rejects a stale version with 409), then PUT.
+// Recurses on the two retryable 409 flavors:
+//   - closed changeset (idle timeout, or an id persisted from a finished
+//     session): open a fresh changeset — once — and retry the same edit.
+//   - version conflict (a concurrent editor bumped the version between our
+//     read and write): re-read + retry, up to MAX_ATTEMPTS.
+async function putWithRetry(
+  token: string,
+  edit: z.infer<typeof EditRequest>,
+  changesetId: number,
+  attempt = 1,
+  reopened = false,
+): Promise<{ newVersion: number; changesetId: number }> {
+  try {
+    const node = await getNode(token, edit.nodeId);
+    const tags = applyAction(node.tags, edit.action, edit.tagKey, todayIso(), edit.extras);
+    const newVersion = await putNode(token, edit.nodeId, { ...node, tags }, changesetId);
+    return { newVersion, changesetId };
+  } catch (e) {
+    if (isChangesetClosed(e) && !reopened) {
+      const fresh = await openChangeset(token, CHANGESET_COMMENT);
+      // Reopening doesn't consume a version-conflict retry: same attempt count.
+      return putWithRetry(token, edit, fresh, attempt, true);
+    }
+    const conflict = e instanceof OsmApiError && e.status === 409;
+    if (conflict && attempt < MAX_ATTEMPTS) {
+      return putWithRetry(token, edit, changesetId, attempt + 1, reopened);
+    }
+    throw e;
+  }
+}
 
 export async function POST(req: Request) {
   const token = await getOsmToken(req);
@@ -24,33 +62,9 @@ export async function POST(req: Request) {
   const { nodeId, action, tagKey, extras } = parsed.data;
 
   try {
-    let changesetId = parsed.data.changesetId;
-    if (!changesetId) {
-      changesetId = await openChangeset(token, "Survey: drinking water / amenity status check");
-    }
-
-    // Re-read the node each attempt so the version sent always matches the
-    // current db version (OSM rejects a stale version with 409).
-    const run = async (): Promise<number> => {
-      const node = await getNode(token, nodeId);
-      const tags = applyAction(node.tags, action, tagKey, todayIso(), extras);
-      return putNode(token, nodeId, { ...node, tags }, changesetId!);
-    };
-
-    // Retry on version conflict (409): a concurrent editor bumped the version
-    // between our read and write. Re-read + retry up to 3 attempts.
-    const MAX_ATTEMPTS = 3;
-    let newVersion: number;
-    for (let attempt = 1; ; attempt++) {
-      try {
-        newVersion = await run();
-        break;
-      } catch (e) {
-        const conflict = e instanceof OsmApiError && e.status === 409;
-        if (conflict && attempt < MAX_ATTEMPTS) continue;
-        throw e;
-      }
-    }
+    const initialChangeset =
+      parsed.data.changesetId ?? (await openChangeset(token, CHANGESET_COMMENT));
+    const { newVersion, changesetId } = await putWithRetry(token, parsed.data, initialChangeset);
 
     await appendJson("edit-log.json", {
       nodeId,

@@ -11,6 +11,7 @@ import {
   createNode,
   exchangeToken,
   getNode,
+  isChangesetClosed,
   makePkce,
   openChangeset,
   putNode,
@@ -215,6 +216,27 @@ describe("changesets", () => {
     await expect(closeChangeset("tok", 42)).rejects.toMatchObject({
       name: "OsmApiError",
       status: 409,
+    });
+  });
+
+  describe("isChangesetClosed", () => {
+    it("matches a 409 whose body says the changeset was closed", () => {
+      const e = new OsmApiError(
+        409,
+        "put node",
+        "The changeset 184824990 was closed at 2026-06-30 02:37:57 UTC.",
+      );
+      expect(isChangesetClosed(e)).toBe(true);
+    });
+
+    it("rejects a 409 version conflict on the node itself", () => {
+      const e = new OsmApiError(409, "put node", "Version mismatch: Provided 3, server had: 4");
+      expect(isChangesetClosed(e)).toBe(false);
+    });
+
+    it("rejects other statuses and plain errors", () => {
+      expect(isChangesetClosed(new OsmApiError(404, "put node", "was closed"))).toBe(false);
+      expect(isChangesetClosed(new Error("The changeset 9 was closed"))).toBe(false);
     });
   });
 
