@@ -19,17 +19,7 @@ const eslintConfig = defineConfig([
   // Disable ESLint rules that conflict with Prettier. Keep last so it wins.
   prettier,
   // Override default ignores of eslint-config-next.
-  globalIgnores([
-    // Default ignores of eslint-config-next:
-    ".next/**",
-    "out/**",
-    "build/**",
-    "next-env.d.ts",
-    // Native project + its vendored/generated JS (Capacitor bridge, copied web
-    // assets, DerivedData) — not ours to lint.
-    "ios/**",
-    ".api-stash/**",
-  ]),
+  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
 ]);
 
 export default eslintConfig;

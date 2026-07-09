@@ -1,9 +1,8 @@
 import type { MetadataRoute } from "next";
 import { APP_NAME, APP_TAGLINE, PWA_THEME_COLOR } from "@/lib/appConfig";
 
-// The manifest is fully static — pin it so `output: 'export'` (Capacitor build)
-// can emit it as a file instead of treating it as a dynamic route. Identity is
-// derived from lib/appConfig, the single source shared with capacitor.config.ts.
+// The manifest is fully static — pin it so it's emitted once at build rather than
+// treated as a dynamic route. Identity is derived from lib/appConfig.
 export const dynamic = "force-static";
 
 export default function manifest(): MetadataRoute.Manifest {

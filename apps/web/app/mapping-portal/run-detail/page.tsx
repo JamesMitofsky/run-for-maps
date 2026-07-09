@@ -16,8 +16,7 @@ const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 
 // Read-only replay of one archived run: the route line, every stop with its
 // recorded status, and the edit-by-edit sync record. Addressed by query param
-// (?id=) rather than a dynamic segment so the Capacitor static export can
-// serve it too.
+// (?id=) so the same shape ports to the Expo app's router.
 function RunDetailContent() {
   const params = useSearchParams();
   const id = params.get("id");

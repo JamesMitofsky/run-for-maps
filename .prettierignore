@@ -4,8 +4,6 @@ build/
 node_modules/
 .turbo/
 .context/
-ios/
-.api-stash/
 data/
 pnpm-lock.yaml
 next-env.d.ts
