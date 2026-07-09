@@ -6,7 +6,6 @@ export const contentType = ogContentType;
 
 export default function Image() {
   return renderOgImage({
-    eyebrow: "Run summary",
     title: "Run Detail",
     subtitle: "Review the fountains you verified and the edits you filed.",
   });

@@ -6,7 +6,6 @@ export const contentType = ogContentType;
 
 export default function Image() {
   return renderOgImage({
-    eyebrow: "Sign in",
     title: "Sign In",
     subtitle: "Connect your OpenStreetMap account to start contributing fountain data.",
   });

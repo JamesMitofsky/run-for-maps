@@ -6,7 +6,6 @@ export const contentType = ogContentType;
 
 export default function Image() {
   return renderOgImage({
-    eyebrow: "Live map",
     title: "Nearby Fountains",
     subtitle: "Find working public water fountains near you across Washington DC.",
   });

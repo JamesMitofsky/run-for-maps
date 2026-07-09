@@ -6,8 +6,8 @@ export const contentType = ogContentType;
 
 export default function Image() {
   return renderOgImage({
-    eyebrow: "Running for Open-Sourced Maps",
     title: "The DC Water Fountain Map",
-    subtitle: "Data sourced by — and for — runners. The definitive map of public fountains in DC.",
+    highlight: "Water Fountain",
+    subtitle: "Map data sourced by runners",
   });
 }

@@ -6,7 +6,6 @@ export const contentType = ogContentType;
 
 export default function Image() {
   return renderOgImage({
-    eyebrow: "Quick update",
     title: "Quick Update",
     subtitle: "Fix a fountain's status in seconds, straight from the field.",
   });

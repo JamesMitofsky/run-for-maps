@@ -6,7 +6,6 @@ export const contentType = ogContentType;
 
 export default function Image() {
   return renderOgImage({
-    eyebrow: "Contributor portal",
     title: "Mapping Portal",
     subtitle: "Your base for surveying and fixing the map on foot.",
   });

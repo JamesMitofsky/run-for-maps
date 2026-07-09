@@ -17,7 +17,6 @@ export const ogContentType = "image/png";
 export const ogAlt = "ROSM — Running for Open-Sourced Maps";
 
 const PAPER = "#f7f2e8";
-const PAPER_DEEP = "#e7dfcc";
 const PAPER_LINE = "#d6cdb6";
 const INK = "#0c0d0a";
 const INK_DIM = "#57544a";
@@ -54,10 +53,10 @@ const fonts = [
   },
 ];
 
-// The running-fountain mascot already sits on a paper backdrop, so it drops
-// straight onto the card. Embedded as a data URI to keep the render self-contained.
-const mascot = `data:image/png;base64,${readFileSync(
-  join(process.cwd(), "public", "icons", "icon-512.png"),
+// Transparent running-fountain mascot (the raster icons bake in a paper fill).
+// Embedded as an SVG data URI so it drops straight onto the backdrop.
+const mascot = `data:image/svg+xml;base64,${readFileSync(
+  join(process.cwd(), "public", "icons", "icon.svg"),
 ).toString("base64")}`;
 
 // Faint topographic contour field, echoing the landing hero. Encoded as an SVG
@@ -66,7 +65,7 @@ const contours = (() => {
   const stroke = "%230c0d0a";
   const lines = Array.from({ length: 9 }, (_, i) => {
     const o = i * 34;
-    const op = (0.5 - i * 0.045).toFixed(3);
+    const op = (0.1 - i * 0.009).toFixed(3);
     return `%3Cpath d='M-50 ${120 + o} C 200 ${60 + o}, 360 ${220 + o}, 560 ${180 + o} S 920 ${60 + o}, 1260 ${160 + o}' stroke='${stroke}' stroke-width='1.5' opacity='${op}' fill='none'/%3E`;
   }).join("");
   const svg = `%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='630' viewBox='0 0 1200 630'%3E${lines}%3C/svg%3E`;
@@ -74,15 +73,29 @@ const contours = (() => {
 })();
 
 export type OgCopy = {
-  /** Small mono-style kicker above the title, e.g. "Live map". */
-  eyebrow: string;
   /** The headline, rendered uppercase in the display face. */
   title: string;
+  /** Optional substring of `title` to accent in brand blue (case-insensitive). */
+  highlight?: string;
   /** One-line supporting sentence. */
   subtitle: string;
 };
 
-export function renderOgImage({ eyebrow, title, subtitle }: OgCopy) {
+// Split `title` around `highlight` so the matched run can be colored. Returns
+// text segments tagged with whether each should be accented.
+function splitTitle(title: string, highlight?: string) {
+  if (!highlight) return [{ text: title, accent: false }];
+  const at = title.toLowerCase().indexOf(highlight.toLowerCase());
+  if (at === -1) return [{ text: title, accent: false }];
+  return [
+    { text: title.slice(0, at), accent: false },
+    { text: title.slice(at, at + highlight.length), accent: true },
+    { text: title.slice(at + highlight.length), accent: false },
+  ].filter((s) => s.text.length > 0);
+}
+
+export function renderOgImage({ title, highlight, subtitle }: OgCopy) {
+  const titleParts = splitTitle(title, highlight);
   return new ImageResponse(
     <div
       style={{
@@ -127,30 +140,6 @@ export function renderOgImage({ eyebrow, title, subtitle }: OgCopy) {
         <div style={{ display: "flex", flexDirection: "column", flex: 1, paddingRight: 32 }}>
           <div
             style={{
-              display: "flex",
-              alignItems: "center",
-              fontFamily: "Space Grotesk",
-              fontWeight: 500,
-              fontSize: 24,
-              letterSpacing: 4,
-              textTransform: "uppercase",
-              color: SKY_DEEP,
-            }}
-          >
-            <div
-              style={{
-                width: 40,
-                height: 4,
-                backgroundColor: SKY_DEEP,
-                marginRight: 18,
-                borderRadius: 2,
-              }}
-            />
-            {eyebrow}
-          </div>
-
-          <div
-            style={{
               fontFamily: "Space Grotesk",
               fontWeight: 700,
               fontSize: 92,
@@ -158,10 +147,13 @@ export function renderOgImage({ eyebrow, title, subtitle }: OgCopy) {
               letterSpacing: -2,
               textTransform: "uppercase",
               color: INK,
-              marginTop: 28,
             }}
           >
-            {title}
+            {titleParts.map((part, i) => (
+              <span key={i} style={{ color: part.accent ? SKY_DEEP : INK }}>
+                {part.text}
+              </span>
+            ))}
           </div>
 
           <div
@@ -175,37 +167,9 @@ export function renderOgImage({ eyebrow, title, subtitle }: OgCopy) {
           >
             {subtitle}
           </div>
-
-          {/* Wordmark footer */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              marginTop: "auto",
-              fontFamily: "Space Grotesk",
-              fontWeight: 700,
-              fontSize: 30,
-              letterSpacing: 1,
-              color: INK,
-            }}
-          >
-            ROSM
-            <div
-              style={{
-                fontFamily: "Inter",
-                fontWeight: 400,
-                fontSize: 22,
-                letterSpacing: 0,
-                color: INK_DIM,
-                marginLeft: 16,
-              }}
-            >
-              Running for Open-Sourced Maps
-            </div>
-          </div>
         </div>
 
-        {/* Right: mascot on a paper plate */}
+        {/* Right: mascot sitting bare on the backdrop */}
         <div
           style={{
             display: "flex",
@@ -213,12 +177,9 @@ export function renderOgImage({ eyebrow, title, subtitle }: OgCopy) {
             justifyContent: "center",
             width: 360,
             height: 360,
-            borderRadius: 28,
-            backgroundColor: PAPER_DEEP,
-            border: `2px solid ${PAPER_LINE}`,
           }}
         >
-          <img src={mascot} width={300} height={300} />
+          <img src={mascot} width={292} height={360} />
         </div>
       </div>
     </div>,
