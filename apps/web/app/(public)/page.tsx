@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import FreshnessLegend, { type Bucket } from "@/components/FreshnessLegend";
 import HomeRunCard from "@/components/HomeRunCard";
 import SiteNav from "@/components/SiteNav";
-import { HeartIcon } from "@phosphor-icons/react";
+import { DropIcon } from "@phosphor-icons/react";
 
 const DemoRunMap = dynamic(() => import("@/components/DemoRunMap"), { ssr: false });
 const LiveFountainMap = dynamic(() => import("@/components/LiveFountainMap"), { ssr: false });
@@ -264,8 +264,8 @@ export default function LandingPage() {
       <footer className="border-paper-line border-t">
         <div className="text-ink-dim mx-auto flex max-w-6xl items-center justify-center gap-4 px-5 py-8 text-sm">
           <span>
-            Made with{" "}
-            <HeartIcon weight="fill" className="text-sky-deep inline-block align-middle" /> by{" "}
+            Made with <DropIcon weight="fill" className="text-sky-deep inline-block align-middle" />{" "}
+            by{" "}
             <a
               href="https://jamesm.it/about"
               target="_blank"
