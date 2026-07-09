@@ -8,7 +8,7 @@
       "developmentClient": true,
       "distribution": "internal",
       "ios": { "simulator": false },
-      "env": { "EXPO_PUBLIC_API_BASE": "https://rosm.vercel.app" }
+      "env": { "EXPO_PUBLIC_API_BASE": "https://rosm.app" }
     },
     "development-simulator": {
       "extends": "development",
@@ -16,11 +16,11 @@
     },
     "preview": {
       "distribution": "internal",
-      "env": { "EXPO_PUBLIC_API_BASE": "https://rosm.vercel.app" }
+      "env": { "EXPO_PUBLIC_API_BASE": "https://rosm.app" }
     },
     "production": {
       "autoIncrement": true,
-      "env": { "EXPO_PUBLIC_API_BASE": "https://rosm.vercel.app" }
+      "env": { "EXPO_PUBLIC_API_BASE": "https://rosm.app" }
     }
   },
   "submit": {
