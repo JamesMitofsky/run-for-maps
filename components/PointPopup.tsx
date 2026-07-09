@@ -15,6 +15,7 @@ import {
 import { useMap } from "react-leaflet";
 import type { Fountain, EditAction, EditExtras } from "@/lib/schemas";
 import type { StopStatus } from "@/store/run";
+import { checkedAgoLabel } from "@/lib/checkDate";
 import OsmSignInLink from "@/components/OsmSignInLink";
 import type { SyncState } from "@/store/outbox";
 import { SyncBadge } from "@/components/SyncStatus";
@@ -73,6 +74,9 @@ export default function PointPopup({
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [seasonal, setSeasonal] = useState(fountain.tags.seasonal === "yes");
   const [osmNote, setOsmNote] = useState(fountain.tags.note ?? "");
+  // Snapshot the clock once on mount — reading Date.now() during render is
+  // impure; the "checked ago" label doesn't need to tick live.
+  const [now] = useState(() => Date.now());
 
   function buildExtras(): EditExtras | undefined {
     const note = osmNote.trim();
@@ -85,12 +89,8 @@ export default function PointPopup({
   return (
     <div className="flex w-56 flex-col gap-2 text-neutral-800">
       <div>
-        <div className="leading-tight font-semibold">{name}</div>
-        {fountain.tags.check_date && (
-          <div className="text-xs text-neutral-500">
-            Last checked in OSM: {fountain.tags.check_date}
-          </div>
-        )}
+        <div className="leading-tight font-semibold">{checkedAgoLabel(fountain.tags, now)}</div>
+        <div className="text-xs text-neutral-500">{name}</div>
         {isDogWater(fountain.tags) && (
           <div className="mt-1 flex items-center gap-1 text-xs font-medium text-violet-700">
             <DogIcon size={14} /> Dog water — not for humans

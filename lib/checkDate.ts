@@ -21,6 +21,20 @@ export function lastCheckedMs(tags: Record<string, string>): number | null {
   return parseCheckDate(raw);
 }
 
+// Compact "Checked Nd/Nmo/Ny ago" label from the most recent survey date, or
+// "Never checked" when none is recorded. `now` is passed in so the caller owns
+// the clock (testable, no hidden Date.now()).
+export function checkedAgoLabel(tags: Record<string, string>, now: number): string {
+  const ms = lastCheckedMs(tags);
+  if (ms === null) return "Never checked";
+  const days = Math.max(0, Math.floor((now - ms) / 86_400_000));
+  if (days === 0) return "Checked today";
+  if (days < 30) return `Checked ${days}d ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `Checked ${months}mo ago`;
+  return `Checked ${Math.floor(days / 365)}y ago`;
+}
+
 // True if a point passes the recency filter. "stale" keeps points last surveyed
 // before the cutoff OR never surveyed (the ones worth verifying); "fresh" keeps
 // only points surveyed on/after the cutoff; "any" keeps everything.
