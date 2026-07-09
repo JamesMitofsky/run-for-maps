@@ -83,6 +83,20 @@ Each app has its own README with the details that matter locally:
 OSM Overpass, BRouter, Nominatim (geocoding), and OSM tiles — all public and rate-limited;
 be gentle. No keys required except your OSM OAuth client ID (see the web README).
 
+## Temporary Migration Docs
+
+> Remove once the monorepo migration merges to `main`.
+
+While `main` is still the pre-migration flat layout, feature-branch previews deploy to a
+separate throwaway Vercel project (`rosm-monorepo-preview`, Root Directory `apps/web`) so the
+production project stays untouched. Check its latest deploy status with:
+
+```
+vercel ls rosm-monorepo-preview
+```
+
+Top row is the latest; the Status column reads `● Ready`, `● Building`, or `● Error`.
+
 ## Contributing
 
 Pull requests welcome — the project lives at
