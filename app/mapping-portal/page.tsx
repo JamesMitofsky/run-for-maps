@@ -8,6 +8,8 @@ import SyncStatus from "@/components/SyncStatus";
 import AccountCard from "@/components/connected/AccountCard";
 import ContributionStats from "@/components/connected/ContributionStats";
 import RunHistoryList from "@/components/connected/RunHistoryList";
+import OsmSignInLink from "@/components/OsmSignInLink";
+import { useOsmStatus } from "@/components/OsmStatus";
 import { getArchivedRoutes, type ArchivedRoute } from "@/lib/routeArchive";
 
 // The mapping portal: the connected home. Big header + the primary actions as
@@ -16,6 +18,7 @@ import { getArchivedRoutes, type ArchivedRoute } from "@/lib/routeArchive";
 // this device. Deliberately NOT gated behind sign-in — the archive and the
 // outbox live on the device and are worth showing either way.
 export default function MappingPortalPage() {
+  const { status } = useOsmStatus();
   const [routes, setRoutes] = useState<ArchivedRoute[]>([]);
 
   // The archive lives in localStorage, so read it after mount (deferred off the
@@ -29,6 +32,32 @@ export default function MappingPortalPage() {
       alive = false;
     };
   }, []);
+
+  // Not connected → nothing but the header and a connect button. The portal's
+  // actions all lead to OSM edits, so gate the whole thing behind sign-in.
+  // `status === null` = still loading; render nothing to avoid a connect-flash.
+  if (status && !status.loggedIn) {
+    return (
+      <>
+        <SiteNav />
+        <main className="bg-paper font-body text-ink min-h-screen">
+          <div className="mx-auto flex max-w-2xl flex-col gap-6 px-5 py-10">
+            <header className="flex flex-col gap-2">
+              <h1 className="font-display text-4xl leading-none font-bold tracking-tight sm:text-5xl">
+                Mapping Portal
+              </h1>
+              <p className="text-ink-dim text-sm">
+                Connect your OpenStreetMap account to survey and fix the map.
+              </p>
+            </header>
+            <OsmSignInLink className="bg-ink text-paper hover:bg-ink-soft w-fit rounded-sm px-5 py-2 text-sm font-bold transition">
+              Connect with OpenStreetMap
+            </OsmSignInLink>
+          </div>
+        </main>
+      </>
+    );
+  }
 
   return (
     <>
