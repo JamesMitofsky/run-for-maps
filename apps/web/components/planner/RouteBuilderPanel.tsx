@@ -8,7 +8,7 @@ import ErrorNotice from "@/components/ui/ErrorNotice";
 import SegmentedControl from "@/components/ui/SegmentedControl";
 import EditSyncPanel from "@/components/EditSyncPanel";
 import type { OsmEdits } from "@/hooks/useOsmEdits";
-import { usePlanner, pinnedOf, removedOf } from "@/store/planner";
+import { usePlanner, pinnedOf, removedOf } from "@rosm/core/stores/planner";
 import type { Fountain } from "@rosm/core/schemas";
 import { fmtDist } from "@rosm/core/geo";
 

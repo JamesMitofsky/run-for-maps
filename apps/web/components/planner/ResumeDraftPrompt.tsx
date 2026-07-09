@@ -1,7 +1,7 @@
 "use client";
 
 import Button from "@/components/ui/Button";
-import { usePlanner } from "@/store/planner";
+import { usePlanner } from "@rosm/core/stores/planner";
 import { fmtDist } from "@rosm/core/geo";
 
 // Resume offer: a route from a prior session survived a refresh. Renders

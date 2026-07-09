@@ -8,7 +8,7 @@ import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { DeviceMobileIcon } from "@phosphor-icons/react";
 import { useRun } from "@rosm/core/stores/run";
-import { usePlanner } from "@/store/planner";
+import { usePlanner } from "@rosm/core/stores/planner";
 import AccountChip from "@/components/AccountChip";
 import OsmStatusBar, { useOsmStatus } from "@/components/OsmStatus";
 import ConfigWizard from "@/components/planner/ConfigWizard";

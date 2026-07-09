@@ -1,19 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { usePlanner, inRouteIdsOf, pinnedOf, removedOf, type Draft } from "@/store/planner";
-import { useRun } from "@rosm/core/stores/run";
-import { apiFetch } from "@/lib/api";
-import type { Fountain } from "@rosm/core/schemas";
+import { beforeEach, describe, expect, it } from "vitest";
+import { usePlanner, inRouteIdsOf, pinnedOf, removedOf, type Draft } from "../src/stores/planner";
+import { useRun } from "../src/stores/run";
+import type { Fountain } from "../src/schemas";
+import { configureTestPorts } from "./helpers/ports";
 
-vi.mock("@/lib/api", () => ({
-  apiFetch: vi.fn(),
-  isNative: vi.fn(() => false),
-}));
-
-vi.mock("@/lib/geolocation", () => ({
-  getCurrentPosition: vi.fn(async () => ({ lat: 38.9, lon: -77.03 })),
-}));
-
-const apiFetchMock = vi.mocked(apiFetch);
+// The planner reads apiFetch + geolocation through injected ports.
+let apiFetchMock: ReturnType<typeof configureTestPorts>["apiFetch"];
 
 const ok = (body: unknown) =>
   new Response(JSON.stringify(body), {
@@ -42,9 +34,9 @@ const routeOk = (distanceM = 5000) =>
 const initialState = usePlanner.getInitialState();
 
 beforeEach(() => {
+  apiFetchMock = configureTestPorts().apiFetch;
   usePlanner.setState(initialState, true);
   useRun.getState().reset();
-  apiFetchMock.mockReset();
 });
 
 describe("findPoints", () => {

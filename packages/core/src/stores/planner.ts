@@ -1,11 +1,10 @@
 import { create } from "zustand";
-import { planRoute } from "@rosm/core/plan";
-import { milesToMeters, type Pt } from "@rosm/core/geo";
-import type { Turn } from "@rosm/core/brouter";
-import type { Fountain, RecencyMode } from "@rosm/core/schemas";
-import { useRun, type RunStop } from "@rosm/core/stores/run";
-import { apiFetch } from "@/lib/api";
-import { getCurrentPosition } from "@/lib/geolocation";
+import { planRoute } from "../plan";
+import { milesToMeters, type Pt } from "../geo";
+import type { Turn } from "../brouter";
+import type { Fountain, RecencyMode } from "../schemas";
+import { useRun, type RunStop } from "./run";
+import { corePorts } from "../configure";
 
 // The planner's state and route-building I/O, moved out of the /plan page so
 // the config wizard, route builder, and map feed can live in separate
@@ -201,7 +200,8 @@ export const usePlanner = create<PlannerState>((set, get) => ({
 
   geolocate: () => {
     set({ err: null });
-    getCurrentPosition()
+    corePorts()
+      .geolocation.getCurrentPosition()
       .then((p) => get().recenter({ lat: p.lat, lon: p.lon }))
       .catch((e) => set({ err: `Geolocation failed: ${(e as Error).message}` }));
   },
@@ -243,7 +243,7 @@ export const usePlanner = create<PlannerState>((set, get) => ({
       islandPt: null,
     });
     try {
-      const r = await apiFetch("/api/fountains", {
+      const r = await corePorts().api.apiFetch("/api/fountains", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -324,7 +324,7 @@ export const usePlanner = create<PlannerState>((set, get) => ({
         return;
       }
       const points = [center, ...ordered.map((n) => ({ lat: n.lat, lon: n.lon }))];
-      const r = await apiFetch("/api/route", {
+      const r = await corePorts().api.apiFetch("/api/route", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ points, loop }),
@@ -386,7 +386,7 @@ export const usePlanner = create<PlannerState>((set, get) => ({
     const fresh = () => seq === planRequestSeq;
     try {
       const points = [center, ...reversed.map((f) => ({ lat: f.lat, lon: f.lon }))];
-      const r = await apiFetch("/api/route", {
+      const r = await corePorts().api.apiFetch("/api/route", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ points, loop }),
@@ -471,7 +471,7 @@ export const usePlanner = create<PlannerState>((set, get) => ({
   // silently — the user may want a fresh plan.
   loadDraft: async () => {
     try {
-      const r = await apiFetch("/api/draft");
+      const r = await corePorts().api.apiFetch("/api/draft");
       const d = (await r.json()) as Draft | null;
       if (d && d.stops?.length && get().stops.length === 0) set({ resumable: d });
     } catch {
@@ -511,7 +511,9 @@ export const usePlanner = create<PlannerState>((set, get) => ({
   // Drop the saved route — the user wants to start fresh.
   dismissDraft: () => {
     set({ resumable: null });
-    apiFetch("/api/draft", { method: "DELETE" }).catch(() => {});
+    corePorts()
+      .api.apiFetch("/api/draft", { method: "DELETE" })
+      .catch(() => {});
   },
 
   startRun: async () => {
@@ -532,13 +534,15 @@ export const usePlanner = create<PlannerState>((set, get) => ({
       turns,
     };
     useRun.getState().setPlan(plan);
-    await apiFetch("/api/run", {
+    await corePorts().api.apiFetch("/api/run", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...plan, index: 0 }),
     });
     // Route promoted to an active run; drop the planner draft so we don't re-offer it.
-    apiFetch("/api/draft", { method: "DELETE" }).catch(() => {});
+    corePorts()
+      .api.apiFetch("/api/draft", { method: "DELETE" })
+      .catch(() => {});
     // Stay on this map — just hand the side panel over to the live run.
     set({ phase: "run" });
   },

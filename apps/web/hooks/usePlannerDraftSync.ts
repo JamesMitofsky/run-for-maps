@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { usePlanner, type Draft } from "@/store/planner";
+import { usePlanner, type Draft } from "@rosm/core/stores/planner";
 import { apiFetch } from "@/lib/api";
 
 // Contract: the in-progress planner route persists to /api/draft on every

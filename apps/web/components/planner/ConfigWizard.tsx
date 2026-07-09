@@ -13,7 +13,7 @@ import {
 import Button from "@/components/ui/Button";
 import ErrorNotice from "@/components/ui/ErrorNotice";
 import SegmentedControl from "@/components/ui/SegmentedControl";
-import { usePlanner } from "@/store/planner";
+import { usePlanner } from "@rosm/core/stores/planner";
 import type { RecencyMode } from "@rosm/core/schemas";
 
 // Recency filter modes, shown as a segmented control in the radius step.
