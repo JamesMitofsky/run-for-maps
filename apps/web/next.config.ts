@@ -14,8 +14,11 @@ const nextConfig: NextConfig = isCapacitor
       output: "export",
       distDir: "out",
       images: { unoptimized: true },
+      // Shared logic ships as TypeScript source; Next must compile it.
+      transpilePackages: ["@rosm/core"],
     }
   : {
+      transpilePackages: ["@rosm/core"],
       async redirects() {
         return [
           // Old URL for the fountain browser — keep bookmarks/PWA shortcuts alive.

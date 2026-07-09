@@ -18,6 +18,7 @@
     "ios:run": "pnpm cap:sync && cap run ios"
   },
   "dependencies": {
+    "@rosm/core": "workspace:*",
     "@capacitor-community/background-geolocation": "^1.2.26",
     "@capacitor-community/keep-awake": "^8.0.1",
     "@capacitor/app": "^8.1.0",
@@ -48,6 +49,7 @@
     "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.4.1",
     "@capacitor/ios": "^8.4.1",
+    "@rosm/typescript-config": "workspace:*",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
