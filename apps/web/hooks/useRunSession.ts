@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRun, type RunStop, type StopStatus } from "@rosm/core/stores/run";
-import { useOutbox } from "@/store/outbox";
+import { useOutbox } from "@rosm/core/stores/outbox";
 import { compass, type Pt } from "@rosm/core/geo";
 import { runGuidance, ARRIVAL_RADIUS_M, PROXIMITY_RADIUS_M } from "@rosm/core/guidance";
 import { ptLabel } from "@rosm/core/pointTypes";
@@ -13,7 +13,7 @@ import { useOsmStatus } from "@/components/OsmStatus";
 import PointPopup from "@/components/PointPopup";
 import { celebratePoint } from "@/lib/confetti";
 import { useHeading } from "@/lib/useHeading";
-import { archiveRoute, getArchivedRoutes } from "@/lib/routeArchive";
+import { archiveRoute, getArchivedRoutes } from "@rosm/core/routeArchive";
 import { apiFetch, isNative } from "@/lib/api";
 import { watchRunPosition, type GeoWatch } from "@/lib/geolocation";
 import { hapticSuccess } from "@/lib/haptics";

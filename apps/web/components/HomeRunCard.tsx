@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowRightIcon, PathIcon, PersonSimpleRunIcon } from "@phosphor-icons/react";
-import { getArchivedRoutes, type ArchivedRoute } from "@/lib/routeArchive";
+import { getArchivedRoutes, type ArchivedRoute } from "@rosm/core/routeArchive";
 import { apiFetch, isNative } from "@/lib/api";
 import { fmtDist } from "@rosm/core/geo";
 

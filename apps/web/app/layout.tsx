@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Space_Grotesk, Inter } from "next/font/google";
 import "./globals.css";
+import CoreBoot from "@/components/CoreBoot";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import OutboxSync from "@/components/OutboxSync";
 import NativeAuth from "@/components/NativeAuth";
@@ -70,6 +71,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`h-full antialiased ${display.variable} ${body.variable}`}>
       <body className="min-h-full">
+        <CoreBoot />
         {children}
         <OutboxSync />
         <ServiceWorkerRegister />

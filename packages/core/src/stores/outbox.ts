@@ -1,8 +1,7 @@
 import { create } from "zustand";
-import type { EditAction, EditExtras } from "@rosm/core/schemas";
-import { editSummary, todayLocal } from "@rosm/core/editSummary";
-import { idbGetAll, idbPut, idbClearOutbox, idbGetMeta, idbSetMeta } from "@/lib/idb";
-import { apiFetch } from "@/lib/api";
+import type { EditAction, EditExtras } from "../schemas";
+import { editSummary, todayLocal } from "../editSummary";
+import { corePorts } from "../configure";
 
 // Where a queued edit is in its journey to OSM.
 //   pending  — written locally, not yet sent (offline, or just enqueued)
@@ -66,7 +65,7 @@ export const useOutbox = create<OutboxState>((set, get) => {
   // Persist a single item to IndexedDB and patch it into the in-memory list.
   const persist = (item: OutboxItem) => {
     set((s) => ({ items: s.items.map((i) => (i.id === item.id ? item : i)) }));
-    idbPut(item);
+    corePorts().outboxStorage.put(item);
   };
 
   return {
@@ -79,14 +78,14 @@ export const useOutbox = create<OutboxState>((set, get) => {
     hydrate: async () => {
       if (get().hydrated) return;
       const [stored, changesetId] = await Promise.all([
-        idbGetAll<OutboxItem>(),
-        idbGetMeta<number>(CHANGESET_META),
+        corePorts().outboxStorage.getAll(),
+        corePorts().outboxStorage.getMeta<number>(CHANGESET_META),
       ]);
       const items = stored
         .map((i) => (i.syncState === "sending" ? { ...i, syncState: "pending" as const } : i))
         .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
       items.forEach((i) => {
-        if (i.syncState === "pending") idbPut(i);
+        if (i.syncState === "pending") corePorts().outboxStorage.put(i);
       });
       set({ items, changesetId, hydrated: true });
     },
@@ -107,7 +106,7 @@ export const useOutbox = create<OutboxState>((set, get) => {
         createdAt: new Date().toISOString(),
       };
       set((s) => ({ items: [...s.items, item] }));
-      idbPut(item);
+      corePorts().outboxStorage.put(item);
       return item;
     },
 
@@ -128,7 +127,7 @@ export const useOutbox = create<OutboxState>((set, get) => {
 
           persist({ ...item, syncState: "sending" });
           try {
-            const r = await apiFetch("/api/osm/edit", {
+            const r = await corePorts().api.apiFetch("/api/osm/edit", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -176,14 +175,14 @@ export const useOutbox = create<OutboxState>((set, get) => {
 
     setChangeset: (id) => {
       set({ changesetId: id });
-      idbSetMeta(CHANGESET_META, id);
+      corePorts().outboxStorage.setMeta(CHANGESET_META, id);
     },
 
     // Wipe the queue + changeset (e.g. when a run is fully done and reset).
     clear: async () => {
       set({ items: [], changesetId: undefined });
-      await idbClearOutbox();
-      await idbSetMeta(CHANGESET_META, undefined);
+      await corePorts().outboxStorage.clear();
+      await corePorts().outboxStorage.setMeta(CHANGESET_META, undefined);
     },
   };
 });

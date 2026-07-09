@@ -16,7 +16,7 @@ import { useMap } from "react-leaflet";
 import type { Fountain, EditAction, EditExtras } from "@rosm/core/schemas";
 import type { StopStatus } from "@rosm/core/stores/run";
 import OsmSignInLink from "@/components/OsmSignInLink";
-import type { SyncState } from "@/store/outbox";
+import type { SyncState } from "@rosm/core/stores/outbox";
 import { SyncBadge } from "@/components/SyncStatus";
 
 // Local feedback for a point already updated in this session. The edit is saved

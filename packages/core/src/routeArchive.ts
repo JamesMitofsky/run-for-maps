@@ -1,10 +1,9 @@
-"use client";
-
-import type { Pt } from "@rosm/core/geo";
-import type { Turn } from "@rosm/core/brouter";
-import type { Fountain } from "@rosm/core/schemas";
-import type { RunStop } from "@rosm/core/stores/run";
-import type { OutboxItem } from "@/store/outbox";
+import type { Pt } from "./geo";
+import type { Turn } from "./brouter";
+import type { Fountain } from "./schemas";
+import type { RunStop } from "./stores/run";
+import type { OutboxItem } from "./stores/outbox";
+import { corePorts } from "./configure";
 
 // Durable on-device record of every route the surveyor runs. Replaces the old
 // "Export JSON backup" download: instead of a one-off file the user has to
@@ -42,20 +41,20 @@ export type ArchivedRoute = {
 export type RouteSnapshot = Pick<ArchivedRoute, "routeId" | "plan" | "edits">;
 
 function loadAll(): ArchivedRoute[] {
-  if (typeof window === "undefined") return [];
   try {
-    const raw = window.localStorage.getItem(KEY);
+    const raw = corePorts().kv.get(KEY);
     const list = raw ? JSON.parse(raw) : [];
     return Array.isArray(list) ? list : [];
   } catch {
-    return []; // corrupt / unavailable storage — start fresh rather than throw
+    // corrupt / unavailable storage, or ports not configured yet (SSR) — start
+    // fresh rather than throw.
+    return [];
   }
 }
 
 function saveAll(list: ArchivedRoute[]) {
-  if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(KEY, JSON.stringify(list));
+    corePorts().kv.set(KEY, JSON.stringify(list));
   } catch {
     // storage full or disabled — archiving is best-effort, never block the run
   }

@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { CaretRightIcon, CloudCheckIcon, CloudSlashIcon } from "@phosphor-icons/react";
-import type { ArchivedRoute } from "@/lib/routeArchive";
-import { outboxCounts } from "@/store/outbox";
+import type { ArchivedRoute } from "@rosm/core/routeArchive";
+import { outboxCounts } from "@rosm/core/stores/outbox";
 import { fmtDist } from "@rosm/core/geo";
 
 // Every run this device has recorded, newest first, each linking to its replay.

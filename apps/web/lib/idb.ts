@@ -3,6 +3,8 @@
 // of OSM edits that still need to be sent. Two object stores:
 //   - "outbox": one record per queued edit, keyed by its uuid.
 //   - "meta":   small key/value rows (e.g. the open changeset id).
+import type { OutboxStoragePort } from "@rosm/core/ports";
+import type { OutboxItem } from "@rosm/core/stores/outbox";
 const DB_NAME = "run-for-maps";
 const OUTBOX = "outbox";
 const META = "meta";
@@ -97,3 +99,13 @@ export async function idbSetMeta<T>(key: string, value: T): Promise<void> {
     /* best-effort */
   }
 }
+
+// The @rosm/core OutboxStoragePort, backed by the IndexedDB helpers above. Injected
+// into the core outbox store via configureCore (see lib/coreSetup.ts).
+export const outboxStorage: OutboxStoragePort = {
+  getAll: () => idbGetAll<OutboxItem>(),
+  put: (item) => idbPut(item),
+  clear: idbClearOutbox,
+  getMeta: idbGetMeta,
+  setMeta: (key, value) => idbSetMeta(key, value),
+};

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useOutbox, outboxCounts } from "@/store/outbox";
+import { useOutbox, outboxCounts } from "@rosm/core/stores/outbox";
 import { notifySyncPending } from "@/lib/notify";
 
 // Drives the offline outbox app-wide: loads the queue on start, then flushes

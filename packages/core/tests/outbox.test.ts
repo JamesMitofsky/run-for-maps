@@ -1,23 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { outboxCounts, useOutbox, type OutboxItem } from "@/store/outbox";
-import { editSummary, todayLocal } from "@rosm/core/editSummary";
-import { apiFetch } from "@/lib/api";
-import { idbClearOutbox, idbGetAll, idbGetMeta, idbPut, idbSetMeta } from "@/lib/idb";
+import { outboxCounts, useOutbox, type OutboxItem } from "../src/stores/outbox";
+import { editSummary, todayLocal } from "../src/editSummary";
+import { configureTestPorts } from "./helpers/ports";
 
-vi.mock("@/lib/idb", () => ({
-  idbGetAll: vi.fn(async () => []),
-  idbPut: vi.fn(async () => {}),
-  idbDelete: vi.fn(async () => {}),
-  idbClearOutbox: vi.fn(async () => {}),
-  idbGetMeta: vi.fn(async () => undefined),
-  idbSetMeta: vi.fn(async () => {}),
-}));
-
-vi.mock("@/lib/api", () => ({
-  apiFetch: vi.fn(),
-}));
-
-const apiFetchMock = vi.mocked(apiFetch);
+// The store reads its storage + api through injected ports; tests wire spy-backed
+// fakes via configureTestPorts and assert against them.
+let apiFetchMock: ReturnType<typeof configureTestPorts>["apiFetch"];
+let storage: ReturnType<typeof configureTestPorts>["outboxStorage"];
 
 const ok = (body: unknown) =>
   new Response(JSON.stringify(body), {
@@ -42,8 +31,10 @@ function storedItem(over: Partial<OutboxItem>): OutboxItem {
 }
 
 beforeEach(() => {
+  const ports = configureTestPorts();
+  apiFetchMock = ports.apiFetch;
+  storage = ports.outboxStorage;
   useOutbox.setState({ items: [], changesetId: undefined, hydrated: false });
-  apiFetchMock.mockReset();
 });
 
 describe("enqueue", () => {
@@ -62,7 +53,7 @@ describe("enqueue", () => {
       editSummary("out_of_order", "amenity", todayLocal(), { note: "leaking" }),
     );
     expect(useOutbox.getState().items).toEqual([item]);
-    expect(vi.mocked(idbPut)).toHaveBeenCalledWith(item);
+    expect(storage.put).toHaveBeenCalledWith(item);
   });
 
   it("gives every item a unique id", () => {
@@ -89,7 +80,7 @@ describe("flush", () => {
     expect(items[0].newVersion).toBe(2);
     expect(items[0].changesetUrl).toBe("cs-url");
     expect(useOutbox.getState().changesetId).toBe(42);
-    expect(vi.mocked(idbSetMeta)).toHaveBeenCalledWith("changesetId", 42);
+    expect(storage.setMeta).toHaveBeenCalledWith("changesetId", 42);
 
     expect(apiFetchMock).toHaveBeenCalledTimes(2);
     const firstBody = JSON.parse(apiFetchMock.mock.calls[0][1]?.body as string);
@@ -173,12 +164,12 @@ describe("retryAll", () => {
 
 describe("hydrate", () => {
   it("loads persisted items sorted by creation, resetting interrupted sends", async () => {
-    vi.mocked(idbGetAll).mockResolvedValueOnce([
+    storage.getAll.mockResolvedValueOnce([
       storedItem({ id: "b", createdAt: "2026-07-04T11:00:00.000Z", syncState: "sending" }),
       storedItem({ id: "a", createdAt: "2026-07-04T10:00:00.000Z", syncState: "sent" }),
       storedItem({ id: "c", createdAt: "2026-07-04T12:00:00.000Z", syncState: "failed" }),
     ]);
-    vi.mocked(idbGetMeta).mockResolvedValueOnce(77);
+    storage.getMeta.mockResolvedValueOnce(77);
 
     await useOutbox.getState().hydrate();
 
@@ -192,7 +183,7 @@ describe("hydrate", () => {
   it("only hydrates once", async () => {
     await useOutbox.getState().hydrate();
     await useOutbox.getState().hydrate();
-    expect(vi.mocked(idbGetAll)).toHaveBeenCalledTimes(1);
+    expect(storage.getAll).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -205,8 +196,8 @@ describe("clear", () => {
 
     expect(useOutbox.getState().items).toEqual([]);
     expect(useOutbox.getState().changesetId).toBeUndefined();
-    expect(vi.mocked(idbClearOutbox)).toHaveBeenCalled();
-    expect(vi.mocked(idbSetMeta)).toHaveBeenLastCalledWith("changesetId", undefined);
+    expect(storage.clear).toHaveBeenCalled();
+    expect(storage.setMeta).toHaveBeenLastCalledWith("changesetId", undefined);
   });
 });
 

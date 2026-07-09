@@ -1,8 +1,10 @@
-// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { archiveRoute, getArchivedRoutes, type RouteSnapshot } from "@/lib/routeArchive";
+import { archiveRoute, getArchivedRoutes, type RouteSnapshot } from "../src/routeArchive";
+import { configureTestPorts } from "./helpers/ports";
 
 const KEY = "run-for-maps:archive";
+
+let kv: ReturnType<typeof configureTestPorts>["kv"];
 
 function snap(routeId: string, index = 0): RouteSnapshot {
   return {
@@ -25,7 +27,8 @@ function snap(routeId: string, index = 0): RouteSnapshot {
 }
 
 beforeEach(() => {
-  window.localStorage.clear();
+  // Fresh in-memory kv port per test (stands in for localStorage).
+  kv = configureTestPorts().kv;
   vi.useFakeTimers();
   vi.setSystemTime(new Date("2026-07-04T10:00:00Z"));
 });
@@ -68,14 +71,14 @@ describe("archiveRoute", () => {
   });
 
   it("recovers from corrupt storage instead of throwing", () => {
-    window.localStorage.setItem(KEY, "{corrupt!");
+    kv.set(KEY, "{corrupt!");
     expect(getArchivedRoutes()).toEqual([]);
     archiveRoute(snap("r1"));
     expect(getArchivedRoutes()).toHaveLength(1);
   });
 
   it("treats a non-array payload as empty", () => {
-    window.localStorage.setItem(KEY, JSON.stringify({ nope: true }));
+    kv.set(KEY, JSON.stringify({ nope: true }));
     expect(getArchivedRoutes()).toEqual([]);
   });
 });

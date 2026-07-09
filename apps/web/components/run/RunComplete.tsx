@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { FlagCheckeredIcon } from "@phosphor-icons/react";
 import type { RunSession } from "@/hooks/useRunSession";
-import { useOutbox, outboxCounts } from "@/store/outbox";
+import { useOutbox, outboxCounts } from "@rosm/core/stores/outbox";
 import { useRun } from "@rosm/core/stores/run";
 import SyncStatus from "@/components/SyncStatus";
 import { canShare, shareRun } from "@/lib/share";

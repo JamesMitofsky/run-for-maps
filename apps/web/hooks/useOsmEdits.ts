@@ -4,7 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import type { EditAction, EditExtras } from "@rosm/core/schemas";
 import type { StopStatus } from "@rosm/core/stores/run";
 import type { PointEdit } from "@/components/PointPopup";
-import { useOutbox, outboxCounts } from "@/store/outbox";
+import { useOutbox, outboxCounts } from "@rosm/core/stores/outbox";
 import { celebratePoint } from "@/lib/confetti";
 import { apiFetch } from "@/lib/api";
 

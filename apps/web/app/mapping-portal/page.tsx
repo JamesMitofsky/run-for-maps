@@ -10,7 +10,7 @@ import ContributionStats from "@/components/connected/ContributionStats";
 import RunHistoryList from "@/components/connected/RunHistoryList";
 import OsmSignInLink from "@/components/OsmSignInLink";
 import { useOsmStatus } from "@/components/OsmStatus";
-import { getArchivedRoutes, type ArchivedRoute } from "@/lib/routeArchive";
+import { getArchivedRoutes, type ArchivedRoute } from "@rosm/core/routeArchive";
 
 // The mapping portal: the connected home. Big header + the primary actions as
 // on-page buttons (this page carries its own navigation, there is no navbar),

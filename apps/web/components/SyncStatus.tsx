@@ -9,7 +9,7 @@ import {
   CheckCircleIcon,
   WarningCircleIcon,
 } from "@phosphor-icons/react";
-import { useOutbox, outboxCounts, type OutboxItem } from "@/store/outbox";
+import { useOutbox, outboxCounts, type OutboxItem } from "@rosm/core/stores/outbox";
 
 // Review panel for the offline outbox: how many edits reached OSM, how many are
 // still pending/failed, with a one-tap "retry all missed sends". Shown on the run

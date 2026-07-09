@@ -4,8 +4,8 @@ import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useRunSession } from "@/hooks/useRunSession";
 import { useRun, type RunPlan } from "@rosm/core/stores/run";
-import { useOutbox } from "@/store/outbox";
-import { archiveRoute, getArchivedRoutes } from "@/lib/routeArchive";
+import { useOutbox } from "@rosm/core/stores/outbox";
+import { archiveRoute, getArchivedRoutes } from "@rosm/core/routeArchive";
 import { apiFetch } from "@/lib/api";
 import { celebratePoint } from "@/lib/confetti";
 import { hapticSuccess } from "@/lib/haptics";
@@ -13,6 +13,7 @@ import { allowSleep, keepAwake } from "@/lib/keepAwake";
 import { notifyProximity, notifyRunComplete } from "@/lib/notify";
 import { watchRunPosition } from "@/lib/geolocation";
 import type { EditAction } from "@rosm/core/schemas";
+import { configureTestPorts } from "../helpers/ports";
 
 type Watcher = {
   onPoint: (p: { lat: number; lon: number; heading: number | null }) => void;
@@ -69,14 +70,6 @@ vi.mock("@/components/OsmStatus", () => ({
   useOsmStatus: () => ({ status: h.osm.value, refresh: vi.fn() }),
 }));
 vi.mock("@/components/PointPopup", () => ({ default: () => null }));
-vi.mock("@/lib/idb", () => ({
-  idbGetAll: vi.fn(async () => []),
-  idbPut: vi.fn(async () => {}),
-  idbDelete: vi.fn(async () => {}),
-  idbClearOutbox: vi.fn(async () => {}),
-  idbGetMeta: vi.fn(async () => undefined),
-  idbSetMeta: vi.fn(async () => {}),
-}));
 
 const apiFetchMock = vi.mocked(apiFetch);
 
@@ -123,6 +116,9 @@ beforeEach(() => {
   useRun.getState().reset();
   useOutbox.setState({ items: [], changesetId: undefined, hydrated: true });
   apiFetchMock.mockReset();
+  // Wire @rosm/core to in-memory ports, routing the outbox's api calls through
+  // the same apiFetch spy the run hook uses directly.
+  configureTestPorts(apiFetchMock);
   apiFetchMock.mockImplementation(async (path, init) => {
     if (path === "/api/run" && !init?.method) return jsonRes(null);
     if (path === "/api/run") return jsonRes({ ok: true });

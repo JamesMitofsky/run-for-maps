@@ -1,6 +1,6 @@
 "use client";
 
-import type { ArchivedRoute } from "@/lib/routeArchive";
+import type { ArchivedRoute } from "@rosm/core/routeArchive";
 import { EDIT_LABEL, EDIT_COLOR } from "@rosm/core/editStatus";
 import { fmtDist } from "@rosm/core/geo";
 import type { StopStatus } from "@rosm/core/stores/run";

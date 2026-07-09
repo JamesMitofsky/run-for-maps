@@ -21,7 +21,7 @@ import { useRunSession } from "@/hooks/useRunSession";
 import { useOsmEdits } from "@/hooks/useOsmEdits";
 import { usePlannerDraftSync } from "@/hooks/usePlannerDraftSync";
 import { apiFetch, isNative } from "@/lib/api";
-import { getArchivedRoutes } from "@/lib/routeArchive";
+import { getArchivedRoutes } from "@rosm/core/routeArchive";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 

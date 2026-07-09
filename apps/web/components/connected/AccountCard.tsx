@@ -6,7 +6,7 @@ import Button from "@/components/ui/Button";
 import OsmSignInLink from "@/components/OsmSignInLink";
 import { useOsmStatus } from "@/components/OsmStatus";
 import { useOsmUser } from "@/hooks/useOsmUser";
-import { useOutbox, outboxCounts } from "@/store/outbox";
+import { useOutbox, outboxCounts } from "@rosm/core/stores/outbox";
 import { apiFetch, isNative } from "@/lib/api";
 import { signOutOsm } from "@/lib/osmAuth";
 

@@ -5,7 +5,7 @@ import { LinkIcon } from "@phosphor-icons/react";
 import OsmSignInLink from "@/components/OsmSignInLink";
 import { useOsmStatus } from "@/components/OsmStatus";
 import { useOsmUser } from "@/hooks/useOsmUser";
-import { useOutbox, outboxCounts } from "@/store/outbox";
+import { useOutbox, outboxCounts } from "@rosm/core/stores/outbox";
 
 // Shared style for a full-width drawer menu row: icon + label, bottom divider.
 // Exported so nav links and the account row render identically.
