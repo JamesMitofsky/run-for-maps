@@ -3,13 +3,12 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ArrowLeftIcon } from "@phosphor-icons/react";
+import { ArrowLeftIcon, SlidersHorizontalIcon } from "@phosphor-icons/react";
 import type { Fountain } from "@/lib/schemas";
 import type { MapMarker } from "@/components/MapView";
 import type { OsmEdits } from "@/hooks/useOsmEdits";
 import AccountChip from "@/components/AccountChip";
-import BottomSheet from "@/components/BottomSheet";
-import Panel from "@/components/ui/Panel";
+import Modal from "@/components/ui/Modal";
 import PointPopup from "@/components/PointPopup";
 import FountainPopup from "@/components/fountains/FountainPopup";
 import SearchPanel, { DEFAULT_RADIUS_MI, type Anchor } from "@/components/fountains/SearchPanel";
@@ -83,6 +82,9 @@ export default function FountainMap({
   const [svc, setSvc] = useState<Set<Svc>>(() => new Set<Svc>(["in"]));
   const [water, setWater] = useState<Set<Water>>(() => new Set<Water>(["human"]));
   const [rec, setRec] = useState<Set<Recency>>(() => new Set<Recency>(["fresh"]));
+  // The search/filter surface opens as a full-screen modal on mount and stays up
+  // while points load; it collapses to a reopen button once a search succeeds.
+  const [modalOpen, setModalOpen] = useState(true);
 
   // Acquire a GPS fix and make it the search anchor. Does not search — that
   // stays an explicit action.
@@ -142,6 +144,8 @@ export default function FountainMap({
         }
         setFountains(j.fountains as Fountain[]);
         setSearchedAt(from);
+        // Points landed — drop the modal so the map is visible. It reopens on demand.
+        setModalOpen(false);
       } catch (e) {
         setErr((e as Error).message);
       } finally {
@@ -269,10 +273,10 @@ export default function FountainMap({
           />
         </div>
 
-        {/* Back link + account, floating over the map. Dropped entirely when a
-          navbar is present — it already routes home and shows the connection. */}
-        {!nav && (
-          <header className="safe-top pointer-events-none absolute inset-x-0 z-[1000] flex items-center justify-between p-4 md:p-5">
+        {/* Floating controls over the map: back link + account (only without a
+          navbar) and the button that reopens the search/filter modal. */}
+        <header className="safe-top pointer-events-none absolute inset-x-0 z-[1000] flex items-center justify-between p-4 md:p-5">
+          {!nav ? (
             <Link
               href={backHref}
               className="border-paper-line bg-paper/90 text-ink-dim hover:text-ink pointer-events-auto flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-xs font-semibold shadow-sm backdrop-blur transition"
@@ -280,21 +284,30 @@ export default function FountainMap({
               <ArrowLeftIcon size={14} />
               {backLabel}
             </Link>
-            <div className="pointer-events-auto">
-              <AccountChip />
-            </div>
-          </header>
-        )}
+          ) : (
+            <span />
+          )}
+          <div className="pointer-events-auto flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setModalOpen(true)}
+              className="border-paper-line bg-paper/90 text-ink hover:text-sky-deep flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-xs font-semibold shadow-sm backdrop-blur transition"
+            >
+              <SlidersHorizontalIcon size={14} />
+              Search
+            </button>
+            {!nav && <AccountChip />}
+          </div>
+        </header>
 
-        {/* Mobile: draggable bottom sheet. */}
-        <BottomSheet head={head} body={null} />
-
-        {/* Desktop: right-anchored floating panel. */}
-        <div className="pointer-events-none hidden md:absolute md:inset-y-0 md:right-0 md:left-auto md:z-[1000] md:flex md:items-center md:p-6">
-          <Panel className="pointer-events-auto flex w-full max-w-sm flex-col gap-4 p-6 md:max-h-[calc(100vh-3rem)] md:overflow-y-auto">
-            {head}
-          </Panel>
-        </div>
+        <Modal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          dismissible={!busy}
+          title="Find drinking water"
+        >
+          {head}
+        </Modal>
       </div>
     </main>
   );

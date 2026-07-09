@@ -44,6 +44,12 @@ body {
     sans-serif;
 }
 
+/* Links default to light blue. Any element with an explicit Tailwind text-color
+   utility wins on specificity, so styled links (nav buttons, etc.) are unaffected. */
+a {
+  color: var(--color-sky-deep);
+}
+
 /* iOS safe-area helpers. The app draws edge-to-edge (viewport-fit=cover), so
    edge-anchored overlays use these to clear the notch / Dynamic Island / home
    indicator. Evaluate to 0 on devices without insets. */

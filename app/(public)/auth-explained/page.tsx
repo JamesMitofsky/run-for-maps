@@ -14,6 +14,19 @@ const fadeUp = {
 // Q&A content for the FAQ page. Each entry animates in as its own block.
 const FAQS: { q: string; a: ReactNode }[] = [
   {
+    q: "What is OpenStreetMap?",
+    a: (
+      <>
+        <p>
+          OpenStreetMap (OSM) is the Wikipedia of mapping—a crowd-sourced, openly licensed
+          alternative to Big Map. Instead of one company owning the map, anyone can add and verify
+          places, and the data belongs to the public. ROSM writes every fountain update straight to
+          OSM, so the information lives somewhere durable and open.
+        </p>
+      </>
+    ),
+  },
+  {
     q: "How is this different from other fountain maps?",
     a: (
       <>
@@ -71,9 +84,9 @@ const FAQS: { q: string; a: ReactNode }[] = [
     a: (
       <>
         <p>
-          If you want to share feedback on your experience using ROSM,{" "}
+          If you want to share feedback on your experience using ROSM, email me at{" "}
           <a href="mailto:james@btv.dev" className="text-sky-deep underline">
-            send me a message
+            james@btv.dev
           </a>
           ! And if you have a little experience writing code, feel free to{" "}
           <a
@@ -85,6 +98,18 @@ const FAQS: { q: string; a: ReactNode }[] = [
             make a pull request
           </a>
           !
+        </p>
+      </>
+    ),
+  },
+  {
+    q: "What's next for ROSM?",
+    a: (
+      <>
+        <p>
+          Right now, the focus is on documenting fountains as a public amenity, and once this proof
+          of concept is locked down, branching out to recording and maintaining data for other
+          public amenities. Things like public restrooms, picnic tables, parks, bike racks, etc.
         </p>
       </>
     ),

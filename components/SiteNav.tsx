@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { DropIcon, HouseIcon, ListIcon, QuestionIcon, XIcon } from "@phosphor-icons/react";
+import { CompassIcon, HouseIcon, ListIcon, QuestionIcon, XIcon } from "@phosphor-icons/react";
 import { MENU_ROW_CLASS } from "@/components/AccountChip";
 
 // Hydration-safe client detection: returns false during SSR / first paint,
@@ -22,7 +22,7 @@ function useMounted() {
 // The site pages, in nav order. `cta` renders as the filled primary action.
 const NAV_LINKS = [
   { href: "/", label: "Home", icon: HouseIcon },
-  { href: "/fountains", label: "Nearby Fountains", icon: DropIcon },
+  { href: "/fountains", label: "Nearby Fountains", icon: CompassIcon },
   { href: "/auth-explained", label: "FAQ", icon: QuestionIcon },
 ] as const;
 
@@ -59,7 +59,7 @@ export default function SiteNav() {
             <Link href="/" className="flex items-center gap-5" onClick={() => setOpen(false)}>
               <span className="flex items-center gap-2.5">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/icons/icon.svg" alt="" className="h-7 w-7" />
+                <img src="/icons/icon.svg" alt="" className="h-8 w-auto" />
                 <span className="font-display text-lg font-bold tracking-tight">ROSM</span>
               </span>
             </Link>
@@ -110,7 +110,7 @@ export default function SiteNav() {
                 href="/mapping-portal"
                 className="bg-sky-deep text-paper hover:bg-sky-deep/90 inline-flex items-center rounded-sm px-5 py-2 text-sm font-bold whitespace-nowrap transition"
               >
-                Mapping Portal
+                Contribute
               </Link>
             </div>
           </div>
@@ -161,7 +161,7 @@ export default function SiteNav() {
                       onClick={() => setOpen(false)}
                       className="bg-sky-deep text-paper hover:bg-sky-deep/90 mt-4 inline-flex items-center justify-center rounded-sm px-5 py-3 text-base font-bold transition"
                     >
-                      Mapping Portal
+                      Contribute
                     </Link>
                   </div>
                 </motion.div>

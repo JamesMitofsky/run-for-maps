@@ -8,7 +8,7 @@ import FreshnessLegend, { type Bucket } from "@/components/FreshnessLegend";
 import HomeRunCard from "@/components/HomeRunCard";
 import NativeEntryRedirect from "@/components/NativeEntryRedirect";
 import SiteNav from "@/components/SiteNav";
-import { GlobeHemisphereWestIcon, HeartIcon } from "@phosphor-icons/react";
+import { HeartIcon } from "@phosphor-icons/react";
 
 const DemoRunMap = dynamic(() => import("@/components/DemoRunMap"), { ssr: false });
 const LiveFountainMap = dynamic(() => import("@/components/LiveFountainMap"), { ssr: false });
@@ -87,26 +87,41 @@ export default function LandingPage() {
         <Contours className="text-ink/[0.06] pointer-events-none absolute inset-0 h-full w-full" />
 
         <div className="relative mx-auto max-w-6xl px-5 pt-14 pb-16 md:pt-20 md:pb-24">
-          <motion.h1
-            {...fadeUp}
-            transition={{ ...fadeUp.transition, delay: 0.05 }}
-            className="font-display max-w-5xl text-[clamp(2.6rem,8.5vw,6.5rem)] leading-[0.9] font-bold tracking-tight uppercase"
-          >
-            Runner-sourced
-            <br />
-            <span className="text-sky-deep">public maps</span>
-          </motion.h1>
-
-          <div className="mt-10 flex flex-col items-start gap-6">
-            <motion.p
+          <div className="flex flex-col items-start gap-8 md:flex-row md:items-center md:gap-12">
+            {/* Brand mascot, anchoring the hero headline. */}
+            {}
+            <motion.img
               {...fadeUp}
-              transition={{ ...fadeUp.transition, delay: 0.12 }}
-              className="text-ink-dim max-w-xl text-lg leading-relaxed"
-            >
-              Plan your runs to crowdsource public map data
-            </motion.p>
-            {/* Returning users: resume an in-flight run or revisit history. */}
-            <HomeRunCard />
+              transition={{ ...fadeUp.transition, delay: 0.05 }}
+              src="/icons/icon.svg"
+              alt="ROSM"
+              className="w-32 shrink-0 md:w-56 lg:w-72"
+            />
+
+            <div>
+              <motion.h1
+                {...fadeUp}
+                transition={{ ...fadeUp.transition, delay: 0.1 }}
+                className="font-display max-w-5xl text-[clamp(2.2rem,7vw,5.2rem)] leading-[0.9] font-bold tracking-tight uppercase"
+              >
+                The DC Water
+                <br />
+                Fountain Map
+              </motion.h1>
+
+              <div className="mt-10 flex flex-col items-start gap-6">
+                <motion.p
+                  {...fadeUp}
+                  transition={{ ...fadeUp.transition, delay: 0.16 }}
+                  className="text-ink-dim max-w-xl text-lg leading-relaxed"
+                >
+                  With data sourced by (and <em>for</em>) runners, this is the definitive map of
+                  public fountains in DC.
+                </motion.p>
+                {/* Returning users: resume an in-flight run or revisit history. */}
+                <HomeRunCard />
+              </div>
+            </div>
           </div>
 
           {/* Sample-route label, sitting tightly above the map plate. */}
@@ -133,39 +148,38 @@ export default function LandingPage() {
 
       {/* MANIFESTO SPLIT */}
       <section className="border-paper-line bg-paper-deep border-t">
-        <div className="mx-auto grid max-w-6xl gap-12 px-5 py-20 md:grid-cols-2 md:py-28">
+        <div className="mx-auto max-w-3xl px-5 py-20 md:py-28">
           <motion.div {...fadeUp}>
             <h2 className="font-display text-[clamp(2rem,5vw,3.4rem)] leading-[1.05] font-bold tracking-tight">
-              Keeping map data <span className="text-sky-deep">public</span> is important
+              What&apos;s the deal?
             </h2>
             <p className="text-ink-dim mt-6 text-lg leading-relaxed">
-              Crowdsourced map data degrades over time. Places like drinking fountains, benches, and
-              similar nodes (which Apple and Google don&apos;t even track, data sovereignty aside)
-              are often tagged once and never re-verified.
+              In the summer heat, I just wanted to know where I could get a sip of water on my runs.
+              And so I thought I&apos;d put together a little map. But then, by stopping at the
+              fountains on my map, I realized a bunch of them were out of order (some were
+              missing!). So this got me to thinking about having a system for updating the
+              fountains. And then it hit me: if I was already planning my runs to include passing
+              one or two fountains for a drink, why not just plan a run optimized for passing the
+              most fountains possible! After my first beta test of this system, I visited 23
+              fountains in 7 miles, and that&apos;s when I realized even just a few runners could
+              make light work of covering the whole city!
             </p>
+            <p className="text-ink-dim mt-4 text-lg leading-relaxed">ROSM caters to two groups:</p>
+            <ol className="text-ink-dim mt-4 list-decimal space-y-1 pl-6 text-lg leading-relaxed">
+              <li>literally anyone looking for a working fountain</li>
+              <li>runner (or avid walkers!) who want to verify fountains</li>
+            </ol>
             <p className="text-ink-dim mt-4 text-lg leading-relaxed">
-              This app aims to solve the verification problem by routing runs past these unverified
-              points. This information is then saved to Open Street Map, the Wikipedia of maps.
+              If you&apos;re part of this second group, awesome! I&apos;ll mention there may be some
+              rough edges, but if you discover something, shoot me a message{" "}
+              <a
+                href="mailto:james@btv.dev"
+                className="text-ink decoration-sky-deep/50 hover:decoration-sky-deep font-medium underline underline-offset-4"
+              >
+                james@btv.dev
+              </a>{" "}
+              and we&apos;ll get things squared away!
             </p>
-          </motion.div>
-
-          <motion.div
-            {...fadeUp}
-            transition={{ ...fadeUp.transition, delay: 0.1 }}
-            className="flex self-start"
-          >
-            <div className="border-paper-line bg-paper flex gap-4 rounded-2xl border px-5 py-8">
-              <GlobeHemisphereWestIcon
-                size={28}
-                weight="bold"
-                className="text-sky-deep mt-0.5 shrink-0"
-              />
-              <p className="text-ink-dim text-lg leading-relaxed">
-                Right now, the focus is on documenting fountains as a public amenity, and once this
-                proof of concept is locked down, branching out to recording and maintaining data for
-                other public amenities. Things like public restrooms, picnic tables, parks, etc.
-              </p>
-            </div>
           </motion.div>
         </div>
       </section>
