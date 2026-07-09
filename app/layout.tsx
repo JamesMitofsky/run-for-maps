@@ -21,7 +21,16 @@ const APP_NAME = "ROSM";
 const APP_DESCRIPTION =
   "Turn your run into open-map fieldwork. Plan a route past unverified OpenStreetMap points, run it with turn-by-turn cues, and fix the map from the ground.";
 
+// Absolute base for resolving OG/twitter image URLs. Prefer an explicit site URL,
+// fall back to the Vercel production domain, then the known deploy target.
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : "https://rosm.vercel.app");
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   applicationName: APP_NAME,
   title: {
     default: "ROSM — Running for Open-Sourced Maps",

@@ -1,0 +1,13 @@
+import { ogAlt, ogContentType, ogSize, renderOgImage } from "@/lib/og/template";
+
+export const alt = ogAlt;
+export const size = ogSize;
+export const contentType = ogContentType;
+
+export default function Image() {
+  return renderOgImage({
+    eyebrow: "Live map",
+    title: "Nearby Fountains",
+    subtitle: "Find working public water fountains near you across Washington DC.",
+  });
+}
