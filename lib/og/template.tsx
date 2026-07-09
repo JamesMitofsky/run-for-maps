@@ -140,6 +140,8 @@ export function renderOgImage({ title, highlight, subtitle }: OgCopy) {
         <div style={{ display: "flex", flexDirection: "column", flex: 1, paddingRight: 32 }}>
           <div
             style={{
+              display: "flex",
+              flexWrap: "wrap",
               fontFamily: "Space Grotesk",
               fontWeight: 700,
               fontSize: 92,
