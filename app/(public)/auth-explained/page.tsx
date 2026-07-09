@@ -90,7 +90,7 @@ const FAQS: { q: string; a: ReactNode }[] = [
           </a>
           ! And if you have a little experience writing code, feel free to{" "}
           <a
-            href="https://github.com/JamesMitofsky/run-for-maps"
+            href="https://github.com/JamesMitofsky/rosm"
             target="_blank"
             rel="noopener noreferrer"
             className="text-sky-deep underline"

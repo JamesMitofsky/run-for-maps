@@ -210,7 +210,7 @@ export default function LandingPage() {
                 some rough edges, but if you discover something, shoot me a message{" "}
                 <a
                   href="mailto:james@btv.dev"
-                  className="text-ink decoration-sky-deep/50 hover:decoration-sky-deep font-medium underline underline-offset-4"
+                  className="text-sky-deep decoration-sky-deep/50 hover:decoration-sky-deep font-medium underline underline-offset-4"
                 >
                   james@btv.dev
                 </a>{" "}
@@ -268,7 +268,7 @@ export default function LandingPage() {
               href="https://jamesm.it/about"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-ink decoration-sky-deep/50 hover:decoration-sky-deep font-medium underline underline-offset-4"
+              className="text-sky-deep decoration-sky-deep/50 hover:decoration-sky-deep font-medium underline underline-offset-4"
             >
               James Mitofsky
             </a>

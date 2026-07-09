@@ -78,21 +78,6 @@ be gentle. No keys required except your OSM OAuth client ID.
 - [ ] Public restrooms
 - [ ] Bike racks
 
-### Naming/branding
-
-~~Crowd~~-sourced maps &nbsp;<sub>_(runner)_ ✎</sub>
-
-Free word association:
-
-- runner
-- civic
-- crowd-sourced
-- public
-- community / local
-- route / routing
-- map / mapped / mapping
-- run
-
 ## Contributing
 
 Pull requests welcome! The project lives at
