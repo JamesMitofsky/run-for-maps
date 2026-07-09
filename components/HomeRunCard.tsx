@@ -54,7 +54,7 @@ export default function HomeRunCard() {
   if (state.kind === "active") {
     return (
       <Link
-        href="/run"
+        href="/mapping-portal/run"
         className="group border-sky-deep/40 bg-sky/10 hover:border-sky-deep inline-flex items-center gap-3 rounded-2xl border px-5 py-3 transition"
       >
         <PathIcon size={22} weight="duotone" className="text-sky-deep shrink-0" />
@@ -78,7 +78,7 @@ export default function HomeRunCard() {
   });
   return (
     <Link
-      href="/connected"
+      href="/mapping-portal"
       className="group border-paper-line bg-paper hover:border-ink/25 inline-flex items-center gap-3 rounded-2xl border px-5 py-3 transition"
     >
       <PersonSimpleRunIcon size={22} weight="duotone" className="text-sky-deep shrink-0" />

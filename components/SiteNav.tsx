@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { DropIcon, ListIcon, LockKeyIcon, XIcon } from "@phosphor-icons/react";
-import AccountChip, { MENU_ROW_CLASS } from "@/components/AccountChip";
+import { DropIcon, HouseIcon, ListIcon, QuestionIcon, XIcon } from "@phosphor-icons/react";
+import { MENU_ROW_CLASS } from "@/components/AccountChip";
 
 // Hydration-safe client detection: returns false during SSR / first paint,
 // true once mounted on the client — without setState-in-effect.
@@ -20,8 +21,9 @@ function useMounted() {
 
 // The site pages, in nav order. `cta` renders as the filled primary action.
 const NAV_LINKS = [
-  { href: "/fountains", label: "Fountains near you", icon: DropIcon },
-  { href: "/auth-explained", label: "Authentication Explained", icon: LockKeyIcon },
+  { href: "/", label: "Home", icon: HouseIcon },
+  { href: "/fountains", label: "Nearby Fountains", icon: DropIcon },
+  { href: "/auth-explained", label: "FAQ", icon: QuestionIcon },
 ] as const;
 
 // Top-of-page navigation, mobile-first: a hamburger opens an off-canvas drawer
@@ -31,6 +33,8 @@ export default function SiteNav() {
   const [open, setOpen] = useState(false);
   // Portal target only exists client-side; gate rendering until mounted.
   const mounted = useMounted();
+  // Current route drives the active-link bolding.
+  const pathname = usePathname();
 
   // Lock body scroll and wire Esc-to-close while the drawer is open.
   useEffect(() => {
@@ -97,13 +101,20 @@ export default function SiteNav() {
                   className={`inline-flex items-center text-sm font-semibold whitespace-nowrap transition ${
                     "cta" in l && l.cta
                       ? "border-ink bg-ink text-paper hover:bg-ink-soft rounded-sm border px-5 py-2 font-bold"
-                      : "text-ink-dim hover:text-ink px-1 py-2"
+                      : `px-1 py-2 underline underline-offset-4 ${
+                          pathname === href ? "text-ink font-bold" : "text-ink-dim hover:text-ink"
+                        }`
                   }`}
                 >
                   {label}
                 </Link>
               ))}
-              <AccountChip showSignIn={false} />
+              <Link
+                href="/mapping-portal"
+                className="bg-sky-deep text-paper hover:bg-sky-deep/90 inline-flex items-center rounded-sm px-5 py-2 text-sm font-bold whitespace-nowrap transition"
+              >
+                Mapping Portal
+              </Link>
             </div>
           </div>
         </nav>
@@ -142,17 +153,19 @@ export default function SiteNav() {
                         key={href}
                         href={href}
                         onClick={() => setOpen(false)}
-                        className={MENU_ROW_CLASS}
+                        className={`${MENU_ROW_CLASS} ${pathname === href ? "font-bold" : ""}`}
                       >
                         <Icon size={20} weight="bold" className="text-ink-dim shrink-0" />
                         {label}
                       </Link>
                     ))}
-                    <AccountChip
-                      variant="row"
-                      showSignIn={false}
-                      onNavigate={() => setOpen(false)}
-                    />
+                    <Link
+                      href="/mapping-portal"
+                      onClick={() => setOpen(false)}
+                      className="bg-sky-deep text-paper hover:bg-sky-deep/90 mt-4 inline-flex items-center justify-center rounded-sm px-5 py-3 text-base font-bold transition"
+                    >
+                      Mapping Portal
+                    </Link>
                   </div>
                 </motion.div>
               </div>

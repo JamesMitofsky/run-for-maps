@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { CrosshairIcon, DropIcon, MagnifyingGlassIcon, SpinnerIcon } from "@phosphor-icons/react";
+import {
+  CaretDownIcon,
+  CrosshairIcon,
+  DropIcon,
+  MagnifyingGlassIcon,
+  SpinnerIcon,
+} from "@phosphor-icons/react";
 import FilterPills from "@/components/fountains/FilterPills";
 import ErrorNotice from "@/components/ui/ErrorNotice";
 import type { Counts, Recency, Svc, Water } from "@/lib/fountainFilters";
@@ -74,13 +80,13 @@ export default function SearchPanel({
             <DropIcon size={22} weight="duotone" className="text-sky-deep" />
             Fountains near you
           </h1>
-          <p className="text-ink-dim text-sm">
-            {searched
-              ? `Public drinking water within ${radiusLabel(radiusMi)} of your ${
-                  anchor === "pin" ? "pin" : "location"
-                }, from OpenStreetMap.`
-              : "Tap the map to drop a pin, or use the locate button, then search."}
-          </p>
+          {searched && (
+            <p className="text-ink-dim text-sm">
+              {`Public drinking water within ${radiusLabel(radiusMi)} of your ${
+                anchor === "pin" ? "pin" : "location"
+              }, from OpenStreetMap.`}
+            </p>
+          )}
         </div>
         <button
           onClick={onLocate}
@@ -123,6 +129,25 @@ export default function SearchPanel({
           />
           <span className="text-ink-dim text-sm">miles</span>
         </div>
+
+        <details className="group border-paper-line rounded-lg border">
+          <summary className="text-ink hover:text-sky-deep flex cursor-pointer list-none items-center justify-between px-3 py-2 text-sm font-semibold">
+            Filters
+            <CaretDownIcon size={16} className="text-ink-dim transition group-open:rotate-180" />
+          </summary>
+          <div className="border-paper-line border-t px-3 py-3">
+            <FilterPills
+              svc={svc}
+              setSvc={setSvc}
+              water={water}
+              setWater={setWater}
+              rec={rec}
+              setRec={setRec}
+              counts={counts}
+            />
+          </div>
+        </details>
+
         <button
           type="submit"
           disabled={busy}
@@ -136,16 +161,6 @@ export default function SearchPanel({
           {busy ? "Searching…" : anchor === "pin" ? "Search around pin" : "Search"}
         </button>
       </form>
-
-      <FilterPills
-        svc={svc}
-        setSvc={setSvc}
-        water={water}
-        setWater={setWater}
-        rec={rec}
-        setRec={setRec}
-        counts={counts}
-      />
 
       {err && <ErrorNotice message={err} tone="light" onRetry={onSearch} retrying={busy} />}
 

@@ -37,7 +37,7 @@ function RunHistoryCard({ route }: { route: ArchivedRoute }) {
   return (
     <li>
       <Link
-        href={`/connected/run?id=${route.routeId}`}
+        href={`/mapping-portal/run-detail?id=${route.routeId}`}
         className="hover:bg-paper-deep/50 -mx-2 flex items-center gap-3 rounded-lg px-2 py-3 transition"
       >
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">

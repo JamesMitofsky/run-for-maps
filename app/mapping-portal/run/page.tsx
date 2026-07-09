@@ -21,12 +21,12 @@ export default function RunPage() {
   // Direct nav with no recoverable run → back to the planner.
   useEffect(() => {
     if (session.hydrating) return;
-    if (!useRun.getState().hasPlan) router.replace("/plan");
+    if (!useRun.getState().hasPlan) router.replace("/mapping-portal/plan");
   }, [session.hydrating, router]);
 
   function goHome() {
     session.reset();
-    router.push("/plan");
+    router.push("/mapping-portal/plan");
   }
 
   if (session.hydrating) {

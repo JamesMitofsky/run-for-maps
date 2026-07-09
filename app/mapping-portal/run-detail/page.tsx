@@ -48,7 +48,7 @@ function RunDetailContent() {
             This run isn&apos;t in this device&apos;s archive — runs are stored locally on the
             device that recorded them.
           </p>
-          <Link href="/connected" className="text-sky-deep text-sm font-semibold">
+          <Link href="/mapping-portal" className="text-sky-deep text-sm font-semibold">
             ← Back to your runs
           </Link>
         </div>
@@ -86,7 +86,7 @@ function RunDetailContent() {
     <main className="bg-paper font-body text-ink">
       <div className="mx-auto flex max-w-2xl flex-col gap-4 px-5 py-8">
         <Link
-          href="/connected"
+          href="/mapping-portal"
           className="text-ink-dim hover:text-ink flex w-fit items-center gap-1.5 text-sm font-semibold transition"
         >
           <ArrowLeftIcon size={14} />

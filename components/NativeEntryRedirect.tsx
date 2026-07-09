@@ -10,7 +10,7 @@ import { isNative } from "@/lib/api";
 export default function NativeEntryRedirect() {
   const router = useRouter();
   useEffect(() => {
-    if (isNative()) router.replace("/plan");
+    if (isNative()) router.replace("/mapping-portal");
   }, [router]);
   return null;
 }

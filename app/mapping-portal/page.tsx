@@ -1,0 +1,90 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { ArrowRightIcon, PathIcon, DropIcon } from "@phosphor-icons/react";
+import SiteNav from "@/components/SiteNav";
+import SyncStatus from "@/components/SyncStatus";
+import AccountCard from "@/components/connected/AccountCard";
+import ContributionStats from "@/components/connected/ContributionStats";
+import RunHistoryList from "@/components/connected/RunHistoryList";
+import { getArchivedRoutes, type ArchivedRoute } from "@/lib/routeArchive";
+
+// The mapping portal: the connected home. Big header + the primary actions as
+// on-page buttons (this page carries its own navigation, there is no navbar),
+// then who they are on OSM, their contribution totals, and every past run on
+// this device. Deliberately NOT gated behind sign-in — the archive and the
+// outbox live on the device and are worth showing either way.
+export default function MappingPortalPage() {
+  const [routes, setRoutes] = useState<ArchivedRoute[]>([]);
+
+  // The archive lives in localStorage, so read it after mount (deferred off the
+  // effect body so the state update doesn't cascade-render synchronously).
+  useEffect(() => {
+    let alive = true;
+    Promise.resolve().then(() => {
+      if (alive) setRoutes(getArchivedRoutes());
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  return (
+    <>
+      <SiteNav />
+      <main className="bg-paper font-body text-ink min-h-screen">
+        <div className="mx-auto flex max-w-2xl flex-col gap-8 px-5 py-10">
+          <header className="flex flex-col gap-2">
+            <h1 className="font-display text-4xl leading-none font-bold tracking-tight sm:text-5xl">
+              Mapping Portal
+            </h1>
+            <p className="text-ink-dim text-sm">Your base for surveying and fixing the map.</p>
+          </header>
+
+          {/* Primary actions — the page's own navigation. */}
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Link
+              href="/mapping-portal/plan"
+              className="group border-paper-line hover:border-ink flex flex-1 items-center gap-3 rounded-lg border p-4 transition"
+            >
+              <PathIcon size={22} weight="bold" className="text-sky-deep shrink-0" />
+              <span className="flex flex-col">
+                <span className="font-display font-bold">Plan a route</span>
+                <span className="text-ink-dim text-xs">Build a run past unverified points</span>
+              </span>
+              <ArrowRightIcon
+                size={16}
+                weight="bold"
+                className="text-ink-dim ml-auto shrink-0 transition-transform group-hover:translate-x-1"
+              />
+            </Link>
+            <Link
+              href="/mapping-portal/quick-update"
+              className="group border-paper-line hover:border-ink flex flex-1 items-center gap-3 rounded-lg border p-4 transition"
+            >
+              <DropIcon size={22} weight="bold" className="text-sky-deep shrink-0" />
+              <span className="flex flex-col">
+                <span className="font-display font-bold">Quick Update</span>
+                <span className="text-ink-dim text-xs">Record fountains near you</span>
+              </span>
+              <ArrowRightIcon
+                size={16}
+                weight="bold"
+                className="text-ink-dim ml-auto shrink-0 transition-transform group-hover:translate-x-1"
+              />
+            </Link>
+          </div>
+
+          <div className="divide-paper-line/60 flex flex-col divide-y [&>*]:py-8 [&>*:first-child]:pt-0 [&>*:last-child]:pb-0">
+            <ContributionStats routes={routes} />
+            {/* Outbox review: edits still on their way to OSM (renders nothing when empty). */}
+            <SyncStatus tone="light" />
+            <RunHistoryList routes={routes} />
+            <AccountCard />
+          </div>
+        </div>
+      </main>
+    </>
+  );
+}

@@ -9,9 +9,9 @@ export const BUCKET_COLOR: Record<Bucket, string> = {
 };
 
 export const BUCKET_LABEL: Record<Bucket, string> = {
-  fresh: "Fresh",
-  stale: "Stale",
-  very_stale: "Very stale",
+  fresh: "Checked <1y ago",
+  stale: "Checked 1–3y ago",
+  very_stale: "Checked >3y ago",
 };
 
 const ORDER = ["fresh", "stale", "very_stale"] as const;

@@ -8,7 +8,7 @@ import FreshnessLegend, { type Bucket } from "@/components/FreshnessLegend";
 import HomeRunCard from "@/components/HomeRunCard";
 import NativeEntryRedirect from "@/components/NativeEntryRedirect";
 import SiteNav from "@/components/SiteNav";
-import { ArrowRightIcon, GlobeHemisphereWestIcon, HeartIcon } from "@phosphor-icons/react";
+import { GlobeHemisphereWestIcon, HeartIcon } from "@phosphor-icons/react";
 
 const DemoRunMap = dynamic(() => import("@/components/DemoRunMap"), { ssr: false });
 const LiveFountainMap = dynamic(() => import("@/components/LiveFountainMap"), { ssr: false });
@@ -115,19 +115,17 @@ export default function LandingPage() {
             transition={{ ...fadeUp.transition, delay: 0.24 }}
             className="mt-14 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-1 pb-2"
           >
-            <Label>Live · Washington DC</Label>
-            {legend && <FreshnessLegend counts={legend} />}
+            <Label>Sample route · Washington DC</Label>
           </motion.div>
 
-          {/* Sky panel — live OSM drinking-water points within 1.5 mi of DC,
-              colored by verification freshness. Framed like a print plate. */}
+          {/* Interactive demo of the run + edit flow, framed like a print plate. */}
           <motion.div
             {...fadeUp}
             transition={{ ...fadeUp.transition, delay: 0.28 }}
             className="border-ink/10 bg-sky relative overflow-hidden rounded-xl border"
           >
             <div className="relative isolate z-0 h-[clamp(340px,48vw,560px)] w-full">
-              <LiveFountainMap onCountsChange={setLegend} />
+              <DemoRunMap />
             </div>
           </motion.div>
         </div>
@@ -179,24 +177,23 @@ export default function LandingPage() {
             {...fadeUp}
             className="font-display text-[clamp(2rem,5.5vw,3.6rem)] leading-tight font-bold tracking-tight uppercase"
           >
-            How it works
+            The State of the Fountains
           </motion.h2>
           <motion.p
             {...fadeUp}
             transition={{ ...fadeUp.transition, delay: 0.1 }}
             className="text-ink-dim mt-8 max-w-2xl text-lg leading-relaxed"
           >
-            Plan a run past unverified fountains, then log each one&apos;s real-world state as you
-            pass it. This very similar to what the run screen actually looks like. This is just a
-            toy demo, so definitely tap around!
+            Here&apos;s a live coverage map of the fountains in DC.
           </motion.p>
 
           <motion.div
             {...fadeUp}
             transition={{ ...fadeUp.transition, delay: 0.18 }}
-            className="mt-10 flex items-center justify-between gap-4 px-1 pb-2"
+            className="mt-10 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-1 pb-2"
           >
-            <Label>Sample route · Washington DC</Label>
+            <Label>Live · Washington DC</Label>
+            {legend && <FreshnessLegend counts={legend} />}
           </motion.div>
           <motion.div
             {...fadeUp}
@@ -204,60 +201,8 @@ export default function LandingPage() {
             className="border-ink/10 bg-sky relative overflow-hidden rounded-xl border"
           >
             <div className="relative isolate z-0 h-[clamp(340px,48vw,560px)] w-full">
-              <DemoRunMap />
+              <LiveFountainMap onCountsChange={setLegend} />
             </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* HOW TO CONTRIBUTE */}
-      <section id="how" className="border-paper-line border-t">
-        <div className="mx-auto max-w-6xl px-5 py-20 md:py-28">
-          <motion.div {...fadeUp}>
-            <h2 className="font-display text-[clamp(2rem,5.5vw,3.6rem)] leading-tight font-bold tracking-tight uppercase">
-              How to contribute
-            </h2>
-            <p className="text-ink-dim mt-8 max-w-2xl text-lg leading-relaxed">
-              If you want to share feedback on your experience using ROSM,{" "}
-              <a href="mailto:james@btv.dev" className="text-sky-deep underline">
-                send me a message
-              </a>
-              !
-            </p>
-            <p className="text-ink-dim mt-8 max-w-2xl text-lg leading-relaxed">
-              If you have a little experience writing code, feel free to make a pull request!
-            </p>
-            <a
-              href="https://github.com/JamesMitofsky/run-for-maps"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="border-paper-line hover:border-ink/20 mt-4 inline-flex items-center gap-3 rounded-sm border px-6 py-3 font-medium transition"
-            >
-              Github
-            </a>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* FINAL CTA */}
-      <section className="border-paper-line relative overflow-hidden border-t">
-        <Contours className="text-ink/[0.05] pointer-events-none absolute inset-0 h-full w-full" />
-        <div className="relative mx-auto max-w-5xl px-5 py-24 text-center md:py-32">
-          <motion.div
-            {...fadeUp}
-            className="mt-10 flex flex-wrap items-center justify-center gap-4"
-          >
-            <Link
-              href="/login?returnTo=/plan"
-              className="group bg-ink text-paper inline-flex items-center gap-2 rounded-sm px-9 py-4 text-lg font-bold transition hover:gap-3"
-            >
-              Connect with OSM to begin!
-              <ArrowRightIcon
-                size={20}
-                weight="bold"
-                className="transition-transform group-hover:translate-x-1"
-              />
-            </Link>
           </motion.div>
         </div>
       </section>

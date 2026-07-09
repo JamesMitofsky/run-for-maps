@@ -11,7 +11,7 @@ import AddToHomescreenPrompt from "@/components/AddToHomescreenPrompt";
 // in-app paths only, no protocol-relative escapes.
 function safeReturnTo(p: string | null): string {
   if (p && p.startsWith("/") && !p.startsWith("//") && !p.startsWith("/\\")) return p;
-  return "/plan";
+  return "/mapping-portal/plan";
 }
 
 // App-wide sign-in gate. Pages that need an OSM account send users here with
@@ -34,7 +34,7 @@ function LoginContent() {
         className="border-paper-line bg-paper/80 font-display absolute top-4 left-4 z-10 flex items-center gap-2 rounded-full border px-4 py-2 text-lg font-bold tracking-tight backdrop-blur md:top-5 md:left-5"
       >
         <span className="bg-sky-deep inline-block h-2.5 w-2.5 animate-pulse rounded-full" />
-        Legwork Maps
+        ROSM
       </Link>
       <section className="border-paper-line bg-paper-deep/95 flex w-full max-w-md flex-col gap-5 rounded-3xl border p-8 shadow-2xl backdrop-blur-md">
         <div className="flex flex-col gap-2">

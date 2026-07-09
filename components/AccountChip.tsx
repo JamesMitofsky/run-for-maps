@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { SignInIcon, LinkIcon } from "@phosphor-icons/react";
+import { LinkIcon } from "@phosphor-icons/react";
 import OsmSignInLink from "@/components/OsmSignInLink";
 import { useOsmStatus } from "@/components/OsmStatus";
 import { useOsmUser } from "@/hooks/useOsmUser";
@@ -12,14 +12,21 @@ import { useOutbox, outboxCounts } from "@/store/outbox";
 export const MENU_ROW_CLASS =
   "border-paper-line text-ink hover:text-ink-dim flex items-center gap-3 border-b py-4 text-base font-semibold transition";
 
-// The user's presence in any header: signed out → a sign-in affordance; signed
-// in → a "Your Connection" link, with a dot when edits are still waiting to reach OSM.
+// The chip variant renders as the standard blue nav button (matching the Mapping
+// Portal action), identical in both auth states. `relative` anchors the pending-
+// sync dot.
+const CHIP_CLASS =
+  "bg-sky-deep text-paper hover:bg-sky-deep/90 relative inline-flex items-center gap-1.5 rounded-sm px-5 py-2 text-sm font-bold whitespace-nowrap transition";
+
+// The user's OSM connection in any header. The label is always "Connection" —
+// no state-dependent text swap — with a dot when edits are still waiting to reach
+// OSM. Only the destination differs: signed out routes into the OSM sign-in flow;
+// signed in (or showSignIn=false) links to the /mapping-portal hub.
 // Renders nothing while the auth status resolves.
 //   variant="chip" (default) → compact header chip.
 //   variant="row"            → full-width drawer menu row matching nav links.
-//   showSignIn=false         → keep "Your Connection" even when signed out (the
-//                              /connected page is ungated), so nav shows a stable
-//                              item instead of swapping in a sign-in affordance.
+//   showSignIn=false         → always link to the (ungated) /mapping-portal hub
+//                              rather than starting sign-in, even when signed out.
 export default function AccountChip({
   variant = "chip",
   onNavigate,
@@ -40,33 +47,22 @@ export default function AccountChip({
 
   if (!status.loggedIn && showSignIn) {
     return (
-      <OsmSignInLink
-        onClick={onNavigate}
-        className={
-          row
-            ? MENU_ROW_CLASS
-            : "border-paper-line bg-paper/90 text-ink-dim hover:text-ink flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-xs font-semibold shadow-sm backdrop-blur transition"
-        }
-      >
-        {row && <SignInIcon size={20} weight="bold" className="text-ink-dim shrink-0" />}
-        Sign in
+      <OsmSignInLink onClick={onNavigate} className={row ? MENU_ROW_CLASS : CHIP_CLASS}>
+        {row && <LinkIcon size={20} weight="bold" className="text-ink-dim shrink-0" />}
+        Connection
       </OsmSignInLink>
     );
   }
 
   return (
     <Link
-      href="/connected"
+      href="/mapping-portal"
       onClick={onNavigate}
       title={user?.username ?? "Connected to OSM"}
-      className={
-        row
-          ? MENU_ROW_CLASS
-          : "text-ink-dim hover:text-ink relative inline-flex items-center text-sm font-semibold transition"
-      }
+      className={row ? MENU_ROW_CLASS : CHIP_CLASS}
     >
       {row && <LinkIcon size={20} weight="bold" className="text-ink-dim shrink-0" />}
-      Your Connection
+      Connection
       {unsent > 0 && (
         <span
           title={`${unsent} edit${unsent === 1 ? "" : "s"} waiting to sync`}
