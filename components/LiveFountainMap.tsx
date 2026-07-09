@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { AnimatePresence, motion } from "framer-motion";
 import type { MapMarker } from "@/components/MapView";
 import { BUCKET_COLOR, type Bucket } from "@/components/FreshnessLegend";
 import FountainPopup from "@/components/fountains/FountainPopup";
+import SearchProgress, { type LoadingStep } from "@/components/fountains/SearchProgress";
 import ErrorNotice from "@/components/ui/ErrorNotice";
 import type { Fountain } from "@/lib/schemas";
 import { isOutOfService } from "@/lib/fountainFilters";
@@ -30,44 +30,13 @@ const MONTH_MS = 30 * 24 * 60 * 60 * 1000;
 const FRESH_CUTOFF = 12 * MONTH_MS; // checked within a year
 const STALE_CUTOFF = 36 * MONTH_MS; // checked within three years
 
-// Play-by-play of what the Overpass round-trip is actually doing, so the wait
-// feels earned. Durations are deliberately uneven (~6s each) so it doesn't tick
-// like a metronome; the last line holds until the fetch resolves.
-const LOADING_STEPS: { text: string; ms: number }[] = [
+// Location-specific play-by-play for the hero fetch; the loader's generic
+// default copy doesn't name DC or the 3-mi radius.
+const LOADING_STEPS: LoadingStep[] = [
   { text: "Opening a socket to OpenStreetMap servers…", ms: 5000 },
   { text: "Scanning nodes within 3 mi of Washington, DC…", ms: 5000 },
   { text: "Reading check_date tags to grade recency…", ms: 5000 },
 ];
-// Wall-clock time (ms) at which each loading step begins — cumulative sum of the
-// prior steps' durations. The bar's jumps are pinned to these boundaries so a
-// forward hop lands exactly when the text swaps to the next line.
-const STEP_STARTS: number[] = LOADING_STEPS.reduce<number[]>((acc, step, i) => {
-  acc.push(i === 0 ? 0 : acc[i - 1] + LOADING_STEPS[i - 1].ms);
-  return acc;
-}, []);
-// Percent each step JUMPS to the instant its text appears. Between boundaries the
-// bar only crawls a hair (CRAWL_GAIN), so most forward motion is the jump itself.
-const STEP_BASE = [10, 42, 74];
-const CRAWL_GAIN = 20;
-
-// Percent complete at `ms` elapsed: jump to the current step's base the moment its
-// text shows, then crawl slowly by up to CRAWL_GAIN until the next step jumps. Past
-// the last step it creeps toward ~99 asymptotically (100 only on real resolve).
-function progressAt(ms: number): number {
-  let i = 0;
-  while (i < STEP_STARTS.length - 1 && ms >= STEP_STARTS[i + 1]) i += 1;
-  const base = STEP_BASE[i];
-  const elapsedInStep = ms - STEP_STARTS[i];
-  const isLast = i === LOADING_STEPS.length - 1;
-  if (isLast) return Math.min(99, base + (99 - base) * (1 - Math.exp(-elapsedInStep / 22000)));
-  const dur = LOADING_STEPS[i].ms;
-  const t = Math.min(1, elapsedInStep / dur);
-  // easeInOut (slow after the jump, quicker mid-phrase, slow into the next jump),
-  // blended with a linear term so it never fully stalls at either end.
-  const inOut = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-  const eased = 0.4 * t + 0.6 * inOut;
-  return base + CRAWL_GAIN * eased;
-}
 
 function bucketOf(tags: Record<string, string>, nowMs: number): Bucket {
   const checked = lastCheckedMs(tags);
@@ -93,31 +62,12 @@ export default function LiveFountainMap({
   // Snapshot of "now" captured at fetch time — keeps freshness bucketing pure
   // across re-renders (Date.now() may not run during render).
   const [nowMs, setNowMs] = useState(0);
-  const [stepIdx, setStepIdx] = useState(0);
-  // Progress is driven straight into the DOM (fill width + % text) from the RAF
-  // loop rather than through React state. iOS Safari stalls a CSS width
-  // transition whose target changes every frame, AND coalesces per-frame
-  // re-renders — so a state-driven bar sits at 0 then snaps to 100 when the
-  // fetch frees the main thread. Writing the node directly sidesteps both.
-  const fillRef = useRef<HTMLDivElement>(null);
-  const pctRef = useRef<HTMLSpanElement>(null);
-  const progressRef = useRef(0);
-  const applyProgress = useCallback((p: number) => {
-    progressRef.current = p;
-    if (fillRef.current) fillRef.current.style.width = `${p}%`;
-    if (pctRef.current) pctRef.current.textContent = `${Math.round(p)}%`;
-  }, []);
-  // Kept mounted until the fill reaches 100% and the overlay fades out — so a
-  // fast fetch still lets the bar finish its story instead of vanishing mid-way.
-  const [showLoader, setShowLoader] = useState(true);
   // Bumped once the fountains land so MapView refits to their bounding box.
   const [recenterKey, setRecenterKey] = useState("init");
 
   const load = useCallback(async () => {
     setBusy(true);
     setErr(null);
-    setShowLoader(true);
-    applyProgress(0);
     try {
       const r = await apiFetch("/api/fountains", {
         method: "POST",
@@ -148,7 +98,7 @@ export default function LiveFountainMap({
     } finally {
       setBusy(false);
     }
-  }, [applyProgress]);
+  }, []);
 
   useEffect(() => {
     load();
@@ -192,63 +142,7 @@ export default function LiveFountainMap({
   }, [buckets]);
 
   const loading = busy && fountains.length === 0;
-
-  // Walk the play-by-play at an uneven cadence while the first fetch runs,
-  // holding on the final line until it resolves.
-  useEffect(() => {
-    if (!loading) return;
-    setStepIdx(0);
-    let i = 0;
-    let timer: ReturnType<typeof setTimeout>;
-    const tick = () => {
-      if (i >= LOADING_STEPS.length - 1) return;
-      timer = setTimeout(() => {
-        i += 1;
-        setStepIdx(i);
-        tick();
-      }, LOADING_STEPS[i].ms);
-    };
-    tick();
-    return () => clearTimeout(timer);
-  }, [loading]);
-
-  // Drive the progress bar off wall-clock elapsed time (not step count) so its
-  // uneven surge-and-creep curve is independent of the text rotation.
-  useEffect(() => {
-    if (!loading) return;
-    const start = performance.now();
-    let raf = requestAnimationFrame(function loop(t) {
-      applyProgress(progressAt(t - start));
-      raf = requestAnimationFrame(loop);
-    });
-    return () => cancelAnimationFrame(raf);
-  }, [loading, applyProgress]);
-
-  // Fetch resolved: rush the bar from wherever the creep left off up to 100%,
-  // then fade the overlay out — the effort "pays off" instead of blinking away.
   const succeeded = !busy && !err && fountains.length > 0;
-  useEffect(() => {
-    if (!succeeded) return;
-    const from = progressRef.current;
-    const start = performance.now();
-    const DUR = 550;
-    let raf = requestAnimationFrame(function run(t) {
-      const k = Math.min(1, (t - start) / DUR);
-      const eased = 1 - Math.pow(1 - k, 3); // easeOutCubic
-      applyProgress(from + (100 - from) * eased);
-      if (k < 1) raf = requestAnimationFrame(run);
-    });
-    const hide = setTimeout(() => setShowLoader(false), DUR + 260);
-    return () => {
-      cancelAnimationFrame(raf);
-      clearTimeout(hide);
-    };
-  }, [succeeded, applyProgress]);
-
-  // A failed fetch should reveal the error card, not sit under the loader.
-  useEffect(() => {
-    if (err) setShowLoader(false);
-  }, [err]);
 
   // Surface counts to the parent so the legend can live above the map plate.
   useEffect(() => {
@@ -274,45 +168,13 @@ export default function LiveFountainMap({
       {/* First-load: a spacious, self-narrating loader. The empty map reads as
           "working", not "broken", and the technical play-by-play earns the wait.
           On success the bar rushes to 100%, then the whole overlay fades away. */}
-      <AnimatePresence>
-        {showLoader && (
-          <motion.div
-            initial={false}
-            exit={{ opacity: 0, scale: 1.015 }}
-            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-            className="bg-paper/85 absolute inset-0 z-[650] flex flex-col items-center justify-center gap-8 px-8 text-center backdrop-blur-sm"
-          >
-            <div className="w-full max-w-md">
-              <div className="mb-2 flex justify-end">
-                <span ref={pctRef} className="text-ink-dim font-mono text-xs tabular-nums">
-                  0%
-                </span>
-              </div>
-              <div className="bg-ink/10 h-1.5 w-full overflow-hidden rounded-full">
-                <div
-                  ref={fillRef}
-                  className="bg-sky-deep h-full rounded-full"
-                  style={{ width: 0 }}
-                />
-              </div>
-            </div>
-            <div className="flex min-h-[4rem] max-w-md items-start justify-center">
-              <AnimatePresence mode="wait">
-                <motion.p
-                  key={stepIdx}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-                  className="text-ink-dim font-mono text-sm leading-relaxed tracking-tight"
-                >
-                  {LOADING_STEPS[stepIdx].text}
-                </motion.p>
-              </AnimatePresence>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <SearchProgress
+        active={loading}
+        done={succeeded}
+        failed={!!err}
+        steps={LOADING_STEPS}
+        variant="overlay"
+      />
 
       {/* Fetch failed: floating retry card. */}
       {err && !busy && (

@@ -8,17 +8,23 @@ import { XIcon } from "@phosphor-icons/react";
 // near-full-bleed sheet on small screens, a bounded card on larger ones. The
 // backdrop and the close button both dismiss it; `dismissible={false}` hides the
 // close affordance and ignores backdrop taps (e.g. while work is in flight).
+//
+// `contained` scopes the overlay to its nearest positioned+isolated ancestor
+// (`absolute` instead of `fixed`) so the backdrop blur only covers that region —
+// e.g. the map area, leaving a sibling navbar untouched.
 export default function Modal({
   open,
   onClose,
   title,
   dismissible = true,
+  contained = false,
   children,
 }: {
   open: boolean;
   onClose: () => void;
   title?: ReactNode;
   dismissible?: boolean;
+  contained?: boolean;
   children: ReactNode;
 }) {
   // Esc closes when dismissible; lock body scroll while open.
@@ -40,7 +46,9 @@ export default function Modal({
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-[2000] flex items-center justify-center p-3 sm:p-6"
+          className={`${
+            contained ? "absolute" : "fixed"
+          } inset-0 z-[2000] flex items-center justify-center p-3 sm:p-6`}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}

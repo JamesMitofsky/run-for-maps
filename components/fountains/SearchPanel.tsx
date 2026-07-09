@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { CaretDownIcon, MagnifyingGlassIcon, SpinnerIcon } from "@phosphor-icons/react";
+import { CaretDownIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import FilterPills from "@/components/fountains/FilterPills";
+import SearchProgress from "@/components/fountains/SearchProgress";
 import ErrorNotice from "@/components/ui/ErrorNotice";
 import type { Counts, Recency, Svc, Water } from "@/lib/fountainFilters";
 
@@ -111,18 +112,19 @@ export default function SearchPanel({
           </div>
         </details>
 
-        <button
-          type="submit"
-          disabled={busy}
-          className="bg-sky-deep text-ink hover:bg-sky-deep/85 flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition disabled:opacity-40"
-        >
-          {busy ? (
-            <SpinnerIcon size={16} className="animate-spin" />
-          ) : (
+        {/* While a search runs, the button gives way to the self-narrating
+            loader (same one the landing hero uses) so the wait reads clearly. */}
+        {busy ? (
+          <SearchProgress active variant="inline" />
+        ) : (
+          <button
+            type="submit"
+            className="bg-sky-deep text-ink hover:bg-sky-deep/85 flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition disabled:opacity-40"
+          >
             <MagnifyingGlassIcon size={16} />
-          )}
-          {busy ? "Searching…" : anchor === "pin" ? "Search around pin" : "Search"}
-        </button>
+            {anchor === "pin" ? "Search around pin" : "Search"}
+          </button>
+        )}
       </form>
 
       {err && <ErrorNotice message={err} tone="light" onRetry={onSearch} retrying={busy} />}

@@ -253,8 +253,10 @@ export default function FountainMap({
       {nav}
 
       {/* Map region: fills the space under any navbar, hosting the full-bleed
-          Leaflet layer and the floating UI. */}
-      <div className="relative flex-1 overflow-hidden">
+          Leaflet layer and the floating UI. `isolate` keeps the search modal's
+          backdrop (rendered here with `contained`) scoped to this region so the
+          blur never reaches the navbar above. */}
+      <div className="relative isolate flex-1 overflow-hidden">
         {/* Map: full-bleed under the floating UI at every size. */}
         <div className="absolute inset-0">
           <MapView
@@ -304,6 +306,7 @@ export default function FountainMap({
           open={modalOpen}
           onClose={() => setModalOpen(false)}
           dismissible={!busy}
+          contained
           title="Find drinking water"
         >
           {head}

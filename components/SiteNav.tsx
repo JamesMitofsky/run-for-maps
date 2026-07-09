@@ -60,7 +60,7 @@ export default function SiteNav() {
               <span className="flex items-center gap-2.5">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/icons/icon.svg" alt="" className="h-8 w-auto" />
-                <span className="font-display text-lg font-bold tracking-tight">ROSM</span>
+                <span className="font-display text-ink text-2xl font-bold tracking-tight">ROSM</span>
               </span>
             </Link>
 
@@ -90,12 +90,12 @@ export default function SiteNav() {
             </button>
 
             {/* Desktop: inline links. */}
-            <div className="hidden shrink-0 items-center gap-3 md:flex">
+            <div className="hidden shrink-0 items-center gap-5 md:flex">
               {NAV_LINKS.map(({ href, label, ...l }) => (
                 <Link
                   key={href}
                   href={href}
-                  className={`inline-flex items-center text-sm font-semibold whitespace-nowrap transition ${
+                  className={`inline-flex items-center text-base font-semibold whitespace-nowrap transition ${
                     "cta" in l && l.cta
                       ? "border-ink bg-ink text-paper hover:bg-ink-soft rounded-sm border px-5 py-2 font-bold"
                       : `px-1 py-2 underline underline-offset-4 ${
@@ -108,7 +108,7 @@ export default function SiteNav() {
               ))}
               <Link
                 href="/mapping-portal"
-                className="bg-sky-deep text-paper hover:bg-sky-deep/90 inline-flex items-center rounded-sm px-5 py-2 text-sm font-bold whitespace-nowrap transition"
+                className="bg-sky-deep text-paper hover:bg-sky-deep/90 inline-flex items-center rounded-sm px-5 py-2 text-base font-bold whitespace-nowrap transition"
               >
                 Contribute
               </Link>
