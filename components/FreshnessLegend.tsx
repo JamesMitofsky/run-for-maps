@@ -2,10 +2,8 @@ import { lastCheckedMs } from "@/lib/checkDate";
 
 // Freshness of a fountain's last on-the-ground verification. Never-checked folds
 // into "very stale" — the point that most needs a runner to visit.
-// `out_of_service` is orthogonal to freshness: it's only assigned to points
-// confirmed broken *recently* (checked <1y), which a runner can safely skip.
-// An out-of-service point that's gone stale keeps its freshness color — it's as
-// worth revisiting as any, since it may well be back in service by now.
+// `out_of_service` takes precedence over freshness: any point known to be out of
+// service buckets here (freshness is moot when the point is unusable).
 export type Bucket = "fresh" | "stale" | "very_stale" | "out_of_service";
 
 export const BUCKET_COLOR: Record<Bucket, string> = {
@@ -15,8 +13,8 @@ export const BUCKET_COLOR: Record<Bucket, string> = {
   out_of_service: "#9ca3af", // gray
 };
 
-// The out-of-service swatch/markers render dimmed — a recently-confirmed dead
-// point is deprioritized, not a revisit target.
+// The out-of-service swatch/markers render dimmed — an unusable point is
+// deprioritized, not a revisit target.
 export const BUCKET_OPACITY: Partial<Record<Bucket, number>> = {
   out_of_service: 0.7,
 };
@@ -36,18 +34,15 @@ export function bucketOf(tags: Record<string, string>, nowMs: number): Bucket {
   return "very_stale";
 }
 
-// Final marker bucket, folding in service state. A point recently confirmed
-// out of service (checked <1y) becomes `out_of_service`; otherwise it grades on
-// freshness alone — stale/never-checked points stay revisit targets even when
-// last known out of service.
+// Final marker bucket, folding in service state. Any out-of-service point
+// buckets as `out_of_service`; otherwise it grades on freshness.
 export function markerBucketOf(
   tags: Record<string, string>,
   outOfService: boolean,
   nowMs: number,
 ): Bucket {
-  const fresh = bucketOf(tags, nowMs);
-  if (outOfService && fresh === "fresh") return "out_of_service";
-  return fresh;
+  if (outOfService) return "out_of_service";
+  return bucketOf(tags, nowMs);
 }
 
 export const BUCKET_LABEL: Record<Bucket, string> = {

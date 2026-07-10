@@ -293,9 +293,7 @@ export default function FountainMap({
     const edits = editable?.edits;
     const ms: MapMarker[] = visible.map(({ f, distM, svc: s }) => {
       // Hue encodes verification freshness (green <1y → amber 1–3y → rose >3y).
-      // A point confirmed out of service *recently* (<1y) goes gray + dimmed —
-      // safe to skip. One that's gone stale keeps its freshness color: it's as
-      // worth revisiting as any, since it may be back in service by now.
+      // Out-of-service points stay gray + dimmed — freshness is moot when unusable.
       const bucket = markerBucketOf(f.tags, s === "out", nowMs);
       const base = BUCKET_COLOR[bucket];
       // A point edited this session (editable map only) takes the edit color +

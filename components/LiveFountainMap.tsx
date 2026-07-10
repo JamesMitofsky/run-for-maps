@@ -109,8 +109,8 @@ export default function LiveFountainMap({
   }, [load]);
 
   // Bucket every point once, then derive markers + legend counts from it.
-  // Freshness folds in service state: recently-confirmed-dead points bucket as
-  // `out_of_service` (gray, dimmed); stale ones keep their freshness color.
+  // Out-of-service points bucket as `out_of_service` (gray, dimmed); the rest
+  // grade on freshness.
   const buckets = useMemo(
     () =>
       fountains.map((f) => ({
