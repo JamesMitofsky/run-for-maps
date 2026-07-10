@@ -338,7 +338,6 @@ export default function FountainMap({
       <SearchPanel
         busy={busy}
         err={err}
-        anchor={anchor}
         counts={counts}
         svc={svc}
         setSvc={setSvc}
