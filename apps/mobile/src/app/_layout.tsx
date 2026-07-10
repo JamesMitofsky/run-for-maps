@@ -42,6 +42,7 @@ export default function RootLayout() {
             </Stack.Protected>
             <Stack.Protected guard={signedIn}>
               <Stack.Screen name="index" />
+              <Stack.Screen name="profile" />
               <Stack.Screen name="plan" />
               <Stack.Screen name="run" />
               <Stack.Screen name="quick-update" />

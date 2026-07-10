@@ -1,9 +1,9 @@
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { CaretRightIcon } from "phosphor-react-native";
 import { getArchivedRoutes } from "@rosm/core/routeArchive";
 import { useOsmStatus } from "../auth/useOsmStatus";
-import { signOutOsm } from "../auth/osmAuth";
 import { Button } from "../components/ui/Button";
 import { Panel } from "../components/ui/Panel";
 
@@ -23,23 +23,26 @@ export default function Hub() {
       <ScrollView contentContainerClassName="gap-4 p-5">
         <Text className="text-3xl font-bold text-ink">ROSM</Text>
 
-        <Panel>
-          <View className="flex-row items-center justify-between">
-            <View>
-              <Text className="text-lg font-bold text-ink">
-                {status?.loggedIn ? "Connected to OSM" : "Not connected"}
-              </Text>
-              {status && !status.live ? (
-                <Text className="text-xs font-semibold text-amber-600">Sandbox</Text>
+        <Pressable onPress={() => status?.loggedIn && router.push("/profile")}>
+          <Panel>
+            <View className="flex-row items-center justify-between">
+              <View>
+                <Text className="text-lg font-bold text-ink">
+                  {status?.loggedIn ? "Connected to OSM" : "Not connected"}
+                </Text>
+                {status && !status.live ? (
+                  <Text className="text-xs font-semibold text-amber-600">Sandbox</Text>
+                ) : null}
+              </View>
+              {status?.loggedIn ? (
+                <View className="flex-row items-center gap-1">
+                  <Text className="text-ink-dim">Profile</Text>
+                  <CaretRightIcon size={16} color="#57544a" />
+                </View>
               ) : null}
             </View>
-            {status?.loggedIn ? (
-              <Pressable onPress={() => signOutOsm()}>
-                <Text className="text-ink-dim">Sign out</Text>
-              </Pressable>
-            ) : null}
-          </View>
-        </Panel>
+          </Panel>
+        </Pressable>
 
         <Button title="Plan a route" onPress={() => router.push("/plan")} />
         <Button

@@ -18,6 +18,7 @@ import Modal from "@/components/ui/Modal";
 import PointPopup from "@/components/PointPopup";
 import FountainPopup from "@/components/fountains/FountainPopup";
 import SearchPanel, { DEFAULT_RADIUS_MI, type Anchor } from "@/components/fountains/SearchPanel";
+import SearchProgress from "@/components/fountains/SearchProgress";
 import { EDIT_COLOR, EDIT_LABEL } from "@rosm/core/editStatus";
 import {
   countBy,
@@ -113,6 +114,10 @@ export default function FountainMap({
   // Location-consent gate: shown first, before we ever touch the system
   // permission. Only once the user agrees here do we fire the device prompt.
   const [askConsent, setAskConsent] = useState(true);
+  // Initial "find water near me" query: drives a full-screen loader over the map
+  // until the first results land, then fades to reveal the populated map. Only
+  // the location-consent path uses it — a manual pin search shows the inline bar.
+  const [initPhase, setInitPhase] = useState<"idle" | "loading" | "done" | "failed">("idle");
 
   // Acquire a GPS fix and make it the search anchor. Does not search — that
   // stays an explicit action. `quiet` skips the loading animation while the
@@ -145,11 +150,11 @@ export default function FountainMap({
   // but "Search this area" passes the current viewport radius. We ask for
   // out-of-service variants too so the Service filter has something to reveal.
   const search = useCallback(
-    async (at?: Pt, radiusM: number = defaultRadiusM) => {
+    async (at?: Pt, radiusM: number = defaultRadiusM): Promise<boolean> => {
       let from = at ?? center;
       if (!from) {
         from = await locate();
-        if (!from) return; // locate already surfaced the error
+        if (!from) return false; // locate already surfaced the error
       }
       setBusy(true);
       setErr(null);
@@ -179,8 +184,10 @@ export default function FountainMap({
         setShowSearchArea(false);
         // Points landed — drop the modal so the map is visible. It reopens on demand.
         setModalOpen(false);
+        return true;
       } catch (e) {
         setErr((e as Error).message);
+        return false;
       } finally {
         setBusy(false);
       }
@@ -222,13 +229,20 @@ export default function FountainMap({
   }, [mapView, runAreaSearch]);
 
   // Consent granted: dismiss the gate, fire the system permission prompt (no
-  // loader yet), and only once we hold a fix begin the search — which flips on
-  // the loading animation. A denied/failed fix falls back to the search panel.
+  // loader yet), and only once we hold a fix run the initial query — behind a
+  // full-screen loader that fades to reveal the populated map. A denied/failed
+  // fix, or a failed query, falls back to the search panel.
   const startWithLocation = useCallback(async () => {
     setAskConsent(false);
     const here = await locate(true);
-    setModalOpen(true);
-    if (here) search(here);
+    if (!here) {
+      setModalOpen(true);
+      return;
+    }
+    setInitPhase("loading");
+    const ok = await search(here);
+    setInitPhase(ok ? "done" : "failed");
+    if (!ok) setModalOpen(true);
   }, [locate, search]);
 
   // Consent declined: skip location entirely and leave the map interactive so
@@ -304,6 +318,10 @@ export default function FountainMap({
       ? [pos.lat, pos.lon]
       : DEFAULT_CENTER;
 
+  // Tight on a real anchor (own location or a searched point); zoomed out on the
+  // DC fallback, where there's no specific spot to frame yet.
+  const viewZoom = center || pos ? 15 : 11;
+
   const head = (
     <div className="flex flex-col gap-4">
       <SearchPanel
@@ -337,7 +355,7 @@ export default function FountainMap({
         <div className="absolute inset-0">
           <MapView
             center={viewCenter}
-            zoom={15}
+            zoom={viewZoom}
             recenterKey={recenterKey}
             markers={markers}
             searchedBox={searchedBox ?? undefined}
@@ -374,6 +392,16 @@ export default function FountainMap({
             {!nav && <AccountChip />}
           </div>
         </header>
+
+        {/* Initial "find water near me" query: a spacious, self-narrating loader
+            covers the map until the first results land, then rushes to 100% and
+            fades to reveal the populated map. Same loader as the landing hero. */}
+        <SearchProgress
+          active={initPhase === "loading"}
+          done={initPhase === "done"}
+          failed={initPhase === "failed"}
+          variant="overlay"
+        />
 
         {/* Map-driven search in flight (pin drop / "Search this area"): a spinner
             pill sits where those affordances were, confirming the request landed. */}
