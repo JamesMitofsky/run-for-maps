@@ -18,7 +18,7 @@ import AccountChip from "@/components/AccountChip";
 import Modal from "@/components/ui/Modal";
 import PointPopup from "@/components/PointPopup";
 import FountainPopup from "@/components/fountains/FountainPopup";
-import SearchPanel, { DEFAULT_RADIUS_MI, type Anchor } from "@/components/fountains/SearchPanel";
+import SearchPanel, { DEFAULT_RADIUS_MI } from "@/components/fountains/SearchPanel";
 import { EDIT_COLOR, EDIT_LABEL } from "@/lib/editStatus";
 import {
   countBy,
@@ -43,8 +43,6 @@ const DEFAULT_CENTER: [number, number] = [38.9072, -77.0369];
 // comfortably overshoots the viewport — the user has to drag a long way before
 // the dimmed edge comes into view.
 const BOX_FACTOR = 3;
-// Neutral dark pin for the dropped search anchor — distinct from fountain colors.
-const PIN_COLOR = "#334155";
 
 type Props = {
   // Present → points are editable (PointPopup + edit overlay). Absent → read-only
@@ -62,7 +60,7 @@ type Props = {
   nav?: ReactNode;
 };
 
-// The shared fountain map: full-bleed Leaflet, GPS/pin search anchor, filters,
+// The shared fountain map: full-bleed Leaflet, GPS or map-area search, filters,
 // and a mobile bottom sheet / desktop side panel. Read-only for the public
 // browser; editable for the connected Quick Update surface.
 export default function FountainMap({
@@ -75,12 +73,11 @@ export default function FountainMap({
 }: Props) {
   // GPS fix (blue dot) — set only when the user asks to locate.
   const [pos, setPos] = useState<Pt | null>(null);
-  // Search anchor: the GPS fix or a pin dropped on the map. No anchor until the
-  // user picks one; searching with none acquires a GPS fix first.
+  // Search anchor: the GPS fix, if the user granted one. Searching with none
+  // acquires a GPS fix first; otherwise searches come from the visible area.
   const [center, setCenter] = useState<Pt | null>(null);
-  const [anchor, setAnchor] = useState<Anchor | null>(null);
-  // Anchor the last successful search actually ran from, so distances keep
-  // referring to the results even if the user moves the pin before re-searching.
+  // Point the last successful search actually ran from, so distances keep
+  // referring to the results even if the map moves before re-searching.
   const [searchedAt, setSearchedAt] = useState<Pt | null>(null);
   // Box covering the area the last search actually spanned — drawn on the map,
   // dimming everything outside it.
@@ -105,8 +102,8 @@ export default function FountainMap({
   // A "Search this area" request is in flight — keeps that button mounted with a
   // spinner (rather than the generic full-screen busy path hiding it).
   const [areaBusy, setAreaBusy] = useState(false);
-  // Radius for anchor-based searches (GPS fix / dropped pin). No longer user-
-  // editable — panning the map and hitting "Search this area" is the way to widen.
+  // Radius for GPS-anchored searches. No longer user-editable — panning the
+  // map and hitting "Search this area" is the way to widen.
   const defaultRadiusM = milesToMeters(defaultRadiusMi);
   // Filters: default to in-service, human water. Verification age is no longer a
   // filter — it's shown on the map via marker color instead.
@@ -128,13 +125,12 @@ export default function FountainMap({
     try {
       const p = await getCurrentPosition().catch(() => {
         throw new Error(
-          "Couldn't get your location. Allow location access, or drop a pin on the map instead.",
+          "Couldn't get your location. Allow location access, or move the map and search the visible area instead.",
         );
       });
       const here = { lat: p.lat, lon: p.lon };
       setPos(here);
       setCenter(here);
-      setAnchor("gps");
       setRecenterKey(`${here.lat},${here.lon}`);
       return here;
     } catch (e) {
@@ -164,8 +160,8 @@ export default function FountainMap({
       setErr(null);
       try {
         // "Search this area" passes the viewport box → query that exact rectangle,
-        // so results can't spill past the drawn box the way a circle would. Anchor
-        // (GPS/pin) searches have no box and stay circular around `from`.
+        // so results can't spill past the drawn box the way a circle would. GPS
+        // searches have no box and stay circular around `from`.
         const region = box
           ? { bounds: [box[0][0], box[0][1], box[1][0], box[1][1]] }
           : { ...from, radiusM };
@@ -190,9 +186,9 @@ export default function FountainMap({
         setNowMs(Date.now());
         setSearchedAt(from);
         // "Search this area" passes the exact viewport bounds so the drawn box
-        // matches what the user sees. Anchor searches (GPS/pin) fall back to an
-        // overshooting box shaped to the viewport aspect ratio — landscape screens
-        // get a wide box, not a square — centered on the queried point.
+        // matches what the user sees. GPS searches fall back to an overshooting
+        // box shaped to the viewport aspect ratio — landscape screens get a wide
+        // box, not a square — centered on the queried point.
         const aspect = mapView ? boxAspect(mapView.bounds) : 1;
         setSearchedBox(box ?? boxAround(from, radiusM * BOX_FACTOR, aspect));
         // Fresh results match the current view — hide the "search this area" nudge.
@@ -226,9 +222,9 @@ export default function FountainMap({
     [],
   );
 
-  // A map-driven search (pin drop / "Search this area"). Keeps a dedicated
-  // spinner mounted over the map for its duration, distinct from the modal's
-  // busy path, so the user sees the request they just triggered is in flight.
+  // A map-driven search ("Search this area"). Keeps a dedicated spinner
+  // mounted over the map for its duration, distinct from the modal's busy
+  // path, so the user sees the request they just triggered is in flight.
   const runAreaSearch = useCallback(
     async (at: Pt, radiusM?: number, box?: [[number, number], [number, number]]) => {
       setAreaBusy(true);
@@ -241,11 +237,9 @@ export default function FountainMap({
     [search],
   );
 
-  // Search the currently visible map area (center + corner-reaching radius). The
-  // viewport is now the anchor, so drop any pin the user had placed earlier.
+  // Search the currently visible map area (center + corner-reaching radius).
   const searchArea = useCallback(() => {
     if (!mapView || mapView.radiusM > MAX_SEARCH_RADIUS_M) return;
-    setAnchor(null);
     runAreaSearch({ lat: mapView.lat, lon: mapView.lon }, mapView.radiusM, mapView.bounds);
   }, [mapView, runAreaSearch]);
 
@@ -260,22 +254,12 @@ export default function FountainMap({
   }, [locate, search]);
 
   // Consent declined: skip location entirely and leave the map interactive so
-  // the user can drop a pin. We keep the search panel closed — the map must be
-  // tappable — and surface a hint prompting the pin drop instead.
+  // the user can pan to where they care about. Surface the "Search this area"
+  // button right away — with no GPS, the visible area is the only way to search.
   const declineLocation = useCallback(() => {
     setAskConsent(false);
+    setShowSearchArea(true);
   }, []);
-
-  // Dropping a pin sets it as the search anchor and immediately searches that
-  // area — the pin drop is the explicit "search here" action.
-  const dropPin = useCallback(
-    (lat: number, lon: number) => {
-      setCenter({ lat, lon });
-      setAnchor("pin");
-      runAreaSearch({ lat, lon });
-    },
-    [runAreaSearch],
-  );
 
   const ranked = useMemo<Ranked[]>(
     () => rankFountains(fountains, searchedAt),
@@ -320,12 +304,8 @@ export default function FountainMap({
         ),
       };
     });
-    // The dropped pin itself; a GPS anchor is already marked by the blue dot.
-    if (center && anchor === "pin") {
-      ms.push({ id: "search-pin", lat: center.lat, lon: center.lon, color: PIN_COLOR });
-    }
     return ms;
-  }, [visible, center, anchor, editable, nowMs]);
+  }, [visible, editable, nowMs]);
 
   const viewCenter: [number, number] = center
     ? [center.lat, center.lon]
@@ -338,7 +318,6 @@ export default function FountainMap({
       <SearchPanel
         busy={busy}
         err={err}
-        anchor={anchor}
         counts={counts}
         svc={svc}
         setSvc={setSvc}
@@ -369,7 +348,6 @@ export default function FountainMap({
             markers={markers}
             searchedBox={searchedBox ?? undefined}
             userPos={pos ? [pos.lat, pos.lon] : undefined}
-            onMapClick={dropPin}
             onViewChange={onViewChange}
             className="absolute inset-0 h-full w-full"
           />
@@ -406,8 +384,8 @@ export default function FountainMap({
             </div>
           </header>
 
-          {/* Map-driven search in flight (pin drop / "Search this area"): a spinner
-              pill sits where those affordances were, confirming the request landed. */}
+          {/* Map-driven search in flight ("Search this area"): a spinner pill
+              sits where that affordance was, confirming the request landed. */}
           {areaBusy && !modalOpen && !askConsent && (
             <div className="flex justify-center">
               <div className="flex items-center gap-1.5 rounded-full bg-black px-4 py-2 text-sm font-semibold text-white shadow-md">
@@ -417,20 +395,9 @@ export default function FountainMap({
             </div>
           )}
 
-          {/* Pin-drop hint: after declining location, the map is empty and idle —
-              prompt the user to tap it, since dropping a pin is now the way to
-              search. Clears once they have a pin or any results. */}
-          {!askConsent && !modalOpen && !busy && anchor === null && fountains.length === 0 && (
-            <div className="flex justify-center">
-              <div className="border-paper-line bg-paper/90 text-ink-dim flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-semibold shadow-md backdrop-blur">
-                <MapPinIcon size={16} />
-                Tap the map to drop a pin
-              </div>
-            </div>
-          )}
-
           {/* "Search this area": appears once the user pans/zooms away from the
-              last search, and re-runs the query over the now-visible viewport.
+              last search (or immediately after declining location), and runs the
+              query over the now-visible viewport.
               When the viewport is zoomed out past the max search radius, the query
               would sweep too much OSM data, so the button becomes a zoom-in prompt
               instead. The radius is a real-world distance, so this threshold reads
@@ -461,7 +428,7 @@ export default function FountainMap({
         </div>
 
         {/* Location-consent gate: shown before the system prompt. Agreeing here
-            fires the device permission; declining drops into manual pin search. */}
+            fires the device permission; declining drops into map-area search. */}
         <Modal open={askConsent} onClose={declineLocation} contained title="Find water near you">
           <div className="flex flex-col gap-4">
             <p className="text-ink-dim text-sm leading-relaxed">
@@ -482,7 +449,7 @@ export default function FountainMap({
                 onClick={declineLocation}
                 className="text-ink-dim hover:text-ink px-3 py-2 text-sm font-semibold transition"
               >
-                Not now — I&apos;ll drop a pin
+                Not now — I&apos;ll search the map
               </button>
             </div>
           </div>
