@@ -29,10 +29,7 @@ const buildId =
 const src = readFileSync(swPath, "utf8");
 // Replace the VERSION constant value regardless of its current content, so the
 // rewrite is idempotent across repeated builds.
-const next = src.replace(
-  /const VERSION = "rosm-[^"]*";/,
-  `const VERSION = "rosm-${buildId}";`,
-);
+const next = src.replace(/const VERSION = "rosm-[^"]*";/, `const VERSION = "rosm-${buildId}";`);
 
 if (next === src) {
   console.warn("[stamp-sw] VERSION line not found — sw.js left unchanged.");
