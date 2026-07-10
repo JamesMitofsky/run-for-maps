@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import type { MapMarker } from "@/components/MapView";
-import { BUCKET_COLOR, bucketOf, type Bucket } from "@/components/FreshnessLegend";
+import {
+  BUCKET_COLOR,
+  BUCKET_OPACITY,
+  markerBucketOf,
+  type Bucket,
+} from "@/components/FreshnessLegend";
 import FountainPopup from "@/components/fountains/FountainPopup";
 import SearchProgress, { type LoadingStep } from "@/components/fountains/SearchProgress";
 import ErrorNotice from "@/components/ui/ErrorNotice";
@@ -104,8 +109,14 @@ export default function LiveFountainMap({
   }, [load]);
 
   // Bucket every point once, then derive markers + legend counts from it.
+  // Out-of-service points bucket as `out_of_service` (gray, dimmed); the rest
+  // grade on freshness.
   const buckets = useMemo(
-    () => fountains.map((f) => ({ f, bucket: bucketOf(f.tags, nowMs) })),
+    () =>
+      fountains.map((f) => ({
+        f,
+        bucket: markerBucketOf(f.tags, isOutOfService(f.tags), nowMs),
+      })),
     [fountains, nowMs],
   );
 
@@ -116,7 +127,7 @@ export default function LiveFountainMap({
         lat: f.lat,
         lon: f.lon,
         color: BUCKET_COLOR[bucket],
-        dimmed: isOutOfService(f.tags),
+        opacity: BUCKET_OPACITY[bucket],
         popup: <FountainPopup f={f} distM={haversine(CENTER_PT, f)} />,
       })),
     [buckets],
@@ -135,7 +146,7 @@ export default function LiveFountainMap({
   }, [markers]);
 
   const counts = useMemo(() => {
-    const c: Record<Bucket, number> = { fresh: 0, stale: 0, very_stale: 0 };
+    const c: Record<Bucket, number> = { fresh: 0, stale: 0, very_stale: 0, out_of_service: 0 };
     for (const { bucket } of buckets) c[bucket]++;
     return c;
   }, [buckets]);
