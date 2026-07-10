@@ -67,13 +67,20 @@ type Props = {
   onMapClick?: (lat: number, lon: number) => void;
   // Fired when the user drags the map, so callers can drop "follow me" mode.
   onUserPan?: () => void;
-  // Fired after any pan/zoom settles, with the current center and a radius (m)
-  // reaching the viewport corner — enough to cover everything visible. The
-  // `userInitiated` flag is true only when the move came from a drag/zoom
-  // gesture (not a programmatic recenter), so callers can surface a
-  // "search this area" affordance. Only wired when a handler is supplied.
+  // Fired after any pan/zoom settles, with the current center, a radius (m)
+  // reaching the viewport corner — enough to cover everything visible — and the
+  // exact viewport bounds ([[south, west], [north, east]]) so callers can draw a
+  // searched-area box matching the visible rectangle. The `userInitiated` flag is
+  // true only when the move came from a drag/zoom gesture (not a programmatic
+  // recenter), so callers can surface a "search this area" affordance. Only wired
+  // when a handler is supplied.
   onViewChange?: (
-    view: { lat: number; lon: number; radiusM: number },
+    view: {
+      lat: number;
+      lon: number;
+      radiusM: number;
+      bounds: [[number, number], [number, number]];
+    },
     userInitiated: boolean,
   ) => void;
   recenterKey?: string; // change to force recenter on `center`
@@ -382,8 +389,21 @@ export default function MapView({
       const map = mapRef.current;
       if (!map) return;
       const c = map.getCenter();
-      const ne = map.getBounds().getNorthEast();
-      onViewChange({ lat: c.lat, lon: c.lng, radiusM: c.distanceTo(ne) }, !!e.originalEvent);
+      const b = map.getBounds();
+      const ne = b.getNorthEast();
+      const sw = b.getSouthWest();
+      onViewChange(
+        {
+          lat: c.lat,
+          lon: c.lng,
+          radiusM: c.distanceTo(ne),
+          bounds: [
+            [sw.lat, sw.lng],
+            [ne.lat, ne.lng],
+          ],
+        },
+        !!e.originalEvent,
+      );
     },
     [onViewChange],
   );
