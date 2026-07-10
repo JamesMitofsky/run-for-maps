@@ -1,4 +1,4 @@
-// Type declaration for NativeWind's `global.css` side-effect import.
+// Type declaration for Uniwind's `global.css` side-effect import.
 //
 // Expo normally supplies this via `expo-env.d.ts` (a `/// <reference types="expo/types" />`
 // that pulls in `declare module '*.css'`). That file is generated and gitignored, so it

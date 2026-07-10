@@ -1,6 +1,6 @@
 import { Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeArea } from "../components/ui/SafeArea";
 import { useRunSession } from "../run/useRunSession";
 import { RosmMap } from "../map/RosmMap";
 import { Button } from "../components/ui/Button";
@@ -14,24 +14,24 @@ export default function Run() {
   if (s.closed) {
     const surveyed = s.stops.filter((x) => x.status !== "pending" && x.status !== "skipped").length;
     return (
-      <SafeAreaView className="flex-1 items-center justify-center gap-4 bg-ink px-6">
-        <Text className="text-2xl font-bold text-cream">Run complete</Text>
+      <SafeArea className="bg-ink flex-1 items-center justify-center gap-4 px-6">
+        <Text className="text-cream text-2xl font-bold">Run complete</Text>
         <Text className="text-cream-dim">
           You surveyed {surveyed} {surveyed === 1 ? "point" : "points"}. Nice work!
         </Text>
         <Button
-          title="Back to hub"
+          title="Done"
           onPress={() => {
             s.reset();
-            router.replace("/");
+            router.replace("/plan");
           }}
         />
-      </SafeAreaView>
+      </SafeArea>
     );
   }
 
   return (
-    <View className="flex-1 bg-ink">
+    <View className="bg-ink flex-1">
       <RosmMap
         center={s.center}
         markers={s.markers}
@@ -40,16 +40,16 @@ export default function Run() {
         recenterKey={s.recenterKey}
         fitPoints={s.fitPoints}
       />
-      <SafeAreaView edges={["bottom"]} className="absolute bottom-0 left-0 right-0 p-4">
-        <View className="gap-3 rounded-2xl bg-ink-soft p-4">
+      <SafeArea edges={["bottom"]} className="absolute right-0 bottom-0 left-0 p-4">
+        <View className="bg-ink-soft gap-3 rounded-2xl p-4">
           {s.done ? (
             <>
-              <Text className="text-lg font-bold text-cream">All points surveyed</Text>
+              <Text className="text-cream text-lg font-bold">All points surveyed</Text>
               <Button title="Finish & close changeset" onPress={s.finish} loading={s.finishing} />
             </>
           ) : s.target ? (
             <>
-              <Text className="text-lg font-bold text-cream">
+              <Text className="text-cream text-lg font-bold">
                 {s.target.tags?.name ?? `Node ${s.target.id}`}
               </Text>
               <Text className="text-cream-dim">
@@ -81,7 +81,7 @@ export default function Run() {
           )}
           {s.err ? <Text className="text-red-400">{s.err}</Text> : null}
         </View>
-      </SafeAreaView>
+      </SafeArea>
     </View>
   );
 }

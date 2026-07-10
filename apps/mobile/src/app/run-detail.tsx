@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScrollView, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeArea } from "../components/ui/SafeArea";
 import { getArchivedRoutes } from "@rosm/core/routeArchive";
 import { STATUS_COLOR } from "@rosm/core/editStatus";
 import { RosmMap, type RosmMarker } from "../map/RosmMap";
@@ -14,10 +14,10 @@ export default function RunDetail() {
 
   if (!route) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center gap-4 bg-paper px-6">
+      <SafeArea className="bg-paper flex-1 items-center justify-center gap-4 px-6">
         <Text className="text-ink">Run not found.</Text>
         <Button title="Back" onPress={() => router.back()} />
-      </SafeAreaView>
+      </SafeArea>
     );
   }
 
@@ -33,7 +33,7 @@ export default function RunDetail() {
   const fit = plan.stops.map((s): [number, number] => [s.lat, s.lon]);
 
   return (
-    <SafeAreaView className="flex-1 bg-paper" edges={["bottom"]}>
+    <SafeArea className="bg-paper flex-1" edges={["bottom"]}>
       <View className="h-1/2">
         <RosmMap
           center={[plan.start.lat, plan.start.lon]}
@@ -44,7 +44,7 @@ export default function RunDetail() {
         />
       </View>
       <ScrollView contentContainerClassName="gap-2 p-5">
-        <Text className="text-xl font-bold text-ink">
+        <Text className="text-ink text-xl font-bold">
           {new Date(route.updatedAt).toLocaleString()}
         </Text>
         <Text className="text-ink-dim">
@@ -59,6 +59,6 @@ export default function RunDetail() {
           <Button title="Back" variant="secondary" onPress={() => router.back()} />
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </SafeArea>
   );
 }

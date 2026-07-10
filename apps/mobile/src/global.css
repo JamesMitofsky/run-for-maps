@@ -1,3 +1,21 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@import "uniwind";
+
+/* Shared ROSM palette — same tokens as the web app's globals.css @theme block,
+   so class names like bg-paper / text-ink-dim port 1:1 from the web UI. Tailwind 4
+   is CSS-first (no tailwind.config.js); the raw values live in appConfig.json,
+   which still feeds runtime JS (e.g. the router's contentStyle background). */
+@theme {
+  --color-ink: #0c0d0a;
+  --color-ink-soft: #16180f;
+  --color-ink-dim: #57544a;
+  --color-volt: #ccff2e;
+  --color-volt-deep: #a6d600;
+  --color-cream: #f4f3ea;
+  --color-cream-dim: #b9b8ac;
+  --color-paper: #f7f2e8;
+  --color-paper-deep: #e7dfcc;
+  --color-paper-line: #d6cdb6;
+  --color-sky: #abdcec;
+  --color-sky-deep: #4fafd4;
+}

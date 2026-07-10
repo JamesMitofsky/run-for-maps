@@ -3,7 +3,6 @@ import "../tasks/runLocationTask"; // registers the background location task at 
 import { useEffect } from "react";
 import { Stack } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
@@ -29,29 +28,25 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <BottomSheetModalProvider>
-          <StatusBar style="dark" />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: cfg.colors.paper },
-            }}
-          >
-            <Stack.Protected guard={!signedIn}>
-              <Stack.Screen name="login" />
-            </Stack.Protected>
-            <Stack.Protected guard={signedIn}>
-              <Stack.Screen name="index" />
-              <Stack.Screen name="profile" />
-              <Stack.Screen name="plan" />
-              <Stack.Screen name="run" />
-              <Stack.Screen name="quick-update" />
-              <Stack.Screen name="run-detail" />
-            </Stack.Protected>
-          </Stack>
-          <ConfettiHost />
-          <OutboxSyncBridge />
-        </BottomSheetModalProvider>
+        <StatusBar style="dark" />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: cfg.colors.paper },
+          }}
+        >
+          <Stack.Protected guard={!signedIn}>
+            <Stack.Screen name="login" />
+          </Stack.Protected>
+          <Stack.Protected guard={signedIn}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="run" />
+            <Stack.Screen name="run-detail" />
+          </Stack.Protected>
+        </Stack>
+        <ConfettiHost />
+        <OutboxSyncBridge />
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

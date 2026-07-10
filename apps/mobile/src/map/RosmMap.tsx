@@ -1,7 +1,11 @@
+import { useMemo } from "react";
 import { StyleSheet, type ViewStyle, type NativeSyntheticEvent } from "react-native";
-import { Camera, GeoJSONSource, Layer, Map } from "@maplibre/maplibre-react-native";
+import { Camera, GeoJSONSource, Layer, Map, UserLocation } from "@maplibre/maplibre-react-native";
 import type { Feature, FeatureCollection, Point } from "geojson";
 import { OSM_STYLE_JSON } from "./style";
+
+// Layer id for the marker dots.
+const MARKER_LAYER = "marker-dots";
 
 // Marker data only — screens attach their own action UI on press (Leaflet-style
 // popups can't ride through GeoJSON). Mirrors the web MapView marker shape.
@@ -12,10 +16,13 @@ export type RosmMarker = {
   color: string;
   label?: string;
   dimmed?: boolean;
+  // Per-dot opacity (0–1). Applies unless `dimmed` forces the faded state.
+  opacity?: number;
 };
 
-type PressEvent = { lngLat: [number, number] };
-type PressEventWithFeatures = { features: Feature[] };
+type PressEvent = { lngLat: [number, number]; point: [number, number] };
+// Source-level press payload: the features hit under the touch, native-side.
+type MarkerPressEvent = { features: Feature[] };
 // MapLibre onRegionDidChange payload (subset we use). bounds is [w, s, e, n].
 type RegionEvent = {
   center: [number, number]; // [lon, lat]
@@ -59,6 +66,7 @@ const markerFeatures = (markers: RosmMarker[]): FeatureCollection<Point> => ({
       color: m.color,
       label: m.label ?? "",
       dimmed: m.dimmed ? 1 : 0,
+      opacity: m.opacity ?? 1,
     },
   })),
 });
@@ -66,12 +74,6 @@ const markerFeatures = (markers: RosmMarker[]): FeatureCollection<Point> => ({
 const lineFeature = (line: [number, number][]): Feature => ({
   type: "Feature",
   geometry: { type: "LineString", coordinates: line.map(([lat, lon]) => [lon, lat]) },
-  properties: {},
-});
-
-const pointFeature = ([lat, lon]: [number, number]): Feature<Point> => ({
-  type: "Feature",
-  geometry: { type: "Point", coordinates: [lon, lat] },
   properties: {},
 });
 
@@ -105,12 +107,33 @@ export function RosmMap({
 }: Props) {
   const view = resolveView(center, zoom, fitPoints);
 
-  const onSourcePress = (e: NativeSyntheticEvent<PressEventWithFeatures>) => {
+  // Build the native GeoJSON sources once per data change, not once per render.
+  // The parent re-renders on every pan/zoom settle (region tracking); without
+  // these memos each settle hands GeoJSONSource a fresh object and forces a
+  // native source re-diff mid-gesture. `markers` is already memoized upstream,
+  // so this ref stays stable across unrelated re-renders.
+  const markerData = useMemo(() => markerFeatures(markers), [markers]);
+  const lineData = useMemo(() => (line && line.length > 1 ? lineFeature(line) : null), [line]);
+
+  // Resolve a tapped marker id back to the caller's original type. Marker ids are
+  // stringified into GeoJSON properties, so a numeric id comes back as a string —
+  // coerce it so `f.id === id` comparisons on the caller side still match.
+  const resolveId = (raw: string): RosmMarker["id"] => (/^-?\d+$/.test(raw) ? Number(raw) : raw);
+
+  // Marker taps are hit-tested natively by the source itself — the pressed
+  // feature rides in on the event, so there's no JS-side queryRenderedFeatures
+  // round-trip (that async bridge hop was the ~1s open lag). stopPropagation
+  // keeps the same tap from also bubbling to the map's onPress.
+  const onMarkerHit = (e: NativeSyntheticEvent<MarkerPressEvent>) => {
     const mid = e.nativeEvent.features?.[0]?.properties?.mid;
-    if (mid != null) onMarkerPress?.(mid);
+    if (mid != null) {
+      onMarkerPress?.(resolveId(String(mid)));
+      e.stopPropagation?.();
+    }
   };
 
-  const onMap = (e: NativeSyntheticEvent<PressEvent>) => {
+  // Empty-map tap (no marker under the hitbox) → plain map press.
+  const onMapTap = (e: NativeSyntheticEvent<PressEvent>) => {
     const [lon, lat] = e.nativeEvent.lngLat;
     onMapPress?.(lat, lon);
   };
@@ -126,7 +149,11 @@ export function RosmMap({
     <Map
       style={[StyleSheet.absoluteFill, style]}
       mapStyle={OSM_STYLE_JSON}
-      onPress={onMap}
+      logo={false} // OSM credit stays in the attribution (ⓘ) button; drop the duplicate MapLibre wordmark
+      touchRotate // two-finger rotate; required for the compass to ever appear
+      compass // native compass button; shows when bearing != 0, tap resets to north
+      compassHiddenFacingNorth // hide it once already north-up
+      onPress={onMapPress ? onMapTap : undefined}
       onRegionDidChange={onRegionChange ? onRegion : undefined}
     >
       {initialOnly ? (
@@ -135,8 +162,8 @@ export function RosmMap({
         <Camera center={view.center} zoom={view.zoom} />
       )}
 
-      {line && line.length > 1 ? (
-        <GeoJSONSource id="route" data={lineFeature(line)}>
+      {lineData ? (
+        <GeoJSONSource id="route" data={lineData}>
           <Layer
             id="route-line"
             type="line"
@@ -145,16 +172,20 @@ export function RosmMap({
         </GeoJSONSource>
       ) : null}
 
-      <GeoJSONSource id="markers" data={markerFeatures(markers)} onPress={onSourcePress}>
+      <GeoJSONSource
+        id="markers"
+        data={markerData}
+        onPress={onMarkerPress ? onMarkerHit : undefined}
+      >
         <Layer
-          id="marker-dots"
+          id={MARKER_LAYER}
           type="circle"
           paint={{
             "circle-color": ["get", "color"],
             "circle-radius": 9,
             "circle-stroke-color": "#ffffff",
             "circle-stroke-width": 2,
-            "circle-opacity": ["case", ["==", ["get", "dimmed"], 1], 0.4, 1],
+            "circle-opacity": ["case", ["==", ["get", "dimmed"], 1], 0.4, ["get", "opacity"]],
           }}
         />
         <Layer
@@ -170,20 +201,12 @@ export function RosmMap({
         />
       </GeoJSONSource>
 
-      {userPos ? (
-        <GeoJSONSource id="user" data={pointFeature(userPos)}>
-          <Layer
-            id="user-dot"
-            type="circle"
-            paint={{
-              "circle-color": "#2563eb",
-              "circle-radius": 7,
-              "circle-stroke-color": "#ffffff",
-              "circle-stroke-width": 3,
-            }}
-          />
-        </GeoJSONSource>
-      ) : null}
+      {/* Native location puck: MapLibre tracks GPS itself (off the JS thread) and
+          draws the blue dot + heading arrow, instead of us re-feeding a GeoJSON
+          point every render. `userPos` presence gates it so planning/history
+          views (which don't pass it) stay dotless. minDisplacement throttles
+          updates to ~5m of movement. */}
+      {userPos ? <UserLocation heading minDisplacement={5} /> : null}
     </Map>
   );
 }

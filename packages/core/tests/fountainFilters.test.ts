@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   countBy,
+  fountainDotStyle,
   fountainName,
   isDogWater,
   isOutOfService,
@@ -84,6 +85,48 @@ describe("countBy", () => {
       freshN: 1,
       staleN: 1,
       neverN: 1,
+    });
+  });
+});
+
+describe("fountainDotStyle", () => {
+  const NOW = new Date("2026-07-10T00:00:00Z").getTime();
+
+  it("green + opaque when surveyed within the last year", () => {
+    expect(fountainDotStyle({ check_date: "2026-02-01" }, NOW)).toEqual({
+      color: "#16a34a",
+      opacity: 1,
+    });
+  });
+
+  it("orange for 1–3 years ago", () => {
+    expect(fountainDotStyle({ check_date: "2024-06-01" }, NOW)).toEqual({
+      color: "#f97316",
+      opacity: 1,
+    });
+  });
+
+  it("red for over 3 years ago", () => {
+    expect(fountainDotStyle({ check_date: "2020-01-01" }, NOW)).toEqual({
+      color: "#ef4444",
+      opacity: 1,
+    });
+  });
+
+  it("red for never surveyed", () => {
+    expect(fountainDotStyle({}, NOW)).toEqual({ color: "#ef4444", opacity: 1 });
+  });
+
+  it("translucent gray for recently-confirmed out-of-service", () => {
+    expect(
+      fountainDotStyle({ check_date: "2026-02-01", "disused:amenity": "drinking_water" }, NOW),
+    ).toEqual({ color: "#9ca3af", opacity: 0.7 });
+  });
+
+  it("keeps red for out-of-service last surveyed over 3 years ago", () => {
+    expect(fountainDotStyle({ check_date: "2020-01-01", disused: "yes" }, NOW)).toEqual({
+      color: "#ef4444",
+      opacity: 1,
     });
   });
 });

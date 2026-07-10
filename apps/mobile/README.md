@@ -3,7 +3,7 @@
 The Expo (React Native, SDK 57) app — the native surface for iOS/Android. It owns
 auth, GPS/background tracking, and the map; all route/GPS/OSM logic comes from
 [`@rosm/core`](../../packages/core). File-based routing via `expo-router` (`src/app/`),
-styling via NativeWind, maps via MapLibre.
+styling via Uniwind (Tailwind 4), maps via MapLibre.
 
 > **Status:** this app is wired and type-checked but has not yet been run on a device
 > or simulator. Expect to iterate on the UI and confirm the MapLibre map + background

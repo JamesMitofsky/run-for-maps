@@ -1,8 +1,9 @@
 module.exports = function (api) {
   api.cache(true);
   return {
-    presets: [["babel-preset-expo", { jsxImportSource: "nativewind" }], "nativewind/babel"],
-    // Reanimated 4's worklets plugin must be listed last.
+    // Uniwind needs no Babel preset (it works via the Metro transform), so this
+    // is plain Expo — plus the Reanimated 4 worklets plugin, which must be last.
+    presets: ["babel-preset-expo"],
     plugins: ["react-native-worklets/plugin"],
   };
 };
