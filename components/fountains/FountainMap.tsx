@@ -488,13 +488,7 @@ export default function FountainMap({
           </div>
         </Modal>
 
-        <Modal
-          open={modalOpen}
-          onClose={() => setModalOpen(false)}
-          dismissible={!busy}
-          contained
-          title="Find drinking water"
-        >
+        <Modal open={modalOpen} onClose={() => setModalOpen(false)} dismissible={!busy} contained>
           {head}
         </Modal>
       </div>
