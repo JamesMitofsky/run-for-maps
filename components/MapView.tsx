@@ -37,6 +37,10 @@ export type MapMarker = {
   // Render at reduced opacity — used for context-only points (e.g. nearby
   // fountains shown during a run that aren't part of the surveyed route).
   dimmed?: boolean;
+  // Explicit fill/stroke opacity (0–1). Overrides `dimmed`; lets a caller pick a
+  // specific dimming (e.g. out-of-service points at 0.7) rather than the flat
+  // dimmed default.
+  opacity?: number;
   // Fired when the marker is tapped and it has no popup (e.g. remove a via).
   // Markers WITH a popup open the popup on tap instead; their in-popup buttons
   // carry any actions (route toggle, OSM edits).
@@ -113,10 +117,10 @@ const markerLayer: CircleLayerSpecification = {
   paint: {
     "circle-radius": 9,
     "circle-color": ["get", "color"],
-    "circle-opacity": ["case", ["get", "dimmed"], 0.45, 1],
+    "circle-opacity": ["get", "opacity"],
     "circle-stroke-width": 2,
     "circle-stroke-color": "#fff",
-    "circle-stroke-opacity": ["case", ["get", "dimmed"], 0.45, 1],
+    "circle-stroke-opacity": ["get", "opacity"],
   },
 };
 
@@ -165,7 +169,12 @@ function markersToFeatures(markers: MapMarker[]): GeoJSON.FeatureCollection {
     features: markers.map((m) => ({
       type: "Feature",
       geometry: { type: "Point", coordinates: [m.lon, m.lat] },
-      properties: { mid: String(m.id), color: m.color, dimmed: !!m.dimmed },
+      properties: {
+        mid: String(m.id),
+        color: m.color,
+        // Explicit opacity wins; else the dimmed flag maps to the flat 0.45.
+        opacity: m.opacity ?? (m.dimmed ? 0.45 : 1),
+      },
     })),
   };
 }

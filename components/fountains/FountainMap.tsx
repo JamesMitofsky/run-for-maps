@@ -28,7 +28,7 @@ import {
   type Svc,
   type Water,
 } from "@/lib/fountainFilters";
-import { BUCKET_COLOR, bucketOf } from "@/components/FreshnessLegend";
+import { BUCKET_COLOR, BUCKET_OPACITY, markerBucketOf } from "@/components/FreshnessLegend";
 import { apiFetch } from "@/lib/api";
 import { getCurrentPosition } from "@/lib/geolocation";
 import { boxAround, boxAspect, milesToMeters, MAX_SEARCH_RADIUS_M, type Pt } from "@/lib/geo";
@@ -293,8 +293,11 @@ export default function FountainMap({
     const edits = editable?.edits;
     const ms: MapMarker[] = visible.map(({ f, distM, svc: s }) => {
       // Hue encodes verification freshness (green <1y → amber 1–3y → rose >3y).
-      // Out-of-service points stay gray + dimmed — freshness is moot when unusable.
-      const base = s === "out" ? "#9ca3af" : BUCKET_COLOR[bucketOf(f.tags, nowMs)];
+      // A point confirmed out of service *recently* (<1y) goes gray + dimmed —
+      // safe to skip. One that's gone stale keeps its freshness color: it's as
+      // worth revisiting as any, since it may be back in service by now.
+      const bucket = markerBucketOf(f.tags, s === "out", nowMs);
+      const base = BUCKET_COLOR[bucket];
       // A point edited this session (editable map only) takes the edit color +
       // status glyph, and is no longer dimmed.
       const edit = edits?.[f.id];
@@ -304,7 +307,7 @@ export default function FountainMap({
         lon: f.lon,
         color: edit ? (EDIT_COLOR[edit.status] ?? base) : base,
         label: edit ? EDIT_LABEL[edit.status] : undefined,
-        dimmed: s === "out" && !edit,
+        opacity: edit ? 1 : BUCKET_OPACITY[bucket],
         popup: editable ? (
           <PointPopup
             fountain={f}
