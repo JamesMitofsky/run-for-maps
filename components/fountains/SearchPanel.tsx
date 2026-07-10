@@ -1,6 +1,5 @@
 "use client";
 
-import { MagnifyingGlassIcon } from "@phosphor-icons/react";
 import FilterPills from "@/components/fountains/FilterPills";
 import SearchProgress from "@/components/fountains/SearchProgress";
 import ErrorNotice from "@/components/ui/ErrorNotice";
@@ -18,7 +17,6 @@ export type Anchor = "gps" | "pin";
 export default function SearchPanel({
   busy,
   err,
-  anchor,
   counts,
   svc,
   setSvc,
@@ -29,7 +27,6 @@ export default function SearchPanel({
 }: {
   busy: boolean;
   err: string | null;
-  anchor: Anchor | null;
   counts: Counts;
   svc: Set<Svc>;
   setSvc: (s: Set<Svc>) => void;
@@ -41,14 +38,7 @@ export default function SearchPanel({
 }) {
   return (
     <div className="flex flex-col gap-4">
-      {/* Filters + explicit search. Enter submits and searches. */}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          onSearch();
-        }}
-        className="flex flex-col gap-2"
-      >
+      <div className="flex flex-col gap-2">
         {showFilters && (
           <FilterPills
             svc={svc}
@@ -59,20 +49,10 @@ export default function SearchPanel({
           />
         )}
 
-        {/* While a search runs, the button gives way to the self-narrating
-            loader (same one the landing hero uses) so the wait reads clearly. */}
-        {busy ? (
-          <SearchProgress active variant="inline" />
-        ) : (
-          <button
-            type="submit"
-            className="bg-sky-deep text-ink hover:bg-sky-deep/85 flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition disabled:opacity-40"
-          >
-            <MagnifyingGlassIcon size={16} />
-            {anchor === "pin" ? "Search around pin" : "Search"}
-          </button>
-        )}
-      </form>
+        {/* Filtering is client-side display only — results are already loaded, so
+            there's no search button. A running search still narrates itself. */}
+        {busy && <SearchProgress active variant="inline" />}
+      </div>
 
       {err && <ErrorNotice message={err} tone="light" onRetry={onSearch} retrying={busy} />}
     </div>
