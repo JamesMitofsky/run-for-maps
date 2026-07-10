@@ -37,6 +37,18 @@ export function boundsRadiusM(bounds: Bounds): number {
   return haversine(c, { lat: n, lon: e });
 }
 
+// Axis-aligned lat/lon box centered on `c`, extending `radiusM` in each
+// cardinal direction — a square that fully contains the searched circle.
+// Returned as [[south, west], [north, east]] for Leaflet bounds.
+export function boxAround(c: Pt, radiusM: number): [[number, number], [number, number]] {
+  const dLat = radiusM / 111320;
+  const dLon = radiusM / (111320 * Math.cos(toRad(c.lat)));
+  return [
+    [c.lat - dLat, c.lon - dLon],
+    [c.lat + dLat, c.lon + dLon],
+  ];
+}
+
 // Great-circle distance in meters between two points.
 export function haversine(a: Pt, b: Pt): number {
   const dLat = toRad(b.lat - a.lat);
