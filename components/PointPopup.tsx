@@ -14,6 +14,8 @@ import { useMapPopup } from "@/components/MapView";
 import type { Fountain, EditAction, EditExtras, Audience } from "@/lib/schemas";
 import type { StopStatus } from "@/store/run";
 import { checkedAgoLabel } from "@/lib/checkDate";
+import { audienceFromTags } from "@/lib/audience";
+import AudienceToggle from "@/components/AudienceToggle";
 import OsmSignInLink from "@/components/OsmSignInLink";
 import type { SyncState } from "@/store/outbox";
 import { SyncBadge } from "@/components/SyncStatus";
@@ -30,7 +32,6 @@ export type PointEdit = {
 
 const STATUS_LABEL: Partial<Record<StopStatus, string>> = {
   confirm: "Confirmed working",
-  dog_only: "Marked dog water (not for humans)",
   out_of_order: "Marked out of order",
   removed: "Marked removed",
 };
@@ -69,13 +70,7 @@ export default function PointPopup({
   // Advanced OSM params, prefilled from the node's current tags so the surveyor
   // sees and can edit what's already there.
   const [seasonal, setSeasonal] = useState(fountain.tags.seasonal === "yes");
-  const [audience, setAudience] = useState<Audience>(
-    fountain.tags.drinking_water === "no"
-      ? "dogs"
-      : fountain.tags.dog === "yes"
-        ? "both"
-        : "humans",
-  );
+  const [audience, setAudience] = useState<Audience>(audienceFromTags(fountain.tags));
   const [osmNote, setOsmNote] = useState(fountain.tags.note ?? "");
   // Snapshot the clock once on mount — reading Date.now() during render is
   // impure; the "checked ago" label doesn't need to tick live.
@@ -90,9 +85,11 @@ export default function PointPopup({
   }
 
   return (
-    <div className="flex w-56 flex-col gap-2 text-neutral-800">
+    <div className="flex w-60 flex-col gap-2.5 text-neutral-800">
       <div>
-        <div className="leading-tight font-semibold">{checkedAgoLabel(fountain.tags, now)}</div>
+        <div className="text-xs font-medium tracking-wide text-neutral-500 uppercase">
+          {checkedAgoLabel(fountain.tags, now)}
+        </div>
         {isDogWater(fountain.tags) && (
           <div className="mt-1 flex items-center gap-1 text-xs font-medium text-violet-700">
             <DogIcon size={14} /> Dog water — not for humans
@@ -156,65 +153,49 @@ export default function PointPopup({
                 Sign in to OSM to update
               </OsmSignInLink>
             ) : (
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-2">
                 <button
                   disabled={busy}
                   onClick={() => onAction("confirm", buildExtras())}
-                  className="flex items-center justify-center gap-1.5 rounded bg-green-600 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                  className="flex items-center justify-center gap-1.5 rounded-md bg-green-600 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-green-700 disabled:opacity-50"
                 >
-                  <CheckCircleIcon size={16} /> Working — confirm
+                  <CheckCircleIcon size={16} weight="fill" /> Working — confirm
                 </button>
-                <button
-                  disabled={busy}
-                  onClick={() => onAction("out_of_order", buildExtras())}
-                  className="flex items-center justify-center gap-1.5 rounded bg-amber-500 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
-                >
-                  <WarningIcon size={16} /> Out of order
-                </button>
-                <button
-                  disabled={busy}
-                  onClick={() => onAction("removed", buildExtras())}
-                  className="flex items-center justify-center gap-1.5 rounded bg-red-600 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
-                >
-                  <TrashIcon size={16} /> Removed
-                </button>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button
+                    disabled={busy}
+                    onClick={() => onAction("out_of_order", buildExtras())}
+                    className="flex items-center justify-center gap-1 rounded-md border border-amber-300 py-1.5 text-xs font-medium text-amber-700 transition hover:bg-amber-50 disabled:opacity-50"
+                  >
+                    <WarningIcon size={14} /> Out of order
+                  </button>
+                  <button
+                    disabled={busy}
+                    onClick={() => onAction("removed", buildExtras())}
+                    className="flex items-center justify-center gap-1 rounded-md border border-red-300 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-50 disabled:opacity-50"
+                  >
+                    <TrashIcon size={14} /> Removed
+                  </button>
+                </div>
 
-                <div className="mt-1.5 flex flex-col gap-1.5 border-t border-neutral-200 pt-1.5">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xs font-medium text-neutral-500">Intended for</span>
-                    <div className="flex overflow-hidden rounded border border-neutral-300">
-                      {(["humans", "dogs", "both"] as const).map((option) => (
-                        <button
-                          key={option}
-                          type="button"
-                          onClick={() => setAudience(option)}
-                          className={`flex-1 py-1 text-xs font-medium capitalize transition ${
-                            audience === option
-                              ? "bg-blue-600 text-white"
-                              : "bg-white text-neutral-600 hover:bg-neutral-50"
-                          }`}
-                        >
-                          {option}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <label className="flex items-start gap-1.5 text-xs text-neutral-700">
+                <div className="mt-1 flex flex-col gap-2 border-t border-neutral-200 pt-2.5">
+                  <AudienceToggle value={audience} onChange={setAudience} />
+                  <label className="flex items-center gap-2 text-xs text-neutral-700">
                     <input
                       type="checkbox"
                       checked={seasonal}
                       onChange={(e) => setSeasonal(e.target.checked)}
-                      className="mt-0.5"
+                      className="size-3.5 accent-neutral-800"
                     />
                     <span>Seasonal</span>
                   </label>
                   <textarea
                     value={osmNote}
                     onChange={(e) => setOsmNote(e.target.value)}
-                    placeholder="Public note"
+                    placeholder="Add a public note…"
                     rows={2}
                     maxLength={255}
-                    className="resize-none rounded border border-neutral-300 px-2 py-1 text-xs text-neutral-800 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none"
+                    className="resize-none rounded-md border border-neutral-300 px-2 py-1.5 text-xs text-neutral-800 placeholder:text-neutral-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                   />
                 </div>
               </div>

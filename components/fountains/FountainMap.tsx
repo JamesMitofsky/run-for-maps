@@ -3,7 +3,6 @@
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
-  CircleNotchIcon,
   MagnifyingGlassIcon,
   MagnifyingGlassPlusIcon,
   MapPinIcon,
@@ -14,6 +13,7 @@ import type { MapMarker } from "@/components/MapView";
 import type { OsmEdits } from "@/hooks/useOsmEdits";
 import AccountChip from "@/components/AccountChip";
 import MapSearchBar from "@/components/MapSearchBar";
+import BusyPill from "@/components/ui/BusyPill";
 import Modal from "@/components/ui/Modal";
 import PointPopup from "@/components/PointPopup";
 import FountainPopup from "@/components/fountains/FountainPopup";
@@ -466,10 +466,7 @@ export default function FountainMap({
               sits where that affordance was, confirming the request landed. */}
           {areaBusy && !modalOpen && !askConsent && (
             <div className="flex justify-center">
-              <div className="flex items-center gap-1.5 rounded-full bg-black px-4 py-2 text-sm font-semibold text-white shadow-md">
-                <CircleNotchIcon size={16} className="animate-spin" />
-                Searching…
-              </div>
+              <BusyPill label="Searching…" />
             </div>
           )}
 

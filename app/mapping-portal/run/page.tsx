@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { CircleNotchIcon } from "@phosphor-icons/react";
 import { useRunSession } from "@/hooks/useRunSession";
 import { useRun } from "@/store/run";
 import RunGuide from "@/components/run/RunGuide";
@@ -31,7 +32,9 @@ export default function RunPage() {
 
   if (session.hydrating) {
     return (
-      <main className="bg-paper text-ink-dim grid min-h-screen place-items-center">Loading…</main>
+      <main className="bg-paper grid min-h-screen place-items-center">
+        <CircleNotchIcon size={28} weight="bold" className="text-ink-dim animate-spin" />
+      </main>
     );
   }
 

@@ -73,9 +73,32 @@ describe("applyAction", () => {
     expect(Object.keys(next).some((k) => k.startsWith("abandoned:"))).toBe(false);
   });
 
-  describe("dog_only", () => {
-    it("demotes amenity=drinking_water to man_made=water_tap with explicit flags", () => {
-      const next = applyAction({ amenity: "drinking_water" }, "dog_only", "amenity", T);
+  describe("audience (confirm only)", () => {
+    it("humans keeps the potable primary and sets drinking_water=yes, dog=no", () => {
+      const next = applyAction({ amenity: "drinking_water" }, "confirm", "amenity", T, {
+        audience: "humans",
+      });
+      expect(next).toEqual({
+        amenity: "drinking_water",
+        drinking_water: "yes",
+        dog: "no",
+        check_date: T,
+      });
+    });
+
+    it("both keeps the fountain and adds a dog bowl (drinking_water=yes, dog=yes)", () => {
+      const next = applyAction({ amenity: "drinking_water" }, "confirm", "amenity", T, {
+        audience: "both",
+      });
+      expect(next.drinking_water).toBe("yes");
+      expect(next.dog).toBe("yes");
+      expect(next.amenity).toBe("drinking_water");
+    });
+
+    it("dogs demotes amenity=drinking_water to man_made=water_tap with explicit flags", () => {
+      const next = applyAction({ amenity: "drinking_water" }, "confirm", "amenity", T, {
+        audience: "dogs",
+      });
       expect(next).toEqual({
         man_made: "water_tap",
         drinking_water: "no",
@@ -84,18 +107,28 @@ describe("applyAction", () => {
       });
     });
 
-    it("demotes amenity=water_point the same way", () => {
-      const next = applyAction({ amenity: "water_point" }, "dog_only", "amenity", T);
+    it("dogs demotes amenity=water_point the same way", () => {
+      const next = applyAction({ amenity: "water_point" }, "confirm", "amenity", T, {
+        audience: "dogs",
+      });
       expect(next.man_made).toBe("water_tap");
       expect(next.amenity).toBeUndefined();
     });
 
-    it("keeps non-potability-asserting primaries (amenity=fountain)", () => {
-      const next = applyAction({ amenity: "fountain" }, "dog_only", "amenity", T);
+    it("dogs keeps non-potability-asserting primaries (amenity=fountain)", () => {
+      const next = applyAction({ amenity: "fountain" }, "confirm", "amenity", T, {
+        audience: "dogs",
+      });
       expect(next.amenity).toBe("fountain");
       expect(next.man_made).toBeUndefined();
       expect(next.drinking_water).toBe("no");
       expect(next.dog).toBe("yes");
+    });
+
+    it("is ignored for lifecycle actions", () => {
+      const next = applyAction(base, "removed", "amenity", T, { audience: "dogs" });
+      expect(next.dog).toBeUndefined();
+      expect(next.drinking_water).toBeUndefined();
     });
   });
 
@@ -107,7 +140,6 @@ describe("applyAction", () => {
 
     it("writes seasonal=yes only where the source still exists", () => {
       expect(applyAction(base, "confirm", "amenity", T, { seasonal: true }).seasonal).toBe("yes");
-      expect(applyAction(base, "dog_only", "amenity", T, { seasonal: true }).seasonal).toBe("yes");
       expect(
         applyAction(base, "out_of_order", "amenity", T, { seasonal: true }).seasonal,
       ).toBeUndefined();
