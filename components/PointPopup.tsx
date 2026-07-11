@@ -93,7 +93,6 @@ export default function PointPopup({
     <div className="flex w-56 flex-col gap-2 text-neutral-800">
       <div>
         <div className="leading-tight font-semibold">{checkedAgoLabel(fountain.tags, now)}</div>
-        <div className="text-xs text-neutral-500">{name}</div>
         {isDogWater(fountain.tags) && (
           <div className="mt-1 flex items-center gap-1 text-xs font-medium text-violet-700">
             <DogIcon size={14} /> Dog water — not for humans
@@ -167,13 +166,6 @@ export default function PointPopup({
                 </button>
                 <button
                   disabled={busy}
-                  onClick={() => onAction("dog_only", buildExtras())}
-                  className="flex items-center justify-center gap-1.5 rounded bg-violet-600 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
-                >
-                  <DogIcon size={16} /> Dog water — not for humans
-                </button>
-                <button
-                  disabled={busy}
                   onClick={() => onAction("out_of_order", buildExtras())}
                   className="flex items-center justify-center gap-1.5 rounded bg-amber-500 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
                 >
@@ -187,36 +179,43 @@ export default function PointPopup({
                   <TrashIcon size={16} /> Removed
                 </button>
 
-                <div className="border-t border-neutral-200 pt-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setAdvancedOpen((o) => !o)}
-                    className="flex w-full items-center gap-1 text-xs font-medium text-neutral-500 hover:text-neutral-700"
-                  >
-                    {advancedOpen ? <CaretDownIcon size={12} /> : <CaretRightIcon size={12} />}
-                    Advanced
-                  </button>
-                  {advancedOpen && (
-                    <div className="mt-1.5 flex flex-col gap-1.5">
-                      <label className="flex items-start gap-1.5 text-xs text-neutral-700">
-                        <input
-                          type="checkbox"
-                          checked={seasonal}
-                          onChange={(e) => setSeasonal(e.target.checked)}
-                          className="mt-0.5"
-                        />
-                        <span>Seasonal — runs only part of the year</span>
-                      </label>
-                      <textarea
-                        value={osmNote}
-                        onChange={(e) => setOsmNote(e.target.value)}
-                        placeholder="Public note"
-                        rows={2}
-                        maxLength={255}
-                        className="resize-none rounded border border-neutral-300 px-2 py-1 text-xs text-neutral-800 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none"
-                      />
+                <div className="mt-1.5 flex flex-col gap-1.5 border-t border-neutral-200 pt-1.5">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-medium text-neutral-500">Intended for</span>
+                    <div className="flex overflow-hidden rounded border border-neutral-300">
+                      {(["humans", "dogs", "both"] as const).map((option) => (
+                        <button
+                          key={option}
+                          type="button"
+                          onClick={() => setAudience(option)}
+                          className={`flex-1 py-1 text-xs font-medium capitalize transition ${
+                            audience === option
+                              ? "bg-blue-600 text-white"
+                              : "bg-white text-neutral-600 hover:bg-neutral-50"
+                          }`}
+                        >
+                          {option}
+                        </button>
+                      ))}
                     </div>
-                  )}
+                  </div>
+                  <label className="flex items-start gap-1.5 text-xs text-neutral-700">
+                    <input
+                      type="checkbox"
+                      checked={seasonal}
+                      onChange={(e) => setSeasonal(e.target.checked)}
+                      className="mt-0.5"
+                    />
+                    <span>Seasonal</span>
+                  </label>
+                  <textarea
+                    value={osmNote}
+                    onChange={(e) => setOsmNote(e.target.value)}
+                    placeholder="Public note"
+                    rows={2}
+                    maxLength={255}
+                    className="resize-none rounded border border-neutral-300 px-2 py-1 text-xs text-neutral-800 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none"
+                  />
                 </div>
               </div>
             )}
