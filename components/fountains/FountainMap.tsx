@@ -32,6 +32,8 @@ import {
 import { BUCKET_COLOR, bucketOf } from "@/components/FreshnessLegend";
 import { apiFetch } from "@/lib/api";
 import { getCurrentPosition, hasLocationPermission } from "@/lib/geolocation";
+import { useLiveLocation } from "@/lib/useLiveLocation";
+import CompassEnableModal from "@/components/run/CompassEnableModal";
 import { boxAround, boxAspect, milesToMeters, MAX_SEARCH_RADIUS_M, type Pt } from "@/lib/geo";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
@@ -76,8 +78,20 @@ export default function FountainMap({
   nav,
   hideAccount,
 }: Props) {
-  // GPS fix (blue dot) — set only when the user asks to locate.
+  // One-shot GPS fix used as the search anchor (and the map's initial recenter
+  // target). The live blue dot rides on `useLiveLocation` below — this stays put
+  // so distances keep referring to where the search actually ran from.
   const [pos, setPos] = useState<Pt | null>(null);
+  // Live location: armed once the user has opted into location (consent granted
+  // or already-granted on mount). Drives the moving blue dot + heading cone, the
+  // same treatment the run screen gets.
+  const [locationEnabled, setLocationEnabled] = useState(false);
+  const {
+    pos: livePos,
+    heading,
+    needsCompassPermission,
+    requestCompass,
+  } = useLiveLocation({ enabled: locationEnabled });
   // Search anchor: the GPS fix, if the user granted one. Searching with none
   // acquires a GPS fix first; otherwise searches come from the visible area.
   const [center, setCenter] = useState<Pt | null>(null);
@@ -284,6 +298,10 @@ export default function FountainMap({
   // back to the search panel so the error is visible.
   const startWithLocation = useCallback(async () => {
     setAskConsent(false);
+    // Arm the live watch (moving dot + heading). Both entry points into location
+    // — the consent accept and the already-granted mount check — flow through
+    // here, so this is the single place the watch turns on.
+    setLocationEnabled(true);
     const here = await locate(true);
     if (!here) {
       setModalOpen(true);
@@ -416,11 +434,18 @@ export default function FountainMap({
             animateRecenter={animateRecenter}
             markers={markers}
             searchedBox={searchedBox ?? undefined}
-            userPos={pos ? [pos.lat, pos.lon] : undefined}
+            userPos={livePos ?? (pos ? [pos.lat, pos.lon] : undefined)}
+            userHeading={heading}
             onViewChange={onViewChange}
             className="absolute inset-0 h-full w-full"
           />
         </div>
+
+        {/* iOS compass grant — only once location is armed and the consent gate
+            is out of the way, so it doesn't stack on top of that dialog. */}
+        {locationEnabled && !askConsent && (
+          <CompassEnableModal open={needsCompassPermission} onEnable={requestCompass} />
+        )}
 
         {/* Floating controls over the map. Absolutely-placed container; the
             affordances inside flow relatively (flex column) so the header row
