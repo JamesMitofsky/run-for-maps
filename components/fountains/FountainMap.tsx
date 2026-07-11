@@ -1,10 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
-  ArrowLeftIcon,
   CircleNotchIcon,
   MagnifyingGlassIcon,
   MagnifyingGlassPlusIcon,
@@ -32,6 +30,8 @@ import {
 import { BUCKET_COLOR, bucketOf } from "@/components/FreshnessLegend";
 import { apiFetch } from "@/lib/api";
 import { getCurrentPosition, hasLocationPermission } from "@/lib/geolocation";
+import { useLiveLocation } from "@/lib/useLiveLocation";
+import CompassEnableModal from "@/components/run/CompassEnableModal";
 import { boxAround, boxAspect, milesToMeters, MAX_SEARCH_RADIUS_M, type Pt } from "@/lib/geo";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
@@ -51,13 +51,10 @@ type Props = {
   // instantiates the outbox-backed edit machinery.
   editable?: OsmEdits;
   defaultRadiusMi?: number;
-  // Floating back link, top-left over the map.
-  backHref: string;
-  backLabel: string;
   // Page-specific panel content (CTA, sync panel).
   footer?: ReactNode;
   // Optional site navbar rendered above the map (public browser). When present,
-  // the floating back link is dropped — the navbar already routes home.
+  // the map skips its own floating Exit chip — the navbar already routes home.
   nav?: ReactNode;
 };
 
@@ -67,13 +64,23 @@ type Props = {
 export default function FountainMap({
   editable,
   defaultRadiusMi = DEFAULT_RADIUS_MI,
-  backHref,
-  backLabel,
   footer,
   nav,
 }: Props) {
-  // GPS fix (blue dot) — set only when the user asks to locate.
+  // One-shot GPS fix used as the search anchor (and the map's initial recenter
+  // target). The live blue dot rides on `useLiveLocation` below — this stays put
+  // so distances keep referring to where the search actually ran from.
   const [pos, setPos] = useState<Pt | null>(null);
+  // Live location: armed once the user has opted into location (consent granted
+  // or already-granted on mount). Drives the moving blue dot + heading cone, the
+  // same treatment the run screen gets.
+  const [locationEnabled, setLocationEnabled] = useState(false);
+  const {
+    pos: livePos,
+    heading,
+    needsCompassPermission,
+    requestCompass,
+  } = useLiveLocation({ enabled: locationEnabled });
   // Search anchor: the GPS fix, if the user granted one. Searching with none
   // acquires a GPS fix first; otherwise searches come from the visible area.
   const [center, setCenter] = useState<Pt | null>(null);
@@ -280,6 +287,10 @@ export default function FountainMap({
   // back to the search panel so the error is visible.
   const startWithLocation = useCallback(async () => {
     setAskConsent(false);
+    // Arm the live watch (moving dot + heading). Both entry points into location
+    // — the consent accept and the already-granted mount check — flow through
+    // here, so this is the single place the watch turns on.
+    setLocationEnabled(true);
     const here = await locate(true);
     if (!here) {
       setModalOpen(true);
@@ -412,32 +423,29 @@ export default function FountainMap({
             animateRecenter={animateRecenter}
             markers={markers}
             searchedBox={searchedBox ?? undefined}
-            userPos={pos ? [pos.lat, pos.lon] : undefined}
+            userPos={livePos ?? (pos ? [pos.lat, pos.lon] : undefined)}
+            userHeading={heading}
             onViewChange={onViewChange}
             className="absolute inset-0 h-full w-full"
           />
         </div>
 
+        {/* iOS compass grant — only once location is armed and the consent gate
+            is out of the way, so it doesn't stack on top of that dialog. */}
+        {locationEnabled && !askConsent && (
+          <CompassEnableModal open={needsCompassPermission} onEnable={requestCompass} />
+        )}
+
         {/* Floating controls over the map. Absolutely-placed container; the
             affordances inside flow relatively (flex column) so the header row
             and any status pill stack instead of overlapping. */}
         <div className="safe-top pointer-events-none absolute inset-x-0 z-[1000] flex flex-col gap-3 p-4 md:p-5">
-          {/* Header: back link + account (only without a navbar) and the button
-              that reopens the search/filter modal. */}
+          {/* Header: query controls (place search + filters) grouped on the
+              left, the Exit chip on the right. When a site navbar is present it
+              owns the exit, so the map drops its own chip. */}
           <header className="flex items-start justify-between gap-2">
             <div className="pointer-events-auto flex items-start gap-2">
-              {!nav && (
-                <Link
-                  href={backHref}
-                  className="border-paper-line bg-paper/90 text-ink-dim hover:text-ink flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-xs font-semibold shadow-sm backdrop-blur transition"
-                >
-                  <ArrowLeftIcon size={14} />
-                  {backLabel}
-                </Link>
-              )}
               <MapSearchBar onResult={goTo} />
-            </div>
-            <div className="pointer-events-auto flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setModalOpen(true)}
@@ -446,8 +454,12 @@ export default function FountainMap({
                 <SlidersHorizontalIcon size={14} />
                 Filters
               </button>
-              {!nav && <AccountChip />}
             </div>
+            {!nav && (
+              <div className="pointer-events-auto flex items-center gap-2">
+                <AccountChip chipTone="neutral" label="Exit" />
+              </div>
+            )}
           </header>
 
           {/* Map-driven search in flight ("Search this area"): a spinner pill
