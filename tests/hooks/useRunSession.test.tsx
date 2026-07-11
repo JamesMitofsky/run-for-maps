@@ -404,7 +404,9 @@ describe("addHere", () => {
     arm();
     const { result } = renderHook(() => useRunSession());
 
-    await act(async () => result.current.addAt({ lat: 33.3, lon: 44.4 }));
+    await act(async () =>
+      result.current.addAt({ lat: 33.3, lon: 44.4 }, { audience: "both", seasonal: true }),
+    );
 
     expect(useRun.getState().added.map((a) => a.id)).toEqual([999]);
     const createCall = apiFetchMock.mock.calls.find((c) => c[0] === "/api/osm/create");
@@ -413,6 +415,7 @@ describe("addHere", () => {
       lat: 33.3,
       lon: 44.4,
       tag: { key: "amenity", value: "drinking_water" },
+      extras: { audience: "both", seasonal: true },
     });
   });
 
