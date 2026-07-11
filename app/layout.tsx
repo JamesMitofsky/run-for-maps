@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import OutboxSync from "@/components/OutboxSync";
+import UndoToast from "@/components/UndoToast";
 import NativeAuth from "@/components/NativeAuth";
 import NativeChrome from "@/components/NativeChrome";
 
@@ -76,6 +77,7 @@ export default function RootLayout({
       <body className="min-h-full">
         {children}
         <OutboxSync />
+        <UndoToast />
         <ServiceWorkerRegister />
         <NativeAuth />
         <NativeChrome />

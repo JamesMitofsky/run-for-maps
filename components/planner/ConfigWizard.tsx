@@ -46,7 +46,7 @@ export default function ConfigWizard() {
   const canAdvance = p.step === 0 ? !!p.center : true;
 
   return (
-    <section ref={scope} className="flex w-full max-w-md flex-col gap-5 md:h-full">
+    <section ref={scope} className="flex w-full max-w-md flex-col gap-5">
       {/* Step progress — build-the-route is the last step in this same sequence. */}
       <StepProgress current={p.step} />
 
@@ -126,7 +126,7 @@ export default function ConfigWizard() {
       )}
 
       {/* Wizard nav */}
-      <div className="mt-auto flex items-center gap-3 pt-4 pb-4 md:pb-0">
+      <div className="mt-auto flex items-center gap-3 pt-4 pb-4">
         <button
           onClick={() => p.setStep(Math.max(0, p.step - 1))}
           disabled={p.step === 0}

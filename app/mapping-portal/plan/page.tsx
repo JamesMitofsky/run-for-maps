@@ -1,7 +1,6 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { useGSAP } from "@gsap/react";
@@ -18,6 +17,7 @@ import BusyPill from "@/components/ui/BusyPill";
 import ResumeDraftPrompt from "@/components/planner/ResumeDraftPrompt";
 import RunPanel from "@/components/planner/RunPanel";
 import WaypointPopup from "@/components/WaypointPopup";
+import AddPointPopup from "@/components/AddPointPopup";
 import { usePlannerMarkers } from "@/components/planner/usePlannerMarkers";
 import CompassEnableModal from "@/components/run/CompassEnableModal";
 import { useRunSession } from "@/hooks/useRunSession";
@@ -167,12 +167,13 @@ export default function PlannerPage() {
           <p className="text-ink-dim">
             Routes have to be planned on your phone since that&apos;s how you navigate around!
           </p>
-          <Link
-            href="/"
+          <button
+            type="button"
+            onClick={() => router.back()}
             className="border-ink text-ink hover:bg-ink hover:text-paper rounded-sm border px-5 py-2 text-sm font-bold transition"
           >
-            Back home
-          </Link>
+            Go back
+          </button>
         </div>
       </main>
     );
@@ -192,13 +193,12 @@ export default function PlannerPage() {
   return (
     <main
       ref={scope}
-      className="safe-pb bg-paper font-body text-ink relative flex min-h-screen w-screen flex-col md:block md:h-screen md:overflow-hidden"
+      className="safe-pb bg-paper font-body text-ink relative flex min-h-screen w-screen flex-col"
     >
-      {/* Mobile: map sits at the top with a fixed height and the panel flows below it.
-          Desktop (md+): map fills the screen and the cards float on top.
+      {/* Map sits at the top with a fixed height and the panel flows below it.
           The map is UNCONDITIONAL — phase only switches which data feeds it, so
           Leaflet never tears down mid-session (contract: no remount, no tile flash). */}
-      <div className="relative h-[55vh] w-full shrink-0 md:absolute md:inset-0 md:h-full">
+      <div className="relative h-[55vh] w-full shrink-0">
         <MapView
           center={phase === "run" ? session.center : viewCenter}
           zoom={phase === "run" ? 16 : 14}
@@ -220,7 +220,19 @@ export default function PlannerPage() {
                     }}
                   />
                 )
-              : undefined
+              : // Mid-run, a bare map tap offers to create a new node of the
+                // surveyed type right there — for points spotted off the route.
+                phase === "run" && !session.done
+                ? (pt, close) => (
+                    <AddPointPopup
+                      label={session.addLabel}
+                      onAdd={async (extras) => {
+                        await session.addAt(pt, extras);
+                        close();
+                      }}
+                    />
+                  )
+                : undefined
           }
           className="absolute inset-0 h-full w-full"
         />
@@ -254,12 +266,12 @@ export default function PlannerPage() {
       {/* Top bar: OSM status + account, floating over the map. Hidden during a
           run so the map is the topmost element on the route. */}
       {phase !== "run" && (
-        <header className="safe-top pointer-events-none absolute inset-x-0 z-[1000] flex flex-wrap items-center justify-between gap-3 p-4 md:p-5">
+        <header className="safe-top pointer-events-none absolute inset-x-0 z-[1000] flex flex-wrap items-center justify-between gap-3 p-4">
           <div className="pointer-events-auto flex items-center gap-2">
-            <OsmStatusBar />
+            <AccountChip chipTone="neutral" label="Exit" />
           </div>
           <div className="pointer-events-auto ml-auto">
-            <AccountChip chipTone="neutral" label="Exit" />
+            <OsmStatusBar />
           </div>
         </header>
       )}
@@ -268,17 +280,17 @@ export default function PlannerPage() {
 
       {/* Phase panels — siblings of the map container, never its ancestors. */}
       {phase === "config" && (
-        <div className="phase-card z-[1000] flex flex-1 justify-center p-4 md:absolute md:inset-y-0 md:right-auto md:left-0 md:flex-none md:items-center md:p-6">
+        <div className="phase-card z-[1000] flex flex-1 justify-center p-4">
           <ConfigWizard />
         </div>
       )}
       {phase === "map" && (
-        <div className="phase-card z-[1000] flex flex-1 justify-center p-4 md:absolute md:inset-y-0 md:right-0 md:left-auto md:flex-none md:items-center md:p-6">
+        <div className="phase-card z-[1000] flex flex-1 justify-center p-4">
           <RouteBuilderPanel osmEdits={osmEdits} />
         </div>
       )}
       {phase === "run" && (
-        <div className="phase-card z-[1000] flex justify-center p-4 md:absolute md:inset-y-0 md:right-0 md:left-auto md:items-center md:p-6">
+        <div className="phase-card z-[1000] flex justify-center p-4">
           <RunPanel session={session} onExit={exitRun} />
         </div>
       )}

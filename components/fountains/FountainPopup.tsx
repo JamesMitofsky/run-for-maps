@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { DogIcon, WrenchIcon } from "@phosphor-icons/react";
 import type { Fountain } from "@/lib/schemas";
-import { fountainName, isDogWater, isOutOfService } from "@/lib/fountainFilters";
+import { isDogWater, isOutOfService } from "@/lib/fountainFilters";
 import { checkedAgoLabel } from "@/lib/checkDate";
 import { fmtDist } from "@/lib/geo";
 
@@ -16,7 +16,6 @@ export default function FountainPopup({ f, distM }: { f: Fountain; distM: number
   return (
     <div className="flex w-52 flex-col gap-1 text-neutral-800">
       <div className="leading-tight font-semibold">{checkedAgoLabel(f.tags, now)}</div>
-      {f.tags.name && <div className="text-xs text-neutral-500">{fountainName(f)}</div>}
       {distM != null && <div className="text-xs text-neutral-500">{fmtDist(distM)} away</div>}
       {isDogWater(f.tags) && (
         <div className="mt-1 flex items-center gap-1 text-xs font-medium text-violet-700">

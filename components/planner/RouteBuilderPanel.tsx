@@ -12,7 +12,6 @@ import StepProgress, {
 import EditSyncPanel from "@/components/EditSyncPanel";
 import type { OsmEdits } from "@/hooks/useOsmEdits";
 import { usePlanner, pinnedOf, removedOf } from "@/store/planner";
-import type { Fountain } from "@/lib/schemas";
 import { fmtDist } from "@/lib/geo";
 
 // Route sizing modes, shown as a segmented control on the map phase.
@@ -26,10 +25,6 @@ const TRIP_MODES = [
   { key: "round", label: "Round-trip" },
   { key: "oneway", label: "One-way" },
 ] as const;
-
-function markLabel(f: Fountain) {
-  return f.tags.name ?? "Unnamed fountain";
-}
 
 // Map phase, second half of the setup sequence. Two steps share this panel:
 // BUILD (sizing controls → "Plan route" advances) and REVIEW (the route summary
@@ -83,7 +78,7 @@ export default function RouteBuilderPanel({ osmEdits }: { osmEdits: OsmEdits }) 
   }
 
   return (
-    <section className="flex w-full max-w-sm flex-col gap-4 md:h-full md:max-h-[calc(100vh-7rem)] md:overflow-y-auto">
+    <section className="flex w-full max-w-sm flex-col gap-4">
       {/* Setup-sequence steps continue here — same progress bar as the wizard. */}
       <StepProgress current={p.step} />
       <h2 className="font-display text-2xl leading-tight font-bold">
@@ -192,7 +187,7 @@ export default function RouteBuilderPanel({ osmEdits }: { osmEdits: OsmEdits }) 
                     className="bg-paper-deep flex items-center justify-between rounded-lg px-2 py-1 text-xs"
                   >
                     <span className="text-ink-dim flex items-center gap-1 truncate line-through">
-                      {markLabel(f)}
+                      Fountain
                     </span>
                     <button
                       onClick={() => p.restoreStop(f.id)}
@@ -228,7 +223,7 @@ export default function RouteBuilderPanel({ osmEdits }: { osmEdits: OsmEdits }) 
 
       {/* Bottom nav mirrors the wizard: Back on the left, primary action on the
           right. BUILD advances by planning; REVIEW launches the run. */}
-      <div className="mt-auto flex items-center gap-3 pt-4 pb-4 md:pb-0">
+      <div className="mt-auto flex items-center gap-3 pt-4 pb-4">
         <button
           onClick={() => {
             if (isReview) {

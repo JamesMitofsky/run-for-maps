@@ -9,8 +9,10 @@ import {
   changesetUrl,
   closeChangeset,
   createNode,
+  deleteNode,
   exchangeToken,
   getNode,
+  getNodeVersion,
   isChangesetClosed,
   makePkce,
   openChangeset,
@@ -336,6 +338,42 @@ describe("nodes", () => {
     await expect(
       putNode("tok", 1, { version: 1, lat: 0, lon: 0, tags: {} }, 42),
     ).rejects.toMatchObject({ status: 409, op: "put node" });
+  });
+
+  it("getNodeVersion reads a specific historical version", async () => {
+    fetchMock.mockResolvedValueOnce(
+      json({ elements: [{ lat: 48.1, lon: 2.2, version: 3, tags: { amenity: "fountain" } }] }),
+    );
+    const node = await getNodeVersion("tok", 99, 3);
+    expect(node).toEqual({ version: 3, lat: 48.1, lon: 2.2, tags: { amenity: "fountain" } });
+    expect(fetchMock.mock.calls[0][0]).toBe(`${API_BASE}/api/0.6/node/99/3.json`);
+  });
+
+  it("getNodeVersion reports a missing version as a 410 OsmApiError", async () => {
+    fetchMock.mockResolvedValueOnce(json({ elements: [] }));
+    await expect(getNodeVersion("tok", 99, 3)).rejects.toMatchObject({
+      name: "OsmApiError",
+      status: 410,
+    });
+  });
+
+  it("deleteNode DELETEs with the current version + position and returns the new version", async () => {
+    fetchMock.mockResolvedValueOnce(text("2"));
+    const v = await deleteNode("tok", 42, { version: 1, lat: 48.1, lon: 2.2, tags: {} }, 9);
+    expect(v).toBe(2);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${API_BASE}/api/0.6/node/42`);
+    expect(init.method).toBe("DELETE");
+    expect(init.body).toBe(
+      '<osm><node id="42" version="1" lat="48.1" lon="2.2" changeset="9"/></osm>',
+    );
+  });
+
+  it("deleteNode throws OsmApiError on conflict", async () => {
+    fetchMock.mockResolvedValueOnce(text("in use", 409));
+    await expect(
+      deleteNode("tok", 42, { version: 1, lat: 0, lon: 0, tags: {} }, 9),
+    ).rejects.toMatchObject({ status: 409, op: "delete node" });
   });
 
   it("createNode PUTs to node/create and returns the new id", async () => {

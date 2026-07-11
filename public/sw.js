@@ -8,7 +8,7 @@
  *   - other cross-origin GETs (fonts, etc) -> stale-while-revalidate
  */
 
-const VERSION = "rosm-v1";
+const VERSION = "rosm-24ec452";
 const SHELL_CACHE = `${VERSION}-shell`;
 const ASSET_CACHE = `${VERSION}-assets`;
 const TILE_CACHE = `${VERSION}-tiles`;
