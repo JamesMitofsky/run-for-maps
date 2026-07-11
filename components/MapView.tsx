@@ -15,6 +15,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -118,7 +119,7 @@ const MARKERS_LAYER = "markers-circle";
 // glyphs render from the system font rather than the tile server's font subset.
 // `radius` is the dot size in px (default 9); callers with dense overviews pass
 // a smaller value.
-function markerLayer(radius: number): CircleLayerSpecification {
+function markerLayer(radius: number, strokeWidth: number): CircleLayerSpecification {
   return {
     id: MARKERS_LAYER,
     type: "circle",
@@ -127,12 +128,26 @@ function markerLayer(radius: number): CircleLayerSpecification {
       "circle-radius": radius,
       "circle-color": ["get", "color"],
       "circle-opacity": ["case", ["get", "dimmed"], 0.45, 1],
-      "circle-stroke-width": 2,
+      "circle-stroke-width": strokeWidth,
       "circle-stroke-color": "#fff",
       "circle-stroke-opacity": ["case", ["get", "dimmed"], 0.45, 1],
     },
   };
 }
+
+// Overshoot easing so dots pop past full size then settle — matches the label
+// keyframe in globals.css.
+function easeOutBack(t: number): number {
+  const c1 = 1.70158;
+  const c3 = c1 + 1;
+  return 1 + c3 * (t - 1) ** 3 + c1 * (t - 1) ** 2;
+}
+
+// useLayoutEffect on the client (so the 0-radius start applies before paint —
+// no full-size flash), useEffect on the server to dodge the SSR warning.
+const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
+
+const POP_MS = 340;
 
 const lineLayer: LineLayerSpecification = {
   id: "route-line",
@@ -340,9 +355,17 @@ export default function MapView({
   // The empty-map tap awaiting confirmation via `mapClickPopup`, if any.
   const [pendingTap, setPendingTap] = useState<{ lat: number; lon: number } | null>(null);
 
-  const markerCircleLayer = useMemo(() => markerLayer(markerRadius), [markerRadius]);
+  // 0 → 1 grow factor for the pop-in (see the layout effect below).
+  const [popScale, setPopScale] = useState(1);
+  const markerCircleLayer = useMemo(
+    () => markerLayer(Math.max(0, markerRadius * popScale), Math.max(0, 2 * popScale)),
+    [markerRadius, popScale],
+  );
   const markerById = useMemo(() => new Map(markers.map((m) => [String(m.id), m])), [markers]);
   const markerData = useMemo(() => markersToFeatures(markers), [markers]);
+  // Signature of the marker *set* (ids only). Recolors (toggling a stop) keep the
+  // same ids, so the pop-in below fires only when points actually appear.
+  const markerIdSig = useMemo(() => markers.map((m) => m.id).join("|"), [markers]);
   const labeled = useMemo(() => markers.filter((m) => m.label), [markers]);
   const lineData = useMemo<GeoJSON.Feature | null>(
     () =>
@@ -389,6 +412,26 @@ export default function MapView({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recenterKey]);
+
+  // Pop new dots in: grow circle-radius 0 → target whenever the marker set
+  // changes. Driven by React state fed declaratively into the layer paint (no
+  // imperative setPaintProperty racing react-map-gl). Radius is a shader
+  // uniform, so this stays smooth for hundreds of points. Layout effect sets the
+  // 0-start before paint → no full-size flash. Honors prefers-reduced-motion.
+  useIsoLayoutEffect(() => {
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      setPopScale(1);
+      return;
+    }
+    setPopScale(0);
+    const start = performance.now();
+    let raf = requestAnimationFrame(function tick(now) {
+      const t = Math.min(1, (now - start) / POP_MS);
+      setPopScale(easeOutBack(t));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [markerIdSig]);
 
   const handleClick = useCallback(
     (e: MapLayerMouseEvent) => {
@@ -523,6 +566,7 @@ export default function MapView({
             style={{ pointerEvents: "none" }}
           >
             <span
+              className="marker-pop-label"
               style={{
                 color: "#fff",
                 fontSize: 11,
