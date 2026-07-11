@@ -5,7 +5,7 @@ import { CircleNotchIcon } from "@phosphor-icons/react";
 // unlike SearchProgress's full overlay for a first load into an empty map.
 export default function BusyPill({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-1.5 rounded-full bg-black/65 px-4 py-2 text-sm font-semibold text-white shadow-md backdrop-blur-md">
+    <div className="flex items-center gap-1.5 rounded-full bg-black/45 px-4 py-2 text-sm font-semibold text-white shadow-md backdrop-blur-md">
       <CircleNotchIcon size={16} className="animate-spin" />
       {label}
     </div>

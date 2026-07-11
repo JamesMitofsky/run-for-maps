@@ -194,7 +194,7 @@ export default function SearchProgress({
             initial={false}
             exit={{ opacity: 0, scale: 1.015 }}
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-            className="bg-paper/55 absolute inset-0 z-[650] flex flex-col items-center justify-center gap-8 px-8 text-center backdrop-blur-md"
+            className="bg-paper/30 absolute inset-0 z-[650] flex flex-col items-center justify-center gap-8 px-8 text-center backdrop-blur-md"
           >
             {body}
           </motion.div>
