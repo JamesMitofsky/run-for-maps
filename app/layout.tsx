@@ -1,20 +1,24 @@
 import type { Metadata, Viewport } from "next";
-import { Space_Grotesk, Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import OutboxSync from "@/components/OutboxSync";
 import NativeAuth from "@/components/NativeAuth";
 import NativeChrome from "@/components/NativeChrome";
 
-const display = Space_Grotesk({
-  subsets: ["latin"],
+// Self-hosted so builds never depend on reaching Google Fonts at build time.
+const display = localFont({
+  src: "./fonts/SpaceGrotesk-Variable.woff2",
   variable: "--font-display",
-  weight: ["500", "600", "700"],
+  weight: "300 700",
+  display: "swap",
 });
 
-const body = Inter({
-  subsets: ["latin"],
+const body = localFont({
+  src: "./fonts/Inter-Variable.woff2",
   variable: "--font-body",
+  weight: "100 900",
+  display: "swap",
 });
 
 const APP_NAME = "ROSM";
