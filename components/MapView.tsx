@@ -53,6 +53,8 @@ type Props = {
   interactive?: boolean;
   scrollWheelZoom?: boolean;
   markers?: MapMarker[];
+  // Marker dot radius in px (default 9). Smaller for dense overview maps.
+  markerRadius?: number;
   // polyline as [lat, lon][]
   line?: [number, number][];
   // Radius indicator (e.g. search-area preview) drawn under the markers.
@@ -109,19 +111,23 @@ const MARKERS_LAYER = "markers-circle";
 // Replaces per-marker DOM pins so hundreds of points stay smooth. Labels (the
 // few numbered/starred planner points) ride on top as HTML markers so symbol
 // glyphs render from the system font rather than the tile server's font subset.
-const markerLayer: CircleLayerSpecification = {
-  id: MARKERS_LAYER,
-  type: "circle",
-  source: MARKERS_SOURCE,
-  paint: {
-    "circle-radius": 9,
-    "circle-color": ["get", "color"],
-    "circle-opacity": ["case", ["get", "dimmed"], 0.45, 1],
-    "circle-stroke-width": 2,
-    "circle-stroke-color": "#fff",
-    "circle-stroke-opacity": ["case", ["get", "dimmed"], 0.45, 1],
-  },
-};
+// `radius` is the dot size in px (default 9); callers with dense overviews pass
+// a smaller value.
+function markerLayer(radius: number): CircleLayerSpecification {
+  return {
+    id: MARKERS_LAYER,
+    type: "circle",
+    source: MARKERS_SOURCE,
+    paint: {
+      "circle-radius": radius,
+      "circle-color": ["get", "color"],
+      "circle-opacity": ["case", ["get", "dimmed"], 0.45, 1],
+      "circle-stroke-width": 2,
+      "circle-stroke-color": "#fff",
+      "circle-stroke-opacity": ["case", ["get", "dimmed"], 0.45, 1],
+    },
+  };
+}
 
 const lineLayer: LineLayerSpecification = {
   id: "route-line",
@@ -308,6 +314,7 @@ export default function MapView({
   // Defaults to `interactive` so a non-interactive map can't scroll-zoom.
   scrollWheelZoom = interactive,
   markers = [],
+  markerRadius = 9,
   line,
   circle,
   searchedBox,
@@ -325,6 +332,7 @@ export default function MapView({
   const mapRef = useRef<MapRef>(null);
   const [selected, setSelected] = useState<string | null>(null);
 
+  const markerCircleLayer = useMemo(() => markerLayer(markerRadius), [markerRadius]);
   const markerById = useMemo(() => new Map(markers.map((m) => [String(m.id), m])), [markers]);
   const markerData = useMemo(() => markersToFeatures(markers), [markers]);
   const labeled = useMemo(() => markers.filter((m) => m.label), [markers]);
@@ -486,7 +494,7 @@ export default function MapView({
         )}
 
         <Source id={MARKERS_SOURCE} type="geojson" data={markerData}>
-          <Layer {...markerLayer} />
+          <Layer {...markerCircleLayer} />
         </Source>
 
         {/* Labels for the few numbered/starred points, over the GPU circles. */}

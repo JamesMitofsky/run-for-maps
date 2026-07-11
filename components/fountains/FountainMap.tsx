@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   ArrowLeftIcon,
   CircleNotchIcon,
@@ -31,7 +31,7 @@ import {
 } from "@/lib/fountainFilters";
 import { BUCKET_COLOR, bucketOf } from "@/components/FreshnessLegend";
 import { apiFetch } from "@/lib/api";
-import { getCurrentPosition } from "@/lib/geolocation";
+import { getCurrentPosition, hasLocationPermission } from "@/lib/geolocation";
 import { boxAround, boxAspect, milesToMeters, MAX_SEARCH_RADIUS_M, type Pt } from "@/lib/geo";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
@@ -102,6 +102,11 @@ export default function FountainMap({
     radiusM: number;
     bounds: [[number, number], [number, number]];
   } | null>(null);
+  // Set when a just-acquired GPS fix is waiting for the map to recenter. The
+  // recenter settles into an `onViewChange` carrying the real post-jump viewport
+  // bounds, which then fires the first search — so the queried rectangle (and
+  // drawn box) is exactly the viewport, with no race against the map's load.
+  const pendingLocateSearch = useRef(false);
   const [showSearchArea, setShowSearchArea] = useState(false);
   // A "Search this area" request is in flight — keeps that button mounted with a
   // spinner (rather than the generic full-screen busy path hiding it).
@@ -116,9 +121,10 @@ export default function FountainMap({
   // The search/filter surface. Stays closed until the location-consent gate is
   // resolved, then collapses to a reopen button once a search succeeds.
   const [modalOpen, setModalOpen] = useState(false);
-  // Location-consent gate: shown first, before we ever touch the system
-  // permission. Only once the user agrees here do we fire the device prompt.
-  const [askConsent, setAskConsent] = useState(true);
+  // Location-consent gate: shown before we ever touch the system permission, but
+  // only when access isn't already granted (see the mount effect below). Starts
+  // closed so we don't flash it while the permission check is in flight.
+  const [askConsent, setAskConsent] = useState(false);
 
   // Acquire a GPS fix and make it the search anchor. Does not search — that
   // stays an explicit action. `quiet` skips the loading animation while the
@@ -215,24 +221,6 @@ export default function FountainMap({
     [center, defaultRadiusM, locate, mapView],
   );
 
-  // The map settled after a pan/zoom: remember the view, and if the user drove
-  // the move, offer to re-search the now-visible area.
-  const onViewChange = useCallback(
-    (
-      view: {
-        lat: number;
-        lon: number;
-        radiusM: number;
-        bounds: [[number, number], [number, number]];
-      },
-      userInitiated: boolean,
-    ) => {
-      setMapView(view);
-      if (userInitiated) setShowSearchArea(true);
-    },
-    [],
-  );
-
   // A map-driven search ("Search this area"). Keeps a dedicated spinner
   // mounted over the map for its duration, distinct from the modal's busy
   // path, so the user sees the request they just triggered is in flight.
@@ -254,6 +242,38 @@ export default function FountainMap({
     runAreaSearch({ lat: mapView.lat, lon: mapView.lon }, mapView.radiusM, mapView.bounds);
   }, [mapView, runAreaSearch]);
 
+  // The map settled after load, a recenter, or a pan/zoom: remember the view. A
+  // pending GPS locate fires its first search here, off the freshly-settled
+  // viewport (post-recenter), so the queried box matches the screen exactly. A
+  // user-driven move instead offers to re-search the now-visible area.
+  const onViewChange = useCallback(
+    (
+      view: {
+        lat: number;
+        lon: number;
+        radiusM: number;
+        bounds: [[number, number], [number, number]];
+      },
+      userInitiated: boolean,
+    ) => {
+      setMapView(view);
+      if (pendingLocateSearch.current) {
+        pendingLocateSearch.current = false;
+        const anchor = { lat: view.lat, lon: view.lon };
+        // Zoomed out past the max radius → fall back to the circular default
+        // search around the fix rather than sweeping too much OSM data.
+        if (view.radiusM <= MAX_SEARCH_RADIUS_M) {
+          runAreaSearch(anchor, view.radiusM, view.bounds);
+        } else {
+          runAreaSearch(anchor);
+        }
+        return;
+      }
+      if (userInitiated) setShowSearchArea(true);
+    },
+    [runAreaSearch],
+  );
+
   // Consent granted: dismiss the gate, fire the system permission prompt (no
   // loader yet), and once we hold a fix drop straight into the map with the
   // "Searching…" pill — no filters modal in the way. A denied/failed fix falls
@@ -265,24 +285,12 @@ export default function FountainMap({
       setModalOpen(true);
       return;
     }
-    // Recenter keeps the current zoom (jumpTo), so the viewport that lands on
-    // the fix has the same lat/lon span as the pre-jump view — just recentered.
-    // Search that exact rectangle so the queried area (and drawn box) matches
-    // what the user sees, instead of a fixed radius that overshoots when zoomed
-    // in. No settled view yet → fall back to the circular default-radius search.
-    if (mapView && mapView.radiusM <= MAX_SEARCH_RADIUS_M) {
-      const [[s, w], [n, e]] = mapView.bounds;
-      const dLat = (n - s) / 2;
-      const dLon = (e - w) / 2;
-      const box: [[number, number], [number, number]] = [
-        [here.lat - dLat, here.lon - dLon],
-        [here.lat + dLat, here.lon + dLon],
-      ];
-      runAreaSearch(here, mapView.radiusM, box);
-    } else {
-      runAreaSearch(here);
-    }
-  }, [locate, mapView, runAreaSearch]);
+    // `locate` recentered the map on the fix (jumpTo keeps the current zoom). Arm
+    // the search so the recenter's settled `onViewChange` runs it off the actual
+    // post-jump viewport — the queried rectangle (and drawn box) then matches the
+    // screen exactly, with no dependence on whether the map had settled yet.
+    pendingLocateSearch.current = true;
+  }, [locate]);
 
   // Consent declined: skip location entirely and leave the map interactive so
   // the user can pan to where they care about. Surface the "Search this area"
@@ -290,6 +298,23 @@ export default function FountainMap({
   const declineLocation = useCallback(() => {
     setAskConsent(false);
     setShowSearchArea(true);
+  }, []);
+
+  // On mount, skip the consent gate when the OS has already granted location —
+  // re-asking a user who agreed once is pointless. Otherwise show the gate.
+  // Fires once; startWithLocation reads later map state through its own closure.
+  const consentCheckAlive = useRef(true);
+  useEffect(() => {
+    consentCheckAlive.current = true;
+    hasLocationPermission().then((granted) => {
+      if (!consentCheckAlive.current) return;
+      if (granted) startWithLocation();
+      else setAskConsent(true);
+    });
+    return () => {
+      consentCheckAlive.current = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Jump the map to a geocoded place. Recenters and surfaces "Search this area"
