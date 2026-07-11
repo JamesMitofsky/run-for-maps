@@ -283,11 +283,13 @@ export const usePlanner = create<PlannerState>((set, get) => ({
     }
   },
 
-  // Last config step: run the search, then hand the screen over to the map's
-  // build step (the next step in the shared setup sequence).
+  // Last config step: hand the screen to the map's build step right away and
+  // fit the viewport to the search area (recenterKey bump → the plan page's
+  // fitPoints re-fit), so the points load INTO an already-framed map instead of
+  // popping in off-screen. The search runs after, streaming into that frame.
   finishConfig: async () => {
+    set({ phase: "map", step: BUILD_STEP_INDEX, recenterKey: `fit-${++recenterSeq}` });
     await get().findPoints();
-    set({ phase: "map", step: BUILD_STEP_INDEX });
   },
 
   // Plan + fetch street geometry. Unlike the old page-local version there is no

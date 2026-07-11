@@ -37,6 +37,7 @@ export default function QuickUpdatePage() {
       defaultRadiusMi={0.2}
       backHref="/mapping-portal"
       backLabel="Mapping Portal"
+      hideAccount
       footer={
         <div className="flex flex-col gap-2">
           {editErr && <ErrorNotice message={editErr} tone="light" />}

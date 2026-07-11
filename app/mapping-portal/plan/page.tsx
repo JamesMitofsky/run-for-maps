@@ -2,11 +2,11 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
-import { DeviceMobileIcon } from "@phosphor-icons/react";
+import { ArrowLeftIcon, DeviceMobileIcon } from "@phosphor-icons/react";
 import { useRun } from "@/store/run";
 import { usePlanner } from "@/store/planner";
 import AccountChip from "@/components/AccountChip";
@@ -22,6 +22,7 @@ import { useRunSession } from "@/hooks/useRunSession";
 import { useOsmEdits } from "@/hooks/useOsmEdits";
 import { usePlannerDraftSync } from "@/hooks/usePlannerDraftSync";
 import { apiFetch, isNative } from "@/lib/api";
+import { boxAround, milesToMeters } from "@/lib/geo";
 import { getArchivedRoutes } from "@/lib/routeArchive";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
@@ -42,6 +43,7 @@ export default function PlannerPage() {
   const center = usePlanner((s) => s.center);
   const recenterKey = usePlanner((s) => s.recenterKey);
   const animateRecenter = usePlanner((s) => s.animateRecenter);
+  const radiusMi = usePlanner((s) => s.radiusMi);
   const line = usePlanner((s) => s.line);
   const mapClick = usePlanner((s) => s.mapClick);
   const addVia = usePlanner((s) => s.addVia);
@@ -76,6 +78,14 @@ export default function PlannerPage() {
   });
 
   const scope = useRef<HTMLElement>(null);
+
+  // Bounding box of the search radius around the start. Fed to the map as
+  // fitPoints in the build phase so leaving the params step frames the whole
+  // area the points are loading into — before they arrive.
+  const searchBox = useMemo<[number, number][] | undefined>(
+    () => (center && radiusMi ? boxAround(center, milesToMeters(Number(radiusMi))) : undefined),
+    [center, radiusMi],
+  );
 
   // Fade the floating card when switching between phases and steps.
   useGSAP(
@@ -183,7 +193,7 @@ export default function PlannerPage() {
           zoom={phase === "run" ? 16 : 14}
           recenterKey={phase === "run" ? session.recenterKey : recenterKey}
           animateRecenter={phase === "run" ? false : animateRecenter}
-          fitPoints={phase === "run" ? session.fitPoints : undefined}
+          fitPoints={phase === "run" ? session.fitPoints : phase === "map" ? searchBox : undefined}
           markers={phase === "run" ? session.markers : markers}
           line={phase === "run" ? session.line : line}
           userPos={phase === "run" ? session.userPos : undefined}
@@ -215,7 +225,14 @@ export default function PlannerPage() {
           run so the map is the topmost element on the route. */}
       {phase !== "run" && (
         <header className="safe-top pointer-events-none absolute inset-x-0 z-[1000] flex flex-wrap items-center justify-between gap-3 p-4 md:p-5">
-          <div className="pointer-events-auto">
+          <div className="pointer-events-auto flex items-center gap-2">
+            <Link
+              href="/mapping-portal"
+              className="border-paper-line bg-paper/90 text-ink-dim hover:text-ink flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-xs font-semibold shadow-sm backdrop-blur transition"
+            >
+              <ArrowLeftIcon size={14} />
+              Mapping Portal
+            </Link>
             <OsmStatusBar />
           </div>
           <div className="pointer-events-auto ml-auto">
@@ -233,7 +250,7 @@ export default function PlannerPage() {
         </div>
       )}
       {phase === "map" && (
-        <div className="phase-card z-[1000] flex justify-center p-4 md:absolute md:inset-y-0 md:right-0 md:left-auto md:items-center md:p-6">
+        <div className="phase-card z-[1000] flex flex-1 justify-center p-4 md:absolute md:inset-y-0 md:right-0 md:left-auto md:flex-none md:items-center md:p-6">
           <RouteBuilderPanel osmEdits={osmEdits} />
         </div>
       )}

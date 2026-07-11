@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import FreshnessLegend from "@/components/FreshnessLegend";
@@ -160,7 +159,7 @@ export default function LandingPage() {
             transition={{ ...fadeUp.transition, delay: 0.24 }}
             className="mt-14 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-1 pb-2"
           >
-            <Label>Sample route · Washington DC</Label>
+            <Label>Sample route</Label>
           </motion.div>
 
           {/* Interactive demo of the run + edit flow, framed like a print plate. */}
@@ -252,7 +251,7 @@ export default function LandingPage() {
             transition={{ ...fadeUp.transition, delay: 0.18 }}
             className="mt-12 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-1 pb-2"
           >
-            <Label>Live · Washington DC</Label>
+            <Label>Live</Label>
             <FreshnessLegend />
           </motion.div>
           <motion.div

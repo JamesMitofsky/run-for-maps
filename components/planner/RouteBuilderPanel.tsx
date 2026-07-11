@@ -105,10 +105,7 @@ export default function RouteBuilderPanel({ osmEdits }: { osmEdits: OsmEdits }) 
         <>
           <div className="border-sky-deep/30 bg-sky/10 rounded-2xl border p-4 text-sm">
             <div className="flex justify-between">
-              <span className="text-ink font-semibold">
-                {p.stops.length} stops
-                <span className="text-ink-dim ml-1 font-normal">of {p.fountains.length}</span>
-              </span>
+              <span className="text-ink font-semibold">{p.stops.length} stops</span>
               <span className="text-sky-deep font-semibold">{fmtDist(p.distanceM)}</span>
             </div>
             {p.autoCount > 0 && (
@@ -208,7 +205,7 @@ export default function RouteBuilderPanel({ osmEdits }: { osmEdits: OsmEdits }) 
             disabled={p.fountains.length === 0 || p.busy !== null || !sizingReady}
             className="ml-auto flex items-center gap-1.5"
           >
-            {p.busy === "route" ? "Planning…" : "Plan route"}
+            {p.busy === "route" ? "Planning…" : "Next"}
             <ArrowRightIcon size={16} />
           </Button>
         )}

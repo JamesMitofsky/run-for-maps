@@ -59,6 +59,9 @@ type Props = {
   // Optional site navbar rendered above the map (public browser). When present,
   // the floating back link is dropped — the navbar already routes home.
   nav?: ReactNode;
+  // Drop the floating account/connection chip (e.g. Quick Update, where the
+  // surface is already account-gated).
+  hideAccount?: boolean;
 };
 
 // The shared fountain map: full-bleed Leaflet, GPS or map-area search, filters,
@@ -71,6 +74,7 @@ export default function FountainMap({
   backLabel,
   footer,
   nav,
+  hideAccount,
 }: Props) {
   // GPS fix (blue dot) — set only when the user asks to locate.
   const [pos, setPos] = useState<Pt | null>(null);
@@ -446,7 +450,7 @@ export default function FountainMap({
                 <SlidersHorizontalIcon size={14} />
                 Filters
               </button>
-              {!nav && <AccountChip />}
+              {!nav && !hideAccount && <AccountChip />}
             </div>
           </header>
 
