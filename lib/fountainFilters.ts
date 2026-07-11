@@ -32,10 +32,6 @@ export const svcOf = (tags: Record<string, string>): Svc => (isOutOfService(tags
 export const waterOf = (tags: Record<string, string>): Water =>
   isDogWater(tags) ? "dog" : "human";
 
-export function fountainName(f: Fountain): string {
-  return f.tags.name ?? "Unnamed fountain";
-}
-
 // Fountains sorted nearest-first (from the searched anchor), each tagged with
 // distance + filter classes.
 export function rankFountains(fountains: Fountain[], anchor: Pt | null): Ranked[] {

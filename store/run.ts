@@ -39,6 +39,7 @@ type RunState = RunPlan & {
   setIndex: (i: number) => void;
   setChangeset: (id: number) => void;
   addNode: (f: Fountain) => void;
+  removeNode: (id: number) => void;
   reset: () => void;
 };
 
@@ -88,5 +89,7 @@ export const useRun = create<RunState>((set) => ({
   setIndex: (i) => set({ index: i }),
   setChangeset: (id) => set({ changesetId: id }),
   addNode: (f) => set((s) => ({ added: [...s.added, f] })),
+  // Undo of an on-the-fly create: the node is gone from OSM, drop it locally too.
+  removeNode: (id) => set((s) => ({ added: s.added.filter((f) => f.id !== id) })),
   reset: () => set({ ...empty, index: 0, changesetId: undefined, routeId: "", hasPlan: false }),
 }));

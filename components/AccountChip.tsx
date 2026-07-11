@@ -16,13 +16,21 @@ export const MENU_ROW_CLASS =
 // states. `relative` anchors the pending-sync dot. Color is left to `chipTone`
 // so callers can distinguish a primary action (blue) from a neutral one.
 const CHIP_BASE_CLASS =
-  "relative inline-flex items-center gap-1.5 rounded-sm px-5 py-2 text-sm font-bold whitespace-nowrap transition";
+  "relative inline-flex items-center gap-1.5 rounded-sm font-bold whitespace-nowrap transition";
+
+// Padding/type scale. `sm` matches the compact map header controls (search box,
+// Filters) so a neutral Exit chip sits flush beside them.
+const CHIP_SIZE_CLASS = {
+  md: "px-5 py-2 text-sm",
+  sm: "px-3 py-1.5 text-xs",
+} as const;
 
 const CHIP_TONE_CLASS = {
   // Standard blue nav button, matching the Mapping Portal action.
   blue: "bg-sky-deep text-paper hover:bg-sky-deep/90",
-  // Neutral exit/secondary button — no color emphasis.
-  neutral: "bg-ink/5 text-ink hover:bg-ink/10",
+  // Neutral exit/secondary button — solid high-contrast fill so it reads
+  // clearly against a busy map, without the primary blue's action emphasis.
+  neutral: "bg-ink text-paper shadow-sm hover:bg-ink/90",
 } as const;
 
 // The user's OSM connection in any header. The label defaults to "Connection" —
@@ -42,12 +50,14 @@ export default function AccountChip({
   onNavigate,
   showSignIn = true,
   chipTone = "blue",
+  size = "md",
   label = "Connection",
 }: {
   variant?: "chip" | "row";
   onNavigate?: () => void;
   showSignIn?: boolean;
   chipTone?: "blue" | "neutral";
+  size?: "sm" | "md";
   label?: string;
 }) {
   const { status } = useOsmStatus();
@@ -58,7 +68,7 @@ export default function AccountChip({
   if (!status) return null;
 
   const row = variant === "row";
-  const chipClass = `${CHIP_BASE_CLASS} ${CHIP_TONE_CLASS[chipTone]}`;
+  const chipClass = `${CHIP_BASE_CLASS} ${CHIP_SIZE_CLASS[size]} ${CHIP_TONE_CLASS[chipTone]}`;
 
   if (!status.loggedIn && showSignIn) {
     return (

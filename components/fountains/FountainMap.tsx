@@ -8,10 +8,11 @@ import {
   MapPinIcon,
   SlidersHorizontalIcon,
 } from "@phosphor-icons/react";
-import type { Fountain } from "@/lib/schemas";
+import type { EditExtras, Fountain } from "@/lib/schemas";
 import type { MapMarker } from "@/components/MapView";
 import type { OsmEdits } from "@/hooks/useOsmEdits";
 import AccountChip from "@/components/AccountChip";
+import AddPointPopup from "@/components/AddPointPopup";
 import MapSearchBar from "@/components/MapSearchBar";
 import BusyPill from "@/components/ui/BusyPill";
 import Modal from "@/components/ui/Modal";
@@ -19,17 +20,16 @@ import PointPopup from "@/components/PointPopup";
 import FountainPopup from "@/components/fountains/FountainPopup";
 import SearchPanel, { DEFAULT_RADIUS_MI } from "@/components/fountains/SearchPanel";
 import { EDIT_COLOR, EDIT_LABEL } from "@/lib/editStatus";
-import {
-  countBy,
-  fountainName,
-  rankFountains,
-  type Ranked,
-  type Svc,
-  type Water,
-} from "@/lib/fountainFilters";
+import { ptLabel } from "@/lib/pointTypes";
+import { countBy, rankFountains, type Ranked, type Svc, type Water } from "@/lib/fountainFilters";
 import { BUCKET_COLOR, bucketOf } from "@/components/FreshnessLegend";
 import { apiFetch } from "@/lib/api";
-import { getCurrentPosition, hasLocationPermission } from "@/lib/geolocation";
+import {
+  GeoError,
+  getCurrentPosition,
+  hasLocationPermission,
+  type GeoErrorReason,
+} from "@/lib/geolocation";
 import { useLiveLocation } from "@/lib/useLiveLocation";
 import CompassEnableModal from "@/components/run/CompassEnableModal";
 import { boxAround, boxAspect, milesToMeters, MAX_SEARCH_RADIUS_M, type Pt } from "@/lib/geo";
@@ -38,6 +38,24 @@ const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 
 // We only care about human drinking water for this map.
 const TAG = { key: "amenity", value: "drinking_water" } as const;
+
+// One message per acquisition-failure cause, so "allow location access" only
+// shows when permission is actually the problem (a GPS-less iPad failing to
+// get a fix used to be blamed on permissions).
+const LOCATE_ERROR: Record<GeoErrorReason, string> = {
+  denied:
+    "Location access is blocked for this site. Enable it in your browser or device settings " +
+    "(iPad: Settings → Privacy & Security → Location Services → Safari Websites), " +
+    "or move the map and search the visible area instead.",
+  unavailable:
+    "Your device couldn't determine its position. Move the map and search the visible area instead.",
+  timeout:
+    "Getting your location took too long. Try again, or move the map and search the visible area.",
+  insecure:
+    "Location only works over a secure (https) connection. Move the map and search the visible area instead.",
+  unknown:
+    "Couldn't get your location. Allow location access, or move the map and search the visible area instead.",
+};
 
 const DEFAULT_CENTER: [number, number] = [38.9072, -77.0369];
 // GPS searches query a circle of `radiusM`; the drawn box circumscribes that
@@ -132,6 +150,9 @@ export default function FountainMap({
   // only when access isn't already granted (see the mount effect below). Starts
   // closed so we don't flash it while the permission check is in flight.
   const [askConsent, setAskConsent] = useState(false);
+  // Nodes created this session via tap-to-add, so their markers read as "+"
+  // (they're regular fountains otherwise — appended to the result set above).
+  const [createdIds, setCreatedIds] = useState<ReadonlySet<number>>(() => new Set());
 
   // Acquire a GPS fix and make it the search anchor. Does not search — that
   // stays an explicit action. `quiet` skips the loading animation while the
@@ -140,10 +161,8 @@ export default function FountainMap({
     if (!quiet) setBusy(true);
     setErr(null);
     try {
-      const p = await getCurrentPosition().catch(() => {
-        throw new Error(
-          "Couldn't get your location. Allow location access, or move the map and search the visible area instead.",
-        );
+      const p = await getCurrentPosition().catch((e: unknown) => {
+        throw new Error(LOCATE_ERROR[e instanceof GeoError ? e.reason : "unknown"]);
       });
       const here = { lat: p.lat, lon: p.lon };
       setPos(here);
@@ -337,6 +356,23 @@ export default function FountainMap({
     setShowSearchArea(true);
   }, []);
 
+  // Tap-to-add (editable map only): create a new drinking-water node at the
+  // tapped spot and drop it straight into the result set so it renders like any
+  // other fountain — check_date is today, so it reads as freshly verified.
+  const addPoint = useCallback(
+    async (at: Pt, extras?: EditExtras) => {
+      // Undo (5s toast) deletes the node on OSM again — mirror that locally.
+      const f = await editable?.createPoint(at, TAG, extras, (nodeId) => {
+        setFountains((cur) => cur.filter((c) => c.id !== nodeId));
+        setCreatedIds((cur) => new Set([...cur].filter((id) => id !== nodeId)));
+      });
+      if (!f) return; // createPoint already surfaced the error
+      setFountains((cur) => [...cur, f]);
+      setCreatedIds((cur) => new Set(cur).add(f.id));
+    },
+    [editable],
+  );
+
   const ranked = useMemo<Ranked[]>(
     () => rankFountains(fountains, searchedAt),
     [fountains, searchedAt],
@@ -356,14 +392,16 @@ export default function FountainMap({
       // Out-of-service points stay gray + dimmed — freshness is moot when unusable.
       const base = s === "out" ? "#9ca3af" : BUCKET_COLOR[bucketOf(f.tags, nowMs)];
       // A point edited this session (editable map only) takes the edit color +
-      // status glyph, and is no longer dimmed.
+      // status glyph, and is no longer dimmed. A node created this session gets
+      // the confirm green + a "+" glyph, matching the run map's added markers.
       const edit = edits?.[f.id];
+      const created = createdIds.has(f.id);
       return {
         id: f.id,
         lat: f.lat,
         lon: f.lon,
-        color: edit ? (EDIT_COLOR[edit.status] ?? base) : base,
-        label: edit ? EDIT_LABEL[edit.status] : undefined,
+        color: edit ? (EDIT_COLOR[edit.status] ?? base) : created ? "#16a34a" : base,
+        label: edit ? EDIT_LABEL[edit.status] : created ? "+" : undefined,
         dimmed: s === "out" && !edit,
         popup: editable ? (
           <PointPopup
@@ -371,9 +409,7 @@ export default function FountainMap({
             loggedIn
             edit={edit}
             busy={false}
-            onAction={(action, extras) =>
-              editable.updatePoint(f.id, action, fountainName(f), extras)
-            }
+            onAction={(action, extras) => editable.updatePoint(f.id, action, undefined, extras)}
           />
         ) : (
           <FountainPopup f={f} distM={distM} />
@@ -381,7 +417,7 @@ export default function FountainMap({
       };
     });
     return ms;
-  }, [visible, editable, nowMs]);
+  }, [visible, editable, nowMs, createdIds]);
 
   const viewCenter: [number, number] = center
     ? [center.lat, center.lon]
@@ -426,6 +462,19 @@ export default function FountainMap({
             userPos={livePos ?? (pos ? [pos.lat, pos.lon] : undefined)}
             userHeading={heading}
             onViewChange={onViewChange}
+            mapClickPopup={
+              editable
+                ? (pt, close) => (
+                    <AddPointPopup
+                      label={ptLabel(TAG.key, TAG.value)}
+                      onAdd={async (extras) => {
+                        await addPoint(pt, extras);
+                        close();
+                      }}
+                    />
+                  )
+                : undefined
+            }
             className="absolute inset-0 h-full w-full"
           />
         </div>
@@ -440,10 +489,15 @@ export default function FountainMap({
             affordances inside flow relatively (flex column) so the header row
             and any status pill stack instead of overlapping. */}
         <div className="safe-top pointer-events-none absolute inset-x-0 z-[1000] flex flex-col gap-3 p-4 md:p-5">
-          {/* Header: query controls (place search + filters) grouped on the
-              left, the Exit chip on the right. When a site navbar is present it
-              owns the exit, so the map drops its own chip. */}
-          <header className="flex items-start justify-between gap-2">
+          {/* Header: the Exit chip pinned far left, then the query controls
+              (place search + filters). When a site navbar is present it owns the
+              exit, so the map drops its own chip. */}
+          <header className="flex items-start gap-2">
+            {!nav && (
+              <div className="pointer-events-auto flex items-center gap-2">
+                <AccountChip chipTone="neutral" size="sm" label="Exit" />
+              </div>
+            )}
             <div className="pointer-events-auto flex items-start gap-2">
               <MapSearchBar onResult={goTo} />
               <button
@@ -455,11 +509,6 @@ export default function FountainMap({
                 Filters
               </button>
             </div>
-            {!nav && (
-              <div className="pointer-events-auto flex items-center gap-2">
-                <AccountChip chipTone="neutral" label="Exit" />
-              </div>
-            )}
           </header>
 
           {/* Map-driven search in flight ("Search this area"): a spinner pill

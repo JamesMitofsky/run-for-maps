@@ -159,7 +159,7 @@ export default function LandingPage() {
             transition={{ ...fadeUp.transition, delay: 0.24 }}
             className="mt-14 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-1 pb-2"
           >
-            <Label>Sample route</Label>
+            <Label>Demo route</Label>
           </motion.div>
 
           {/* Interactive demo of the run + edit flow, framed like a print plate. */}

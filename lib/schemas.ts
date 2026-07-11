@@ -76,12 +76,15 @@ export const FountainsRequest = z
   });
 
 // Create a brand-new OSM node at a surveyed location, tagged with the point
-// type currently being surveyed (e.g. amenity=drinking_water).
+// type currently being surveyed (e.g. amenity=drinking_water). Extras carry the
+// same survey facts as a confirm edit (audience, seasonal, note) so a new point
+// is born fully described.
 export const CreateNodeRequest = z.object({
   lat: z.number(),
   lon: z.number(),
   tag: TagFilterSchema,
   changesetId: z.number().optional(),
+  extras: EditExtras.optional(),
 });
 
 export const RouteRequest = z.object({
@@ -98,10 +101,20 @@ export const EditRequest = z.object({
   extras: EditExtras.optional(), // advanced OSM tags (seasonal, note)
 });
 
-// Persisted record of an edit we made (local audit log).
+// Undo a submission that already reached OSM: restore the node's previous
+// version (kind "edit") or delete the node we created (kind "create").
+export const RevertRequest = z.object({
+  nodeId: z.number(),
+  kind: z.enum(["edit", "create"]),
+  sentVersion: z.number(), // the version our submission produced (creates: 1)
+  changesetId: z.number().optional(),
+});
+
+// Persisted record of an edit we made (local audit log). Besides survey actions,
+// the log also records node creations and undo reverts.
 export const EditLogEntrySchema = z.object({
   nodeId: z.number(),
-  action: EditAction,
+  action: EditAction.or(z.enum(["create", "revert"])),
   changesetId: z.number(),
   newVersion: z.number(),
   at: z.string(), // ISO timestamp

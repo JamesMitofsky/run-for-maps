@@ -16,6 +16,9 @@ const nextConfig: NextConfig = isCapacitor
       images: { unoptimized: true },
     }
   : {
+      // Dev-only: let LAN devices (iPad testing) load /_next/* assets — Next 16
+      // blocks cross-origin dev requests unless the origin is allowlisted.
+      allowedDevOrigins: ["mit-mac-paddy-whack.local"],
       async redirects() {
         return [
           // Old URL for the fountain browser — keep bookmarks/PWA shortcuts alive.
