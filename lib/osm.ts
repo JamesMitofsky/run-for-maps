@@ -245,6 +245,18 @@ export function applyAction(
   if (extras?.seasonal && (action === "confirm" || action === "dog_only")) {
     next.seasonal = "yes";
   }
+  // Audience only makes sense while the source still exists (confirm). Demote a
+  // human-potable primary to a neutral physical feature when the water is no
+  // longer for humans, mirroring the dog_only reasoning above.
+  if (extras?.audience && action === "confirm") {
+    const humanOk = extras.audience !== "dogs";
+    if (!humanOk && (next.amenity === "drinking_water" || next.amenity === "water_point")) {
+      next.man_made = "water_tap";
+      delete next.amenity;
+    }
+    next.drinking_water = humanOk ? "yes" : "no";
+    next.dog = extras.audience === "humans" ? "no" : "yes";
+  }
   return next;
 }
 

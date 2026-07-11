@@ -16,8 +16,14 @@ export type EditAction = z.infer<typeof EditAction>;
 
 // Optional advanced OSM facts recorded alongside an action. These become real
 // node tags (written to OSM), unlike the old local-only comment.
+// Who the water source is intended for. Maps to drinking_water=* (human
+// potability) + dog=* on the node.
+export const Audience = z.enum(["humans", "dogs", "both"]);
+export type Audience = z.infer<typeof Audience>;
+
 export const EditExtras = z.object({
   seasonal: z.boolean().optional(), // seasonal=yes: source runs only part of the year
+  audience: Audience.optional(), // humans / dogs / both → drinking_water + dog tags
   note: z.string().max(255).optional(), // OSM note=* : public free-text on the node
 });
 export type EditExtras = z.infer<typeof EditExtras>;

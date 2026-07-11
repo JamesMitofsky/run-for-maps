@@ -33,6 +33,12 @@ export function editSummary(
   if (extras?.seasonal && (action === "confirm" || action === "dog_only")) {
     base += " · seasonal=yes";
   }
+  if (extras?.audience && action === "confirm") {
+    const humanOk = extras.audience !== "dogs";
+    base += ` · drinking_water=${humanOk ? "yes" : "no"} · dog=${
+      extras.audience === "humans" ? "no" : "yes"
+    }`;
+  }
   if (extras?.note) base += " · note added";
   return base;
 }

@@ -8,12 +8,10 @@ import {
   PlusCircleIcon,
   MinusCircleIcon,
   DogIcon,
-  CaretDownIcon,
-  CaretRightIcon,
   SnowflakeIcon,
 } from "@phosphor-icons/react";
 import { useMapPopup } from "@/components/MapView";
-import type { Fountain, EditAction, EditExtras } from "@/lib/schemas";
+import type { Fountain, EditAction, EditExtras, Audience } from "@/lib/schemas";
 import type { StopStatus } from "@/store/run";
 import { checkedAgoLabel } from "@/lib/checkDate";
 import OsmSignInLink from "@/components/OsmSignInLink";
@@ -68,11 +66,16 @@ export default function PointPopup({
   onToggleRoute,
 }: Props) {
   const { close } = useMapPopup();
-  const name = fountain.tags.name ?? "Unnamed fountain";
   // Advanced OSM params, prefilled from the node's current tags so the surveyor
   // sees and can edit what's already there.
-  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [seasonal, setSeasonal] = useState(fountain.tags.seasonal === "yes");
+  const [audience, setAudience] = useState<Audience>(
+    fountain.tags.drinking_water === "no"
+      ? "dogs"
+      : fountain.tags.dog === "yes"
+        ? "both"
+        : "humans",
+  );
   const [osmNote, setOsmNote] = useState(fountain.tags.note ?? "");
   // Snapshot the clock once on mount — reading Date.now() during render is
   // impure; the "checked ago" label doesn't need to tick live.
@@ -80,7 +83,7 @@ export default function PointPopup({
 
   function buildExtras(): EditExtras | undefined {
     const note = osmNote.trim();
-    const extras: EditExtras = {};
+    const extras: EditExtras = { audience };
     if (seasonal) extras.seasonal = true;
     if (note) extras.note = note;
     return Object.keys(extras).length ? extras : undefined;
