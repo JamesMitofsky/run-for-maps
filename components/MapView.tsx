@@ -84,6 +84,9 @@ type Props = {
     userInitiated: boolean,
   ) => void;
   recenterKey?: string; // change to force recenter on `center`
+  // Animate the next recenter (flyTo) instead of the default instant jump.
+  // Used when the user picks a place from search so the move reads as travel.
+  animateRecenter?: boolean;
   // When set (>=2 points), the map zooms to fit all points instead of just
   // centering on `center`. Used to keep user + next target both in view.
   fitPoints?: [number, number][];
@@ -314,6 +317,7 @@ export default function MapView({
   onUserPan,
   onViewChange,
   recenterKey,
+  animateRecenter = false,
   fitPoints,
   fitOptions,
   className,
@@ -360,6 +364,10 @@ export default function MapView({
         maxZoom: fitOptions?.maxZoom ?? 16,
         duration: 0,
       });
+    } else if (animateRecenter) {
+      // flyTo also settles into onMoveEnd (userInitiated=false), so the parent
+      // still gets a fresh viewport once the animation lands.
+      map.flyTo({ center: [center[1], center[0]], zoom: 14, duration: 1500, essential: true });
     } else {
       map.jumpTo({ center: [center[1], center[0]] });
     }

@@ -1,8 +1,6 @@
 "use client";
 
-import { MagnifyingGlassIcon } from "@phosphor-icons/react";
 import FilterPills from "@/components/fountains/FilterPills";
-import SearchProgress from "@/components/fountains/SearchProgress";
 import ErrorNotice from "@/components/ui/ErrorNotice";
 import type { Counts, Svc, Water } from "@/lib/fountainFilters";
 
@@ -20,7 +18,6 @@ export default function SearchPanel({
   setSvc,
   water,
   setWater,
-  showFilters,
   onSearch,
 }: {
   busy: boolean;
@@ -30,44 +27,11 @@ export default function SearchPanel({
   setSvc: (s: Set<Svc>) => void;
   water: Set<Water>;
   setWater: (s: Set<Water>) => void;
-  // Hidden until the first search lands — nothing to filter before results.
-  showFilters: boolean;
   onSearch: () => void;
 }) {
   return (
     <div className="flex flex-col gap-4">
-      {/* Filters + explicit search. Enter submits and searches. */}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          onSearch();
-        }}
-        className="flex flex-col gap-2"
-      >
-        {showFilters && (
-          <FilterPills
-            svc={svc}
-            setSvc={setSvc}
-            water={water}
-            setWater={setWater}
-            counts={counts}
-          />
-        )}
-
-        {/* While a search runs, the button gives way to the self-narrating
-            loader (same one the landing hero uses) so the wait reads clearly. */}
-        {busy ? (
-          <SearchProgress active variant="inline" />
-        ) : (
-          <button
-            type="submit"
-            className="bg-sky-deep text-ink hover:bg-sky-deep/85 flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition disabled:opacity-40"
-          >
-            <MagnifyingGlassIcon size={16} />
-            Search
-          </button>
-        )}
-      </form>
+      <FilterPills svc={svc} setSvc={setSvc} water={water} setWater={setWater} counts={counts} />
 
       {err && <ErrorNotice message={err} tone="light" onRetry={onSearch} retrying={busy} />}
     </div>
