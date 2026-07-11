@@ -19,6 +19,7 @@ import WaypointPopup from "@/components/WaypointPopup";
 import { usePlannerMarkers } from "@/components/planner/usePlannerMarkers";
 import CompassEnableModal from "@/components/run/CompassEnableModal";
 import { useRunSession } from "@/hooks/useRunSession";
+import { useLiveLocation } from "@/lib/useLiveLocation";
 import { useOsmEdits } from "@/hooks/useOsmEdits";
 import { usePlannerDraftSync } from "@/hooks/usePlannerDraftSync";
 import { apiFetch, isNative } from "@/lib/api";
@@ -61,6 +62,11 @@ export default function PlannerPage() {
   // The live run, fed from the shared hook. Armed only once we reach the run
   // phase so the location prompt doesn't fire while building a route.
   const session = useRunSession({ enabled: phase === "run" });
+
+  // Live blue dot + heading while building the route (map phase). The run phase
+  // gets the same from `session`, so this watch is scoped to `map` to avoid a
+  // second GPS watch during the run.
+  const live = useLiveLocation({ enabled: phase === "map" });
 
   // Direct OSM edits made from the map, before any run. Backed by the offline
   // outbox: saved on-device first, sent to OSM in the background.
@@ -186,8 +192,10 @@ export default function PlannerPage() {
           fitPoints={phase === "run" ? session.fitPoints : undefined}
           markers={phase === "run" ? session.markers : markers}
           line={phase === "run" ? session.line : line}
-          userPos={phase === "run" ? session.userPos : undefined}
-          userHeading={phase === "run" ? session.userHeading : undefined}
+          userPos={phase === "run" ? session.userPos : phase === "map" ? live.pos : undefined}
+          userHeading={
+            phase === "run" ? session.userHeading : phase === "map" ? live.heading : undefined
+          }
           onMapClick={phase === "run" ? undefined : mapClick}
           mapClickPopup={
             phase === "map"
@@ -208,6 +216,9 @@ export default function PlannerPage() {
             open={session.needsCompassPermission}
             onEnable={session.requestCompass}
           />
+        )}
+        {phase === "map" && (
+          <CompassEnableModal open={live.needsCompassPermission} onEnable={live.requestCompass} />
         )}
       </div>
 
