@@ -15,6 +15,7 @@ import type { Fountain } from "@/lib/schemas";
 import type { MapMarker } from "@/components/MapView";
 import type { OsmEdits } from "@/hooks/useOsmEdits";
 import AccountChip from "@/components/AccountChip";
+import MapSearchBar from "@/components/MapSearchBar";
 import Modal from "@/components/ui/Modal";
 import PointPopup from "@/components/PointPopup";
 import FountainPopup from "@/components/fountains/FountainPopup";
@@ -261,6 +262,14 @@ export default function FountainMap({
     setShowSearchArea(true);
   }, []);
 
+  // Jump the map to a geocoded place. Recenters and surfaces "Search this area"
+  // so the user can pull fountains for wherever they landed.
+  const goTo = useCallback((at: Pt) => {
+    setCenter(at);
+    setRecenterKey(`${at.lat},${at.lon}`);
+    setShowSearchArea(true);
+  }, []);
+
   const ranked = useMemo<Ranked[]>(
     () => rankFountains(fountains, searchedAt),
     [fountains, searchedAt],
@@ -359,18 +368,19 @@ export default function FountainMap({
         <div className="safe-top pointer-events-none absolute inset-x-0 z-[1000] flex flex-col gap-3 p-4 md:p-5">
           {/* Header: back link + account (only without a navbar) and the button
               that reopens the search/filter modal. */}
-          <header className="flex items-center justify-between">
-            {!nav ? (
-              <Link
-                href={backHref}
-                className="border-paper-line bg-paper/90 text-ink-dim hover:text-ink pointer-events-auto flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-xs font-semibold shadow-sm backdrop-blur transition"
-              >
-                <ArrowLeftIcon size={14} />
-                {backLabel}
-              </Link>
-            ) : (
-              <span />
-            )}
+          <header className="flex items-start justify-between gap-2">
+            <div className="pointer-events-auto flex items-start gap-2">
+              {!nav && (
+                <Link
+                  href={backHref}
+                  className="border-paper-line bg-paper/90 text-ink-dim hover:text-ink flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-xs font-semibold shadow-sm backdrop-blur transition"
+                >
+                  <ArrowLeftIcon size={14} />
+                  {backLabel}
+                </Link>
+              )}
+              <MapSearchBar onResult={goTo} />
+            </div>
             <div className="pointer-events-auto flex items-center gap-2">
               <button
                 type="button"

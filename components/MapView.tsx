@@ -5,7 +5,6 @@ import MapGL, {
   Layer,
   Marker,
   Popup,
-  NavigationControl,
   AttributionControl,
   type MapRef,
   type MapLayerMouseEvent,
@@ -67,13 +66,14 @@ type Props = {
   onMapClick?: (lat: number, lon: number) => void;
   // Fired when the user drags the map, so callers can drop "follow me" mode.
   onUserPan?: () => void;
-  // Fired after any pan/zoom settles, with the current center, a radius (m)
-  // reaching the viewport corner — enough to cover everything visible — and the
-  // exact viewport bounds ([[south, west], [north, east]]) so callers can draw a
-  // searched-area box matching the visible rectangle. The `userInitiated` flag is
-  // true only when the move came from a drag/zoom gesture (not a programmatic
-  // recenter), so callers can surface a "search this area" affordance. Only wired
-  // when a handler is supplied.
+  // Fired once on map load and after any pan/zoom settles, with the current
+  // center, a radius (m) reaching the viewport corner — enough to cover
+  // everything visible — and the exact viewport bounds
+  // ([[south, west], [north, east]]) so callers can draw a searched-area box
+  // matching the visible rectangle. The `userInitiated` flag is true only when
+  // the move came from a drag/zoom gesture (not load or a programmatic
+  // recenter), so callers can surface a "search this area" affordance. Only
+  // wired when a handler is supplied.
   onViewChange?: (
     view: {
       lat: number;
@@ -383,8 +383,10 @@ export default function MapView({
     [markerById, onMapClick],
   );
 
-  const handleMoveEnd = useCallback(
-    (e: { originalEvent?: unknown }) => {
+  // Report the settled view to the caller. Fired on load (so the initial
+  // viewport is known before any movement) and after every pan/zoom.
+  const emitView = useCallback(
+    (userInitiated: boolean) => {
       if (!onViewChange) return;
       const map = mapRef.current;
       if (!map) return;
@@ -402,10 +404,15 @@ export default function MapView({
             [ne.lat, ne.lng],
           ],
         },
-        !!e.originalEvent,
+        userInitiated,
       );
     },
     [onViewChange],
+  );
+
+  const handleMoveEnd = useCallback(
+    (e: { originalEvent?: unknown }) => emitView(!!e.originalEvent),
+    [emitView],
   );
 
   const popupCtx = useMemo(() => ({ close: () => setSelected(null) }), []);
@@ -430,7 +437,10 @@ export default function MapView({
         touchZoomRotate={interactive}
         boxZoom={interactive}
         keyboard={interactive}
-        onLoad={() => mapRef.current?.getMap().touchZoomRotate.disableRotation()}
+        onLoad={() => {
+          mapRef.current?.getMap().touchZoomRotate.disableRotation();
+          emitView(false);
+        }}
         onClick={handleClick}
         onDragStart={() => onUserPan?.()}
         onMoveEnd={handleMoveEnd}
@@ -444,7 +454,6 @@ export default function MapView({
         }}
       >
         <AttributionControl customAttribution={ATTRIBUTION} compact />
-        {interactive && <NavigationControl position="top-left" showCompass={false} />}
 
         {maskData && (
           <Source id="searched-mask" type="geojson" data={maskData}>
