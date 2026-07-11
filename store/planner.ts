@@ -165,7 +165,7 @@ export const usePlanner = create<PlannerState>((set, get) => ({
   recencyMonths: 6,
   // Prefilled target so switching to distance mode lands ready-to-plan.
   targetMi: 3,
-  sizeMode: "points",
+  sizeMode: "distance",
   loop: true,
   tag: { key: "amenity", value: "drinking_water" },
 
