@@ -64,6 +64,11 @@ type Props = {
   // Compass heading in degrees (0 = north, clockwise). Draws a direction cone.
   userHeading?: number | null;
   onMapClick?: (lat: number, lon: number) => void;
+  // When set, a tap on empty map opens a popup anchored at the tapped spot
+  // rendering this content, instead of firing onMapClick — so an action (e.g.
+  // "Add a waypoint") is confirmed in place rather than committed on the bare
+  // tap. `close` dismisses the popup. Takes precedence over onMapClick.
+  mapClickPopup?: (pt: { lat: number; lon: number }, close: () => void) => ReactNode;
   // Fired when the user drags the map, so callers can drop "follow me" mode.
   onUserPan?: () => void;
   // Fired once on map load and after any pan/zoom settles, with the current
@@ -314,6 +319,7 @@ export default function MapView({
   userPos,
   userHeading,
   onMapClick,
+  mapClickPopup,
   onUserPan,
   onViewChange,
   recenterKey,
@@ -324,6 +330,8 @@ export default function MapView({
 }: Props) {
   const mapRef = useRef<MapRef>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  // The empty-map tap awaiting confirmation via `mapClickPopup`, if any.
+  const [pendingTap, setPendingTap] = useState<{ lat: number; lon: number } | null>(null);
 
   const markerById = useMemo(() => new Map(markers.map((m) => [String(m.id), m])), [markers]);
   const markerData = useMemo(() => markersToFeatures(markers), [markers]);
@@ -380,15 +388,23 @@ export default function MapView({
       if (feature) {
         const mid = feature.properties?.mid as string | undefined;
         const m = mid != null ? markerById.get(mid) : undefined;
+        // Tapping a marker supersedes any pending empty-tap popup.
+        setPendingTap(null);
         if (m?.popup) setSelected(mid ?? null);
         else m?.onClick?.();
         return;
       }
-      // Empty-map tap: dismiss any popup, then report for drop-a-pin.
+      // Empty-map tap: dismiss any marker popup. When a mapClickPopup renderer is
+      // supplied, open it at the tapped spot to confirm the action; otherwise
+      // report the tap straight to the caller (drop-a-pin).
       setSelected(null);
+      if (mapClickPopup) {
+        setPendingTap({ lat: e.lngLat.lat, lon: e.lngLat.lng });
+        return;
+      }
       onMapClick?.(e.lngLat.lat, e.lngLat.lng);
     },
-    [markerById, onMapClick],
+    [markerById, onMapClick, mapClickPopup],
   );
 
   // Report the settled view to the caller. Fired on load (so the initial
@@ -533,6 +549,21 @@ export default function MapView({
             <MapPopupContext.Provider value={popupCtx}>
               {selectedMarker.popup}
             </MapPopupContext.Provider>
+          </Popup>
+        )}
+
+        {pendingTap && mapClickPopup && (
+          <Popup
+            longitude={pendingTap.lon}
+            latitude={pendingTap.lat}
+            anchor="bottom"
+            offset={14}
+            closeOnClick={false}
+            closeButton={false}
+            maxWidth="none"
+            onClose={() => setPendingTap(null)}
+          >
+            {mapClickPopup(pendingTap, () => setPendingTap(null))}
           </Popup>
         )}
       </MapGL>

@@ -26,23 +26,18 @@ export function bucketOf(tags: Record<string, string>, nowMs: number): Bucket {
 }
 
 export const BUCKET_LABEL: Record<Bucket, string> = {
-  fresh: "Checked <1y ago",
-  stale: "Checked 1–3y ago",
-  very_stale: "Checked >3y ago",
+  fresh: "<1y ago",
+  stale: "1–3y ago",
+  very_stale: ">3y ago",
 };
 
 const ORDER = ["fresh", "stale", "very_stale"] as const;
 
-// Legend swatches with per-state counts (numbers kept low-emphasis).
-export default function FreshnessLegend({
-  counts,
-  className = "",
-}: {
-  counts: Record<Bucket, number>;
-  className?: string;
-}) {
+// Legend swatches for each freshness state.
+export default function FreshnessLegend({ className = "" }: { className?: string }) {
   return (
     <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium ${className}`}>
+      <span className="text-ink-dim tracking-wide uppercase">Checked</span>
       {ORDER.map((b) => (
         <span key={b} className="flex items-center gap-1.5">
           <span
@@ -50,7 +45,6 @@ export default function FreshnessLegend({
             style={{ background: BUCKET_COLOR[b] }}
           />
           {BUCKET_LABEL[b]}
-          <span className="text-ink-dim tabular-nums">{counts[b]}</span>
         </span>
       ))}
     </div>

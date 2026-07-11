@@ -15,6 +15,7 @@ import ConfigWizard from "@/components/planner/ConfigWizard";
 import RouteBuilderPanel from "@/components/planner/RouteBuilderPanel";
 import ResumeDraftPrompt from "@/components/planner/ResumeDraftPrompt";
 import RunPanel from "@/components/planner/RunPanel";
+import WaypointPopup from "@/components/WaypointPopup";
 import { usePlannerMarkers } from "@/components/planner/usePlannerMarkers";
 import CompassEnableModal from "@/components/run/CompassEnableModal";
 import { useRunSession } from "@/hooks/useRunSession";
@@ -40,8 +41,10 @@ export default function PlannerPage() {
   const phase = usePlanner((s) => s.phase);
   const center = usePlanner((s) => s.center);
   const recenterKey = usePlanner((s) => s.recenterKey);
+  const animateRecenter = usePlanner((s) => s.animateRecenter);
   const line = usePlanner((s) => s.line);
   const mapClick = usePlanner((s) => s.mapClick);
+  const addVia = usePlanner((s) => s.addVia);
   const tagKey = usePlanner((s) => s.tag.key);
   const setErr = usePlanner((s) => s.setErr);
 
@@ -179,12 +182,25 @@ export default function PlannerPage() {
           center={phase === "run" ? session.center : viewCenter}
           zoom={phase === "run" ? 16 : 14}
           recenterKey={phase === "run" ? session.recenterKey : recenterKey}
+          animateRecenter={phase === "run" ? false : animateRecenter}
           fitPoints={phase === "run" ? session.fitPoints : undefined}
           markers={phase === "run" ? session.markers : markers}
           line={phase === "run" ? session.line : line}
           userPos={phase === "run" ? session.userPos : undefined}
           userHeading={phase === "run" ? session.userHeading : undefined}
           onMapClick={phase === "run" ? undefined : mapClick}
+          mapClickPopup={
+            phase === "map"
+              ? (pt, close) => (
+                  <WaypointPopup
+                    onAdd={() => {
+                      addVia(pt.lat, pt.lon);
+                      close();
+                    }}
+                  />
+                )
+              : undefined
+          }
           className="absolute inset-0 h-full w-full"
         />
         {phase === "run" && (
@@ -203,7 +219,7 @@ export default function PlannerPage() {
             <OsmStatusBar />
           </div>
           <div className="pointer-events-auto ml-auto">
-            <AccountChip />
+            <AccountChip chipTone="neutral" label="Exit" />
           </div>
         </header>
       )}

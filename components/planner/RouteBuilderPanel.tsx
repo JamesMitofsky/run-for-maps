@@ -1,12 +1,14 @@
 "use client";
 
 import { useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeftIcon, ArrowsLeftRightIcon, PathIcon } from "@phosphor-icons/react";
+import { ArrowLeftIcon, ArrowRightIcon, ArrowsLeftRightIcon } from "@phosphor-icons/react";
 import Button from "@/components/ui/Button";
 import ErrorNotice from "@/components/ui/ErrorNotice";
 import SegmentedControl from "@/components/ui/SegmentedControl";
-import StepProgress, { BUILD_STEP_INDEX } from "@/components/planner/StepProgress";
+import StepProgress, {
+  BUILD_STEP_INDEX,
+  REVIEW_STEP_INDEX,
+} from "@/components/planner/StepProgress";
 import EditSyncPanel from "@/components/EditSyncPanel";
 import type { OsmEdits } from "@/hooks/useOsmEdits";
 import { usePlanner, pinnedOf, removedOf } from "@/store/planner";
@@ -23,8 +25,9 @@ function markLabel(f: Fountain) {
   return f.tags.name ?? "Unnamed fountain";
 }
 
-// Map phase: sizing controls, point picking help, plan/reverse/start-run, and
-// the edit-sync review for direct OSM updates made from the map.
+// Map phase, second half of the setup sequence. Two steps share this panel:
+// BUILD (sizing controls → "Plan route" advances) and REVIEW (the route summary
+// → "Start run" launches). Both keep the wizard's bottom Back/Next nav.
 export default function RouteBuilderPanel({ osmEdits }: { osmEdits: OsmEdits }) {
   const p = usePlanner();
 
@@ -44,172 +47,116 @@ export default function RouteBuilderPanel({ osmEdits }: { osmEdits: OsmEdits }) 
     p.sizeMode === "distance" ? (p.targetMi || 0) > 0 : pinned.length > 0 || p.vias.length > 0;
   const planHint = p.sizeMode === "distance" ? "Enter a target distance above." : null;
 
+  const isReview = p.step === REVIEW_STEP_INDEX;
+
+  // "Plan route": build, then (only on success) page over to the review step.
+  async function handlePlan() {
+    await p.makeRoute();
+    if (usePlanner.getState().stops.length > 0) p.setStep(REVIEW_STEP_INDEX);
+  }
+
   return (
-    <section className="flex w-full max-w-sm flex-col gap-4 md:max-h-[calc(100vh-7rem)] md:overflow-y-auto">
-      {/* Last step of the setup sequence. The progress bar and Back button keep
-          it continuous with the config wizard — no dead-end, standalone view. */}
-      <StepProgress current={BUILD_STEP_INDEX} />
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => {
-            // Return to the config wizard on its final (radius) step.
-            p.setStep(BUILD_STEP_INDEX - 1);
-            p.setPhase("config");
-          }}
-          className="border-paper-line text-ink-dim hover:text-ink flex shrink-0 items-center gap-1.5 rounded-sm border px-3 py-1.5 text-xs font-semibold transition"
-        >
-          <ArrowLeftIcon size={14} />
-          Back
-        </button>
-        <h2 className="font-display text-lg font-bold">Build the route</h2>
-      </div>
-      {p.fountains.length > 0 && (
-        <span className="bg-sky/15 text-sky-deep -mt-2 w-fit rounded-full px-2 py-0.5 text-xs font-semibold">
-          {p.fountains.length} found
-        </span>
+    <section className="flex w-full max-w-sm flex-col gap-4 md:h-full md:max-h-[calc(100vh-7rem)] md:overflow-y-auto">
+      {/* Setup-sequence steps continue here — same progress bar as the wizard. */}
+      <StepProgress current={p.step} />
+      <h2 className="font-display text-2xl leading-tight font-bold">
+        {isReview ? "Your Route" : "Route Builder"}
+      </h2>
+
+      {/* BUILD step — route sizing: by a target distance, or by the points picked. */}
+      {!isReview && (
+        <div className="flex flex-col gap-2">
+          <SegmentedControl
+            options={SIZE_MODES}
+            value={p.sizeMode}
+            onChange={p.setSizeMode}
+            textSize="sm"
+          />
+          {p.sizeMode === "distance" && (
+            <label className="flex flex-col gap-1 text-sm">
+              Target run (mi)
+              <input
+                type="number"
+                min={0.5}
+                step={0.5}
+                value={p.targetMi}
+                onChange={(e) => p.setTargetMi(e.target.value === "" ? "" : Number(e.target.value))}
+                className="border-paper-line bg-paper/40 text-ink focus:border-sky-deep/60 rounded-lg border px-2 py-2 outline-none"
+              />
+            </label>
+          )}
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={p.loop}
+              onChange={(e) => p.setLoop(e.target.checked)}
+              className="accent-sky-deep h-4 w-4"
+            />
+            Loop to start
+          </label>
+          {p.fountains.length > 0 && !sizingReady && planHint && (
+            <p className="text-ink-dim text-xs">{planHint}</p>
+          )}
+        </div>
       )}
 
-      {/* Route sizing: by a target distance, or by the points picked.
-          Collapses away once a route exists to free vertical space. */}
-      <AnimatePresence initial={false}>
-        {p.stops.length === 0 && (
-          <motion.div
-            key="sizing"
-            initial={false}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.25 }}
-            className="flex flex-col gap-2 overflow-hidden"
-          >
-            <SegmentedControl
-              options={SIZE_MODES}
-              value={p.sizeMode}
-              onChange={p.setSizeMode}
-              textSize="sm"
-            />
-            {p.sizeMode === "distance" && (
-              <label className="flex flex-col gap-1 text-sm">
-                Target run (mi)
-                <input
-                  type="number"
-                  min={0.5}
-                  step={0.5}
-                  value={p.targetMi}
-                  onChange={(e) =>
-                    p.setTargetMi(e.target.value === "" ? "" : Number(e.target.value))
-                  }
-                  className="border-paper-line bg-paper/40 text-ink focus:border-sky-deep/60 rounded-lg border px-2 py-2 outline-none"
-                />
-              </label>
+      {/* REVIEW step — the built route's summary, plus removed-point recovery. */}
+      {isReview && p.stops.length > 0 && (
+        <>
+          <div className="border-sky-deep/30 bg-sky/10 rounded-2xl border p-4 text-sm">
+            <div className="flex justify-between">
+              <span className="text-ink font-semibold">
+                {p.stops.length} stops
+                <span className="text-ink-dim ml-1 font-normal">of {p.fountains.length}</span>
+              </span>
+              <span className="text-sky-deep font-semibold">{fmtDist(p.distanceM)}</span>
+            </div>
+            {p.autoCount > 0 && (
+              <p className="text-ink-dim mt-1 text-xs">
+                +{p.autoCount} grabbed for a small detour off your route. Remove any you don&apos;t
+                want.
+              </p>
             )}
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={p.loop}
-                onChange={(e) => p.setLoop(e.target.checked)}
-                className="accent-sky-deep h-4 w-4"
-              />
-              Loop (finish back at start)
-            </label>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Map interaction help */}
-      <div className="flex flex-col gap-2">
-        <p className="text-ink-dim text-xs">
-          Tap to add / remove. Long-press to update in OSM. Click any space to add a waypoint
-          {p.vias.length > 0 && <span className="text-ink-dim"> ({p.vias.length} added)</span>}.
-        </p>
-        {removed.length > 0 && (
-          <div className="flex flex-col gap-1">
-            <span className="text-ink-dim text-xs font-semibold">
-              Removed from route ({removed.length})
-            </span>
-            <ul className="flex flex-col gap-1">
-              {removed.map((f) => (
-                <li
-                  key={f.id}
-                  className="bg-paper-deep flex items-center justify-between rounded-lg px-2 py-1 text-xs"
-                >
-                  <span className="text-ink-dim flex items-center gap-1 truncate line-through">
-                    {markLabel(f)}
-                  </span>
-                  <button
-                    onClick={() => p.restoreStop(f.id)}
-                    className="text-sky-deep/70 hover:text-sky-deep shrink-0 font-semibold"
-                    aria-label="add point back to route"
-                  >
-                    Add back
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
-
-      <AnimatePresence initial={false}>
-        {p.stops.length === 0 && (
-          <motion.div
-            key="plan-btn"
-            initial={false}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.25 }}
-            className="border-paper-line flex flex-col gap-2 overflow-hidden border-t pt-4"
-          >
-            <Button
-              onClick={p.makeRoute}
-              disabled={p.fountains.length === 0 || p.busy !== null || !sizingReady}
-              className="flex items-center justify-center gap-2"
-            >
-              <PathIcon size={16} />
-              {p.busy === "route" ? "Planning…" : "Plan route"}
-            </Button>
-            {p.fountains.length > 0 && !sizingReady && planHint && (
-              <p className="text-ink-dim text-center text-xs">{planHint}</p>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {p.stops.length > 0 && (
-        <div className="border-sky-deep/30 bg-sky/10 rounded-2xl border p-4 text-sm">
-          <div className="flex justify-between">
-            <span className="text-ink font-semibold">
-              {p.stops.length} stops
-              <span className="text-ink-dim ml-1 font-normal">of {p.fountains.length}</span>
-            </span>
-            <span className="text-sky-deep font-semibold">{fmtDist(p.distanceM)}</span>
-          </div>
-          {p.autoCount > 0 && (
-            <p className="text-ink-dim mt-1 text-xs">
-              +{p.autoCount} grabbed for a small detour off your route. Remove any you don&apos;t
-              want.
-            </p>
-          )}
-          <div className="mt-3 flex gap-2">
             {p.stops.length > 1 && (
               <Button
                 onClick={p.reverseRoute}
                 disabled={p.busy !== null}
                 variant="accent"
-                className="flex flex-1 items-center justify-center gap-2"
+                className="mt-3 flex w-full items-center justify-center gap-2"
               >
                 <ArrowsLeftRightIcon size={16} />
                 {p.busy === "reverse" ? "Reversing…" : "Direction"}
               </Button>
             )}
-            <button
-              onClick={p.startRun}
-              disabled={p.busy !== null}
-              className="bg-ink text-paper hover:bg-ink-soft flex-1 rounded-sm py-2.5 font-bold transition disabled:opacity-40"
-            >
-              Start run →
-            </button>
           </div>
-        </div>
+
+          {removed.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <span className="text-ink-dim text-xs font-semibold">
+                Removed from route ({removed.length})
+              </span>
+              <ul className="flex flex-col gap-1">
+                {removed.map((f) => (
+                  <li
+                    key={f.id}
+                    className="bg-paper-deep flex items-center justify-between rounded-lg px-2 py-1 text-xs"
+                  >
+                    <span className="text-ink-dim flex items-center gap-1 truncate line-through">
+                      {markLabel(f)}
+                    </span>
+                    <button
+                      onClick={() => p.restoreStop(f.id)}
+                      className="text-sky-deep/70 hover:text-sky-deep shrink-0 font-semibold"
+                      aria-label="add point back to route"
+                    >
+                      Add back
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </>
       )}
 
       <EditSyncPanel osmEdits={osmEdits} />
@@ -228,6 +175,44 @@ export default function RouteBuilderPanel({ osmEdits }: { osmEdits: OsmEdits }) 
           )}
         </ErrorNotice>
       )}
+
+      {/* Bottom nav mirrors the wizard: Back on the left, primary action on the
+          right. BUILD advances by planning; REVIEW launches the run. */}
+      <div className="mt-auto flex items-center gap-3 pt-4 pb-4 md:pb-0">
+        <button
+          onClick={() => {
+            if (isReview) {
+              p.setStep(BUILD_STEP_INDEX);
+            } else {
+              p.setStep(BUILD_STEP_INDEX - 1);
+              p.setPhase("config");
+            }
+          }}
+          className="border-paper-line text-ink-dim hover:text-ink flex items-center gap-1.5 rounded-sm border px-4 py-2.5 text-sm font-semibold transition"
+        >
+          <ArrowLeftIcon size={16} />
+          Back
+        </button>
+        {isReview ? (
+          <Button
+            onClick={p.startRun}
+            disabled={p.busy !== null || p.stops.length === 0}
+            className="ml-auto flex items-center gap-1.5"
+          >
+            Start run
+            <ArrowRightIcon size={16} />
+          </Button>
+        ) : (
+          <Button
+            onClick={handlePlan}
+            disabled={p.fountains.length === 0 || p.busy !== null || !sizingReady}
+            className="ml-auto flex items-center gap-1.5"
+          >
+            {p.busy === "route" ? "Planning…" : "Plan route"}
+            <ArrowRightIcon size={16} />
+          </Button>
+        )}
+      </div>
     </section>
   );
 }

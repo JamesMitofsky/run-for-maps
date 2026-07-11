@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import type { MapMarker } from "@/components/MapView";
-import { BUCKET_COLOR, bucketOf, type Bucket } from "@/components/FreshnessLegend";
+import { BUCKET_COLOR, bucketOf } from "@/components/FreshnessLegend";
 import FountainPopup from "@/components/fountains/FountainPopup";
 import SearchProgress, { type LoadingStep } from "@/components/fountains/SearchProgress";
 import ErrorNotice from "@/components/ui/ErrorNotice";
@@ -33,15 +33,7 @@ const LOADING_STEPS: LoadingStep[] = [
   { text: "Reading check_date tags to grade recency…", ms: 5000 },
 ];
 
-export default function LiveFountainMap({
-  className,
-  onCountsChange,
-}: {
-  className?: string;
-  // Emits freshness counts once the map has loaded (null while loading/failed),
-  // so a parent can render the legend outside the map plate.
-  onCountsChange?: (counts: Record<Bucket, number> | null) => void;
-}) {
+export default function LiveFountainMap({ className }: { className?: string }) {
   const [fountains, setFountains] = useState<Fountain[]>([]);
   const [busy, setBusy] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -103,7 +95,7 @@ export default function LiveFountainMap({
     load();
   }, [load]);
 
-  // Bucket every point once, then derive markers + legend counts from it.
+  // Bucket every point once, then derive markers from it.
   const buckets = useMemo(
     () => fountains.map((f) => ({ f, bucket: bucketOf(f.tags, nowMs) })),
     [fountains, nowMs],
@@ -134,19 +126,8 @@ export default function LiveFountainMap({
     return byDist.slice(0, keep).map(({ m }) => [m.lat, m.lon]);
   }, [markers]);
 
-  const counts = useMemo(() => {
-    const c: Record<Bucket, number> = { fresh: 0, stale: 0, very_stale: 0 };
-    for (const { bucket } of buckets) c[bucket]++;
-    return c;
-  }, [buckets]);
-
   const loading = busy && fountains.length === 0;
   const succeeded = !busy && !err && fountains.length > 0;
-
-  // Surface counts to the parent so the legend can live above the map plate.
-  useEffect(() => {
-    onCountsChange?.(succeeded ? counts : null);
-  }, [succeeded, counts, onCountsChange]);
 
   return (
     <div className={`relative h-full w-full ${className ?? ""}`}>

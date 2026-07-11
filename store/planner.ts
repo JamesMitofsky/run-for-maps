@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { BUILD_STEP_INDEX, REVIEW_STEP_INDEX } from "@/components/planner/StepProgress";
 import { planRoute } from "@/lib/plan";
 import { milesToMeters, type Pt } from "@/lib/geo";
 import type { Turn } from "@/lib/brouter";
@@ -52,6 +53,8 @@ type PlannerState = {
   vias: Pt[];
   pinnedIds: number[];
   recenterKey: string;
+  // Whether the pending recenter should animate (flyTo) instead of jump.
+  animateRecenter: boolean;
   addr: string;
   radiusMi: number | "";
   // Recency filter: by default surface points NOT surveyed in the last 6 months
@@ -100,7 +103,7 @@ type PlannerState = {
   setLoop: (loop: boolean) => void;
   setErr: (err: string | null) => void;
 
-  recenter: (p: Pt) => void;
+  recenter: (p: Pt, animate?: boolean) => void;
   geolocate: () => void;
   searchAddr: () => Promise<void>;
   findPoints: () => Promise<void>;
@@ -114,6 +117,7 @@ type PlannerState = {
   toggleStop: (id: number) => void;
   restoreStop: (id: number) => void;
   mapClick: (lat: number, lon: number) => void;
+  addVia: (lat: number, lon: number) => void;
   removeVia: (i: number) => void;
   loadDraft: () => Promise<void>;
   resumeDraft: () => void;
@@ -154,8 +158,9 @@ export const usePlanner = create<PlannerState>((set, get) => ({
   vias: [],
   pinnedIds: [],
   recenterKey: "init",
+  animateRecenter: false,
   addr: "",
-  radiusMi: 3,
+  radiusMi: 4,
   recencyMode: "stale",
   recencyMonths: 6,
   targetMi: "",
@@ -181,8 +186,9 @@ export const usePlanner = create<PlannerState>((set, get) => ({
   resumable: null,
   draftReady: false,
 
-  setPhase: (phase) => set({ phase }),
-  setStep: (step) => set({ step }),
+  // Navigating between steps/phases wipes any stale error from the step you left.
+  setPhase: (phase) => set({ phase, err: null, islandPt: null }),
+  setStep: (step) => set({ step, err: null, islandPt: null }),
   setAddr: (addr) => set({ addr }),
   setRadiusMi: (radiusMi) => set({ radiusMi }),
   setRecencyMode: (recencyMode) => set({ recencyMode }),
@@ -195,8 +201,8 @@ export const usePlanner = create<PlannerState>((set, get) => ({
   },
   setErr: (err) => set({ err }),
 
-  recenter: (p) => {
-    set({ center: p, recenterKey: `${p.lat},${p.lon},${++recenterSeq}` });
+  recenter: (p, animate = false) => {
+    set({ center: p, recenterKey: `${p.lat},${p.lon},${++recenterSeq}`, animateRecenter: animate });
   },
 
   geolocate: () => {
@@ -225,7 +231,7 @@ export const usePlanner = create<PlannerState>((set, get) => ({
   },
 
   findPoints: async () => {
-    const { center, radiusMi, tag, recencyMode, recencyMonths } = get();
+    const { center, radiusMi, tag, recencyMonths } = get();
     if (!center) return;
     // Building fresh — drop any pending resume offer so the new route persists.
     set({
@@ -250,7 +256,8 @@ export const usePlanner = create<PlannerState>((set, get) => ({
           ...center,
           radiusM: milesToMeters(radiusMi || 0),
           tag,
-          recencyMode,
+          // Recency is fixed to stale: only points not checked within the window.
+          recencyMode: "stale",
           recencyMonths: recencyMonths || 6,
         }),
       });
@@ -276,10 +283,11 @@ export const usePlanner = create<PlannerState>((set, get) => ({
     }
   },
 
-  // Last config step: run the search, then hand the screen over to the map.
+  // Last config step: run the search, then hand the screen over to the map's
+  // build step (the next step in the shared setup sequence).
   finishConfig: async () => {
     await get().findPoints();
-    set({ phase: "map" });
+    set({ phase: "map", step: BUILD_STEP_INDEX });
   },
 
   // Plan + fetch street geometry. Unlike the old page-local version there is no
@@ -446,18 +454,21 @@ export const usePlanner = create<PlannerState>((set, get) => ({
   },
 
   mapClick: (lat, lon) => {
-    const { phase, step, center, vias } = get();
+    const { phase, step } = get();
     // The start point can only be set during the first setup step ("where").
     // Later config steps ignore map clicks so the start can't move by accident.
-    if (phase === "config") {
-      if (step === 0) get().recenter({ lat, lon });
-      return;
-    }
-    // Map phase: a click drops a pass-through waypoint.
-    if (center) {
-      set({ vias: [...vias, { lat, lon }] });
-      get().replan();
-    }
+    if (phase === "config" && step === 0) get().recenter({ lat, lon }, true);
+    // Map phase clicks are handled by the "Add a waypoint" popup (see addVia),
+    // not here — so a stray tap can't drop a via without confirmation.
+  },
+
+  // Drop a pass-through waypoint at the tapped spot and re-plan around it.
+  // Called from the map's "Add a waypoint" popup, not on the bare tap.
+  addVia: (lat, lon) => {
+    const { center, vias } = get();
+    if (!center) return;
+    set({ vias: [...vias, { lat, lon }] });
+    get().replan();
   },
 
   // Remove a pass-through waypoint and re-plan around the rest.
@@ -505,6 +516,9 @@ export const usePlanner = create<PlannerState>((set, get) => ({
       hasRoute: d.stops.length > 0,
       resumable: null,
       phase: "map",
+      // A saved draft with a built route resumes on the review step; otherwise
+      // land on the build step to (re)plan.
+      step: d.stops.length > 0 ? REVIEW_STEP_INDEX : BUILD_STEP_INDEX,
     });
   },
 
