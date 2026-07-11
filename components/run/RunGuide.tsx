@@ -7,6 +7,8 @@ import {
   WarningIcon,
   TrashIcon,
   ArrowUpIcon,
+  ArrowElbowUpLeftIcon,
+  ArrowElbowUpRightIcon,
   SkipBackIcon,
   SkipForwardIcon,
   PlusCircleIcon,
@@ -14,11 +16,31 @@ import {
   DogIcon,
 } from "@phosphor-icons/react";
 import type { RunSession } from "@/hooks/useRunSession";
-import { fmtDist, maneuver } from "@/lib/geo";
+import { fmtFeet, maneuver } from "@/lib/geo";
 import SyncStatus from "@/components/SyncStatus";
 import OsmSignInLink from "@/components/OsmSignInLink";
 
 type Tone = "light" | "dark";
+
+// Travel-relative turn arrow. 0° = straight on, + = right, − = left.
+// Slight turns rotate a plain arrow (a gentle diagonal reads fine), but a real
+// turn (≥45°) swaps to an elbow icon — a vertical "forward" shaft bending off to
+// the side — because a flat-rotated arrow at 90° looked like "go left" rather
+// than "turn left ahead".
+function TurnArrow({ angle, className }: { angle: number; className: string }) {
+  if (Math.abs(angle) >= 45) {
+    const Elbow = angle > 0 ? ArrowElbowUpRightIcon : ArrowElbowUpLeftIcon;
+    return <Elbow size={40} weight="bold" className={className} />;
+  }
+  return (
+    <ArrowUpIcon
+      size={40}
+      weight="bold"
+      style={{ transform: `rotate(${angle}deg)` }}
+      className={`${className} transition-transform`}
+    />
+  );
+}
 
 // Theme tokens so the run guidance can live both on the standalone /run page
 // (light) and inline in the dark planner shell without forking the markup.
@@ -115,19 +137,13 @@ export default function RunGuide({
               </div>
             ) : (
               <>
-                {/* Travel-relative turn arrow: 0° = straight on, + = right.
-                    Falls back to "up" when no turn is ahead (final approach). */}
-                <ArrowUpIcon
-                  size={40}
-                  weight="bold"
-                  style={{ transform: `rotate(${nextTurn?.angle ?? 0}deg)` }}
-                  className={`${t.arrow} transition-transform`}
-                />
+                {/* Falls back to "up" when no turn is ahead (final approach). */}
+                <TurnArrow angle={nextTurn?.angle ?? 0} className={t.arrow} />
                 <div className="flex flex-1 flex-col items-center justify-center">
                   <div className="text-2xl font-bold">
                     {(() => {
                       const d = distToTurn ?? distToTarget;
-                      return d != null ? fmtDist(d) : "—";
+                      return d != null ? fmtFeet(d) : "—";
                     })()}
                   </div>
                   <div className={`text-sm ${t.sub}`}>
