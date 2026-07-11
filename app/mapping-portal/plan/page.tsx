@@ -13,6 +13,8 @@ import AccountChip from "@/components/AccountChip";
 import OsmStatusBar, { useOsmStatus } from "@/components/OsmStatus";
 import ConfigWizard from "@/components/planner/ConfigWizard";
 import RouteBuilderPanel from "@/components/planner/RouteBuilderPanel";
+import SearchProgress, { type LoadingStep } from "@/components/fountains/SearchProgress";
+import BusyPill from "@/components/ui/BusyPill";
 import ResumeDraftPrompt from "@/components/planner/ResumeDraftPrompt";
 import RunPanel from "@/components/planner/RunPanel";
 import WaypointPopup from "@/components/WaypointPopup";
@@ -30,6 +32,14 @@ const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 // The device class can't change mid-session, so the mobile check never
 // re-notifies — subscribe is a stable no-op (required by useSyncExternalStore).
 const subscribeNever = () => () => {};
+
+// Play-by-play for the build-phase point search: the query sweeps the chosen
+// radius and keeps only points whose check_date is stale enough to survey.
+const FIND_STEPS: LoadingStep[] = [
+  { text: "Opening a socket to OpenStreetMap servers…", ms: 5000 },
+  { text: "Sweeping your search radius for water points…", ms: 5000 },
+  { text: "Keeping the points due for a survey…", ms: 5000 },
+];
 
 // The planner: one persistent map, three phases. "config" walks the setup
 // questions; "map" builds the route; "run" takes the SAME map live for the
@@ -49,6 +59,9 @@ export default function PlannerPage() {
   const addVia = usePlanner((s) => s.addVia);
   const tagKey = usePlanner((s) => s.tag.key);
   const setErr = usePlanner((s) => s.setErr);
+  const busy = usePlanner((s) => s.busy);
+  const err = usePlanner((s) => s.err);
+  const fountainCount = usePlanner((s) => s.fountains.length);
 
   // Route planning + the live run rely on the phone's GPS and compass, so the
   // planner is gated to mobile. null = not yet determined (the server snapshot,
@@ -216,6 +229,25 @@ export default function PlannerPage() {
             open={session.needsCompassPermission}
             onEnable={session.requestCompass}
           />
+        )}
+
+        {/* Point search in flight (leaving config for the build step): the map
+            is framed on the search area but empty, so the same self-narrating
+            loader as the landing hero covers it while points stream in. */}
+        <SearchProgress
+          active={busy === "find"}
+          done={busy === null && !err && fountainCount > 0}
+          failed={!!err}
+          steps={FIND_STEPS}
+          variant="overlay"
+        />
+
+        {/* Route geometry in flight: points are already on the map, so a small
+            pill confirms the request landed instead of covering them. */}
+        {(busy === "route" || busy === "reverse") && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-4 z-[650] flex justify-center">
+            <BusyPill label={busy === "reverse" ? "Reversing route…" : "Plotting route…"} />
+          </div>
         )}
       </div>
 

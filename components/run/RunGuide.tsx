@@ -16,7 +16,10 @@ import {
   DogIcon,
 } from "@phosphor-icons/react";
 import type { RunSession } from "@/hooks/useRunSession";
+import type { Audience } from "@/lib/schemas";
 import { fmtFeet, maneuver } from "@/lib/geo";
+import { audienceFromTags } from "@/lib/audience";
+import AudienceToggle from "@/components/AudienceToggle";
 import SyncStatus from "@/components/SyncStatus";
 import OsmSignInLink from "@/components/OsmSignInLink";
 
@@ -116,6 +119,16 @@ export default function RunGuide({
   const [confirm, setConfirm] = useState<{ i: number; action: "skip" | "back" } | null>(null);
   const pending = confirm?.i === index ? confirm.action : null;
 
+  // Who the current source serves, prefilled from its tags. Keyed by node id so
+  // the toggle auto-resets to the next stop's tags when the target changes.
+  const [aud, setAud] = useState<{ id: number; value: Audience } | null>(null);
+  const audience: Audience =
+    aud && target && aud.id === target.id
+      ? aud.value
+      : target
+        ? audienceFromTags(target.tags ?? {})
+        : "humans";
+
   return (
     <div className="flex flex-col gap-4">
       <AnimatePresence mode="wait">
@@ -177,17 +190,17 @@ export default function RunGuide({
 
           {arrived && (
             <div className="grid gap-2">
+              {target && (
+                <AudienceToggle
+                  value={audience}
+                  onChange={(value) => setAud({ id: target.id, value })}
+                />
+              )}
               <button
-                onClick={() => record("confirm")}
+                onClick={() => record("confirm", { audience })}
                 className="flex items-center justify-center gap-2 rounded bg-green-600 py-3 font-semibold text-white disabled:opacity-50"
               >
                 <CheckCircleIcon size={20} /> Working — confirm (set check_date)
-              </button>
-              <button
-                onClick={() => record("dog_only")}
-                className="flex items-center justify-center gap-2 rounded bg-violet-600 py-3 font-semibold text-white disabled:opacity-50"
-              >
-                <DogIcon size={20} /> Dog water — not for humans
               </button>
               <button
                 onClick={() => record("out_of_order")}

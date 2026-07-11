@@ -262,8 +262,8 @@ export function useRunSession({ enabled = true }: { enabled?: boolean } = {}) {
     useOutbox.getState().flush();
   }
 
-  function record(action: EditAction) {
-    if (target) recordFor(target, action);
+  function record(action: EditAction, extras?: EditExtras) {
+    if (target) recordFor(target, action, extras);
   }
 
   function skip() {

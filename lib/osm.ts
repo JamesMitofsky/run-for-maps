@@ -213,22 +213,6 @@ export function applyAction(
     case "confirm":
       next.check_date = today;
       break;
-    case "dog_only":
-      // Source exists and works, but is for dogs — not intended for humans.
-      // amenity=drinking_water / =water_point self-assert human potability, so
-      // leaving them while adding drinking_water=no contradicts the primary tag.
-      // Correct per OSM wiki: demote the primary to a neutral physical feature
-      // (man_made=water_tap), then state potability + the dog facility
-      // explicitly. Other primaries (amenity=fountain, natural=spring) don't
-      // imply potability, so keep them and only add the explicit flags.
-      if (next.amenity === "drinking_water" || next.amenity === "water_point") {
-        next.man_made = "water_tap";
-        delete next.amenity;
-      }
-      next.drinking_water = "no";
-      next.dog = "yes";
-      next.check_date = today;
-      break;
     case "out_of_order":
       lifecycle("disused");
       next.check_date = today;
@@ -239,11 +223,26 @@ export function applyAction(
       break;
   }
   // Advanced OSM facts, merged on top of the action. A public note applies to any
-  // action; seasonal only makes sense where the source still exists (confirm /
-  // dog_only) — setting it on a disused/abandoned node would contradict itself.
+  // action; seasonal only makes sense where the source still exists (confirm) —
+  // setting it on a disused/abandoned node would contradict itself.
   if (extras?.note) next.note = extras.note;
-  if (extras?.seasonal && (action === "confirm" || action === "dog_only")) {
+  if (extras?.seasonal && action === "confirm") {
     next.seasonal = "yes";
+  }
+  // Audience (humans / dogs / both) → drinking_water=* + dog=*, only meaningful
+  // while the source still exists (confirm). amenity=drinking_water / =water_point
+  // self-assert human potability, so when the water is dogs-only demote that
+  // primary to a neutral physical feature (man_made=water_tap) before flagging
+  // drinking_water=no, per the OSM wiki. Other primaries (amenity=fountain,
+  // natural=spring) don't imply potability, so keep them and only set the flags.
+  if (extras?.audience && action === "confirm") {
+    const humanOk = extras.audience !== "dogs";
+    if (!humanOk && (next.amenity === "drinking_water" || next.amenity === "water_point")) {
+      next.man_made = "water_tap";
+      delete next.amenity;
+    }
+    next.drinking_water = humanOk ? "yes" : "no";
+    next.dog = extras.audience === "humans" ? "no" : "yes";
   }
   return next;
 }
