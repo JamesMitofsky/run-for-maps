@@ -446,11 +446,11 @@ export const usePlanner = create<PlannerState>((set, get) => ({
   },
 
   mapClick: (lat, lon) => {
-    const { phase, step, center, vias } = get();
-    // The start point can only be set during the first setup step ("where").
-    // Later config steps ignore map clicks so the start can't move by accident.
+    const { phase, center, vias } = get();
+    // Config phase auto-locates to the user's GPS, but a tap can still set/move
+    // the start — a fallback when location is denied or hasn't settled yet.
     if (phase === "config") {
-      if (step === 0) get().recenter({ lat, lon });
+      get().recenter({ lat, lon });
       return;
     }
     // Map phase: a click drops a pass-through waypoint.

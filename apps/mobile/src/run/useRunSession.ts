@@ -9,6 +9,7 @@ import { STATUS_COLOR } from "@rosm/core/editStatus";
 import { archiveRoute, getArchivedRoutes } from "@rosm/core/routeArchive";
 import type { EditAction, EditExtras } from "@rosm/core/schemas";
 import { api } from "../ports/api";
+import { useOsmStatus } from "../auth/useOsmStatus";
 import { watchRunPosition } from "../ports/geolocation";
 import type { GeoWatch } from "@rosm/core/ports";
 import { hapticSuccess } from "../ports/haptics";
@@ -22,9 +23,11 @@ import type { RosmMarker } from "../map/RosmMap";
 // but returns markers as plain data (the screen owns the bottom sheet).
 export function useRunSession({ enabled = true }: { enabled?: boolean } = {}) {
   const run = useRun();
+  const { status: osm, refresh: refreshOsm } = useOsmStatus();
   const [pos, setPos] = useState<Pt | null>(null);
   const [gpsHeading, setGpsHeading] = useState<number | null>(null);
   const [manualArrived, setManualArrived] = useState(false);
+  const [adding, setAdding] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [hydrating, setHydrating] = useState(() => enabled && !useRun.getState().hasPlan);
   const [lastSaved, setLastSaved] = useState<{ nodeId: number; summary: string } | null>(null);
@@ -174,6 +177,60 @@ export function useRunSession({ enabled = true }: { enabled?: boolean } = {}) {
     advance();
   }, [target, run, advance]);
 
+  // Step back to the previous stop and re-open it for action. Resets that stop's
+  // status to pending so the arrival actions show again (a re-record just
+  // enqueues a fresh OSM edit — last write wins). No-op at the first stop.
+  const goBack = useCallback(() => {
+    if (index <= 0) return;
+    const pi = index - 1;
+    setLastSaved(null);
+    setManualArrived(false);
+    run.setStatus(stops[pi].id, "pending");
+    run.setIndex(pi);
+    persist(pi);
+  }, [index, stops, run, persist]);
+
+  // Create a brand-new node of the surveyed type at the current GPS position.
+  // Online-only (needs a fresh node id back from OSM), but shares the outbox's
+  // changeset so the create lands with the run's edits.
+  const addHere = useCallback(async () => {
+    if (!osm?.loggedIn) {
+      setErr("Sign in to OSM first.");
+      return;
+    }
+    if (!pos) {
+      setErr("Waiting for GPS fix.");
+      return;
+    }
+    setAdding(true);
+    setErr(null);
+    setLastSaved(null);
+    try {
+      const r = await api.apiFetch("/api/osm/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lat: pos.lat,
+          lon: pos.lon,
+          tag: { key: tagKey, value: tagValue },
+          changesetId: useOutbox.getState().changesetId,
+        }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "create failed");
+      useOutbox.getState().setChangeset(j.changesetId);
+      run.addNode({ id: j.nodeId, lat: j.lat, lon: j.lon, tags: j.tags });
+      celebratePoint();
+      hapticSuccess();
+      setLastSaved({ nodeId: j.nodeId, summary: j.summary });
+      persist(index, j.changesetId);
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setAdding(false);
+    }
+  }, [osm, pos, tagKey, tagValue, run, index, persist]);
+
   const finish = useCallback(async () => {
     setFinishing(true);
     try {
@@ -268,6 +325,11 @@ export function useRunSession({ enabled = true }: { enabled?: boolean } = {}) {
     distToTurn,
     arrived,
     addLabel,
+    added,
+    pool,
+    osm,
+    refreshOsm,
+    adding,
     err,
     lastSaved,
     finishing,
@@ -276,6 +338,8 @@ export function useRunSession({ enabled = true }: { enabled?: boolean } = {}) {
     recordFor,
     record,
     skip,
+    goBack,
+    addHere,
     finish,
     reset,
   };

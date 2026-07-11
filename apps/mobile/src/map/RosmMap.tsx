@@ -102,6 +102,7 @@ export function RosmMap({
   onMapPress,
   onRegionChange,
   initialOnly,
+  recenterKey,
   fitPoints,
   style,
 }: Props) {
@@ -157,7 +158,10 @@ export function RosmMap({
       onRegionDidChange={onRegionChange ? onRegion : undefined}
     >
       {initialOnly ? (
-        <Camera initialViewState={{ center: view.center, zoom: view.zoom }} />
+        // Keying the Camera on recenterKey remounts just the camera (not the map,
+        // so no tile flash) whenever the caller asks for a programmatic recenter,
+        // while leaving pan/zoom under the user's finger between recenters.
+        <Camera key={recenterKey} initialViewState={{ center: view.center, zoom: view.zoom }} />
       ) : (
         <Camera center={view.center} zoom={view.zoom} />
       )}

@@ -22,6 +22,18 @@ export const geolocation: GeolocationPort = {
   },
 };
 
+// Instant, possibly-stale fix for immediate map feedback — no permission prompt,
+// no GPS wait. Null when permission isn't granted yet or nothing is cached; the
+// caller follows up with the accurate one-shot above.
+export async function getLastKnownPosition(): Promise<GeoPoint | null> {
+  const granted = await Location.getForegroundPermissionsAsync()
+    .then((r) => r.granted)
+    .catch(() => false);
+  if (!granted) return null;
+  const pos = await Location.getLastKnownPositionAsync().catch(() => null);
+  return pos ? toPoint(pos.coords) : null;
+}
+
 // Live run tracking (foreground + background). Starts the TaskManager location task
 // so the run keeps recording with the screen locked, and streams its points to the
 // caller via the shared emitter. Not a core port — the run hook calls it directly.

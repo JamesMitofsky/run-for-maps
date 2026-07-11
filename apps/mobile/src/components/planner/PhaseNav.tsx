@@ -1,0 +1,51 @@
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { CaretLeftIcon, CaretRightIcon } from "phosphor-react-native";
+
+type NavAction = {
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+};
+
+// Shared prev/next chrome so the planner's stacked views — setup → build → run —
+// page through in order. Forward carries that view's transition (and its gating);
+// back just steps to the prior view. A missing side (first/last view) leaves an
+// empty slot so the present control keeps its edge.
+export function PhaseNav({ back, forward }: { back?: NavAction; forward?: NavAction }) {
+  return (
+    <View className="border-paper-line flex-row items-center justify-between border-t pt-3">
+      {back ? (
+        <Pressable
+          onPress={back.onPress}
+          disabled={back.disabled || back.loading}
+          accessibilityRole="button"
+          className={`flex-row items-center gap-1 rounded-xl px-2 py-2 ${
+            back.disabled || back.loading ? "opacity-40" : ""
+          }`}
+        >
+          <CaretLeftIcon size={16} color="#57544a" />
+          <Text className="text-ink-dim text-sm font-semibold">{back.label}</Text>
+        </Pressable>
+      ) : (
+        <View />
+      )}
+      {forward ? (
+        <Pressable
+          onPress={forward.onPress}
+          disabled={forward.disabled || forward.loading}
+          accessibilityRole="button"
+          className={`flex-row items-center gap-1 rounded-xl px-2 py-2 ${
+            forward.disabled || forward.loading ? "opacity-40" : ""
+          }`}
+        >
+          {forward.loading ? <ActivityIndicator size="small" color="#4fafd4" /> : null}
+          <Text className="text-sky-deep text-sm font-bold">{forward.label}</Text>
+          <CaretRightIcon size={16} color="#4fafd4" />
+        </Pressable>
+      ) : (
+        <View />
+      )}
+    </View>
+  );
+}

@@ -72,9 +72,6 @@ export default function QuickUpdate() {
   // Where/how wide the current markers were fetched, and the live viewport.
   const [lastSearch, setLastSearch] = useState<Search | null>(null);
   const [region, setRegion] = useState<RosmRegion | null>(null);
-  // True while a "Search this area" tap is in flight, so the button can stay
-  // mounted showing a spinner (canRequery drops on busy and would hide it).
-  const [requerying, setRequerying] = useState(false);
 
   const search = useCallback(async ({ center: c, radiusM }: Search) => {
     const capped = Math.min(radiusM, MAX_RADIUS_M);
@@ -130,12 +127,8 @@ export default function QuickUpdate() {
 
   async function requery() {
     if (!region) return;
-    setRequerying(true);
-    try {
-      await search({ center: boundsCenter(region.bounds), radiusM: boundsRadiusM(region.bounds) });
-    } finally {
-      setRequerying(false);
-    }
+    // search() drives `busy`, which surfaces the top loading pill during the fetch.
+    await search({ center: boundsCenter(region.bounds), radiusM: boundsRadiusM(region.bounds) });
   }
 
   // Record a status update to the offline outbox. Keeps the sheet open so it can
@@ -197,27 +190,44 @@ export default function QuickUpdate() {
           onMarkerPress={setSelectedId}
         />
       ) : (
-        <View className="flex-1 items-center justify-center">
-          <Text className="text-ink-dim">{busy ? "Finding fountains nearby…" : (err ?? "")}</Text>
+        // Pre-map: geolocation still resolving. Animated indicator (not static
+        // text) so the wait reads as in-progress, per Apple HIG.
+        <View className="flex-1 items-center justify-center gap-3">
+          {err == null ? (
+            <>
+              <ActivityIndicator accessibilityLabel="Locating you" />
+              <Text className="text-ink-dim">Locating you…</Text>
+            </>
+          ) : (
+            <Text className="text-ink-dim">{err}</Text>
+          )}
         </View>
       )}
 
-      {center && (canRequery || requerying) && selectedId == null ? (
+      {/* Top pill: one visual language for two states. While a fetch is in flight
+          (initial load or a "Search this area" requery) it shows an animated
+          spinner so the empty/updating map never reads as frozen; otherwise it
+          offers the requery call-to-action once the map has drifted. */}
+      {center && selectedId == null && (busy || canRequery) ? (
         <SafeArea edges={["top"]} className="absolute top-0 right-0 left-0 items-center p-3">
-          <Pressable
-            onPress={requery}
-            disabled={requerying}
-            className={`bg-ink flex-row items-center gap-2 rounded-full px-5 py-2.5 shadow-lg ${
-              requerying ? "opacity-70" : ""
-            }`}
-            accessibilityRole="button"
-            accessibilityState={{ busy: requerying, disabled: requerying }}
-          >
-            {requerying ? <ActivityIndicator size="small" color="#f7f2e8" /> : null}
-            <Text className="text-paper font-semibold">
-              {requerying ? "Searching…" : "Search this area"}
-            </Text>
-          </Pressable>
+          {busy ? (
+            <View
+              className="bg-ink flex-row items-center gap-2 rounded-full px-5 py-2.5 opacity-70 shadow-lg"
+              accessibilityRole="progressbar"
+              accessibilityLabel="Finding fountains nearby"
+            >
+              <ActivityIndicator size="small" color="#f7f2e8" />
+              <Text className="text-paper font-semibold">Finding fountains nearby…</Text>
+            </View>
+          ) : (
+            <Pressable
+              onPress={requery}
+              className="bg-ink flex-row items-center gap-2 rounded-full px-5 py-2.5 shadow-lg"
+              accessibilityRole="button"
+            >
+              <Text className="text-paper font-semibold">Search this area</Text>
+            </Pressable>
+          )}
         </SafeArea>
       ) : null}
 

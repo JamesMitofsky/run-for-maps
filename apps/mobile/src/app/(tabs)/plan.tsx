@@ -1,91 +1,204 @@
-import { Text, View } from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Alert, Text, useWindowDimensions, View } from "react-native";
 import { useRouter } from "expo-router";
-import { SafeArea } from "../../components/ui/SafeArea";
+import { BottomSheet, RNHostView } from "@expo/ui";
+import {
+  interactiveDismissDisabled,
+  presentationBackground,
+  presentationBackgroundInteraction,
+} from "@expo/ui/swift-ui/modifiers";
 import { usePlanner, inRouteIdsOf } from "@rosm/core/stores/planner";
-import { RosmMap, type RosmMarker } from "../../map/RosmMap";
+import { useRun } from "@rosm/core/stores/run";
+import { useOutbox } from "@rosm/core/stores/outbox";
+import { fmtDist } from "@rosm/core/geo";
+import type { Fountain } from "@rosm/core/schemas";
 import { Button } from "../../components/ui/Button";
-import { Panel } from "../../components/ui/Panel";
+import { RosmMap, type RosmMarker } from "../../map/RosmMap";
+import { ConfigPanel } from "../../components/planner/ConfigPanel";
+import { RouteBuilderPanel } from "../../components/planner/RouteBuilderPanel";
+import { PhaseNav } from "../../components/planner/PhaseNav";
+import { usePlannerMarkers } from "../../components/planner/usePlannerMarkers";
+import { usePlannerDraftSync } from "../../components/planner/usePlannerDraftSync";
+import { useOsmEdits } from "../../run/useOsmEdits";
+import { PointSheet } from "../../components/PointSheet";
+import { hapticSelect } from "../../ports/haptics";
 
-// Three-phase planner (config → map → run) over the shared planner store. The run
-// phase hands off to the standalone /run screen.
+function markLabel(f: Fountain) {
+  return f.tags.name ?? "Unnamed fountain";
+}
+
+// The Survey tab: a single persistent map for the whole planner lifetime, with
+// the config wizard / route builder / run-in-progress card swapping in a bottom
+// panel over it (the web planner keeps one MapView the same way). The run phase
+// itself lives on the standalone /run screen.
 export default function Plan() {
   const router = useRouter();
-  const planner = usePlanner();
+  const { width: winW } = useWindowDimensions();
 
-  if (planner.phase === "config") {
-    return (
-      <SafeArea className="bg-paper flex-1" edges={["top", "bottom"]}>
-        <View className="flex-1 justify-center gap-4 p-5">
-          <Text className="text-ink text-2xl font-bold">Plan a route</Text>
-          <Panel>
-            <Text className="text-ink-dim mb-3 text-sm">
-              Start from where you are, then find nearby OpenStreetMap points to survey on your run.
-            </Text>
-            <Button
-              title="Use my location"
-              variant="secondary"
-              onPress={() => planner.geolocate()}
-            />
-            <Text className="text-ink-dim mt-3 text-xs">
-              {planner.center
-                ? `Center set (${planner.center.lat.toFixed(3)}, ${planner.center.lon.toFixed(3)})`
-                : "No start point yet"}
-            </Text>
-          </Panel>
-          <Button
-            title="Find points"
-            loading={planner.busy === "config" || planner.busy === "route"}
-            disabled={!planner.center}
-            onPress={() => planner.finishConfig()}
-          />
-          {planner.err ? <Text className="text-red-500">{planner.err}</Text> : null}
-        </View>
-      </SafeArea>
+  // Narrow slices only — the map re-diffs its native sources on prop changes,
+  // so busy/err churn in the panels must not reach it.
+  const phase = usePlanner((s) => s.phase);
+  const center = usePlanner((s) => s.center);
+  const recenterKey = usePlanner((s) => s.recenterKey);
+  const line = usePlanner((s) => s.line);
+  const tag = usePlanner((s) => s.tag);
+  const fountains = usePlanner((s) => s.fountains);
+  const stops = usePlanner((s) => s.stops);
+  const pinnedIds = usePlanner((s) => s.pinnedIds);
+  const excludedIds = usePlanner((s) => s.excludedIds);
+  const distanceM = usePlanner((s) => s.distanceM);
+  const resumable = usePlanner((s) => s.resumable);
+
+  usePlannerDraftSync();
+  const { edits, updatePoint } = useOsmEdits({ tagKey: tag.key });
+  const markers = usePlannerMarkers({ edits });
+
+  // Track the tapped point by id — the sheet opens instantly (spinner until the
+  // fountain resolves), same pattern as the quick-update tab.
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const selected = useMemo(
+    () => (selectedId == null ? null : (fountains.find((f) => f.id === selectedId) ?? null)),
+    [fountains, selectedId],
+  );
+  const inRouteIds = useMemo(
+    () => inRouteIdsOf({ stops, pinnedIds, excludedIds }),
+    [stops, pinnedIds, excludedIds],
+  );
+
+  // A saved route from a prior session — offer to resume it, natively.
+  useEffect(() => {
+    if (!resumable) return;
+    Alert.alert(
+      "Resume your route?",
+      `${resumable.stops.length} stops · ${fmtDist(resumable.distanceM)}`,
+      [
+        { text: "Start fresh", onPress: () => usePlanner.getState().dismissDraft() },
+        { text: "Resume", isPreferred: true, onPress: () => usePlanner.getState().resumeDraft() },
+      ],
     );
-  }
+  }, [resumable]);
 
-  // map / run-building phase
-  const inRoute = inRouteIdsOf(planner);
-  const markers: RosmMarker[] = planner.fountains.map((f) => ({
-    id: f.id,
-    lat: f.lat,
-    lon: f.lon,
-    color: inRoute.has(f.id) ? "#2563eb" : "#9ca3af",
-    dimmed: !inRoute.has(f.id),
-  }));
-  const center: [number, number] = planner.center
-    ? [planner.center.lat, planner.center.lon]
-    : [0, 0];
+  // Config step 0: tap sets the start. Map phase: tap drops a via waypoint.
+  const onMapPress = useCallback((lat: number, lon: number) => {
+    usePlanner.getState().mapClick(lat, lon);
+  }, []);
 
-  async function startRun() {
-    await planner.startRun();
+  // Numeric ids are fountains (open the sheet); "via-N" removes that waypoint;
+  // the start flag and island highlight ignore taps.
+  const onMarkerPress = useCallback((id: RosmMarker["id"]) => {
+    if (typeof id === "number") {
+      setSelectedId(id);
+      return;
+    }
+    if (id.startsWith("via-")) {
+      hapticSelect();
+      usePlanner.getState().removeVia(Number(id.slice(4)));
+    }
+  }, []);
+
+  const startRun = useCallback(async () => {
+    await usePlanner.getState().startRun();
     router.replace("/run");
-  }
+  }, [router]);
+
+  const confirmEndRun = useCallback(() => {
+    Alert.alert("End this run?", "Progress is archived; queued edits keep syncing.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "End run",
+        style: "destructive",
+        onPress: () => {
+          useRun.getState().reset();
+          useOutbox.getState().clear();
+          usePlanner.getState().resetAfterRun();
+        },
+      },
+    ]);
+  }, []);
+
+  const mapCenter: [number, number] = center ? [center.lat, center.lon] : [20, 0];
 
   return (
     <View className="bg-paper flex-1">
       <RosmMap
-        center={center}
+        center={mapCenter}
+        zoom={center ? 15 : 1.5}
         markers={markers}
-        line={planner.line}
-        recenterKey={planner.recenterKey}
-        onMarkerPress={(id) => planner.toggleStop(Number(id))}
+        line={line}
+        initialOnly
+        recenterKey={recenterKey}
+        onMapPress={onMapPress}
+        onMarkerPress={onMarkerPress}
       />
-      <SafeArea edges={["bottom"]} className="absolute right-0 bottom-0 left-0 p-4">
-        <View className="border-paper-line gap-3 rounded-2xl border bg-white p-4">
-          <Text className="text-ink font-bold">
-            {planner.stops.length} stops · {(planner.distanceM / 1000).toFixed(1)} km
-          </Text>
-          <Text className="text-ink-dim text-xs">
-            Tap points to add or remove them from the route.
-          </Text>
-          <View className="flex-row gap-2">
-            <Button title="Start run" disabled={planner.stops.length === 0} onPress={startRun} />
-            <Button title="Back" variant="ghost" onPress={() => planner.setPhase("config")} />
+
+      {/* The planner's controls live directly on a persistent native sheet over
+          the map (no floating card). Background interaction stays enabled so the
+          map behind it keeps taking taps — picking points, dropping waypoints —
+          and dismissal is disabled since this sheet is the tab's primary surface. */}
+      <BottomSheet
+        isPresented
+        onDismiss={() => {}}
+        showDragIndicator={false}
+        modifiers={[
+          presentationBackground("#f7f2e8"),
+          presentationBackgroundInteraction("enabled"),
+          interactiveDismissDisabled(true),
+        ]}
+      >
+        <RNHostView matchContents>
+          <View style={{ width: winW - 32 }}>
+            {phase === "config" ? (
+              <ConfigPanel />
+            ) : phase === "map" ? (
+              <RouteBuilderPanel onStartRun={startRun} />
+            ) : (
+              <View className="gap-3">
+                <Text className="text-ink font-bold">
+                  Run in progress — {stops.length} stops · {fmtDist(distanceM)}
+                </Text>
+                <View className="flex-row gap-2">
+                  <View className="flex-1">
+                    <Button title="Open run" onPress={() => router.push("/run")} />
+                  </View>
+                  <Button title="End run" variant="danger" onPress={confirmEndRun} />
+                </View>
+                {/* Last view — step back to the builder; no forward. */}
+                <PhaseNav
+                  back={{ label: "Build", onPress: () => usePlanner.getState().setPhase("map") }}
+                />
+              </View>
+            )}
           </View>
-          {planner.err ? <Text className="text-red-500">{planner.err}</Text> : null}
-        </View>
-      </SafeArea>
+        </RNHostView>
+      </BottomSheet>
+
+      {/* Native OS bottom sheet for the tapped point (same host pattern as the
+          quick-update tab — see the comments there for the sizing workaround). */}
+      <BottomSheet isPresented={selectedId != null} onDismiss={() => setSelectedId(null)}>
+        <RNHostView matchContents>
+          <View style={{ width: winW - 32 }}>
+            {selected ? (
+              <PointSheet
+                fountain={selected}
+                edit={edits[selected.id]}
+                inRoute={inRouteIds.has(selected.id)}
+                onToggleRoute={() => {
+                  hapticSelect();
+                  usePlanner.getState().toggleStop(selected.id);
+                  setSelectedId(null);
+                }}
+                onAction={(action, extras) =>
+                  updatePoint(selected.id, action, markLabel(selected), extras)
+                }
+              />
+            ) : (
+              <View className="items-center justify-center py-12">
+                <ActivityIndicator />
+              </View>
+            )}
+          </View>
+        </RNHostView>
+      </BottomSheet>
     </View>
   );
 }

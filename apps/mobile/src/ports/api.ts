@@ -1,6 +1,7 @@
 import type { ApiPort } from "@rosm/core/ports";
 import cfg from "@rosm/core/appConfig.json";
 import { getToken } from "../auth/authStore";
+import { kv } from "./storage";
 
 // Absolute base for the ROSM backend (the Next.js /api routes on Vercel). EAS build
 // profiles inject EXPO_PUBLIC_API_BASE; a local `expo start` has no such env, so we
@@ -14,17 +15,26 @@ export function apiUrl(path: string): string {
   return `${API_BASE}${path}`;
 }
 
-// Server-side run/draft persistence is web-only (a single JSON file); on device the
-// route archive is the source of truth, so these calls no-op with a null body.
-const NATIVE_NOOP = /^\/api\/(run|draft)\b/;
+// Server-side run persistence is web-only (a single JSON file); on device the
+// route archive is the source of truth, so /api/run no-ops with a null body.
+const NATIVE_RUN_NOOP = /^\/api\/run\b/;
+
+// The planner draft, though, backs onto the device kv store so a force-quit
+// mid-planning can offer "resume" on relaunch — same contract as web /api/draft.
+const DRAFT_ROUTE = /^\/api\/draft\b/;
+const DRAFT_KEY = "rosm:planner-draft";
+
+const jsonResponse = (body: string) =>
+  new Response(body, { status: 200, headers: { "Content-Type": "application/json" } });
 
 export const api: ApiPort = {
   apiFetch: async (path, init = {}) => {
-    if (NATIVE_NOOP.test(path)) {
-      return new Response("null", {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
+    if (NATIVE_RUN_NOOP.test(path)) return jsonResponse("null");
+    if (DRAFT_ROUTE.test(path)) {
+      const method = (init.method ?? "GET").toUpperCase();
+      if (method === "POST") kv.set(DRAFT_KEY, typeof init.body === "string" ? init.body : "null");
+      if (method === "DELETE") kv.set(DRAFT_KEY, "null");
+      return jsonResponse(method === "GET" ? (kv.get(DRAFT_KEY) ?? "null") : "null");
     }
     const headers = new Headers(init.headers);
     const token = getToken();

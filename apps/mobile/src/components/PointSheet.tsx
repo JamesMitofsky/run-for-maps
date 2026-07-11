@@ -65,12 +65,16 @@ type Props = {
   // state instead of the action buttons.
   edit?: PointEdit;
   onAction: (action: EditAction, extras?: EditExtras) => void;
+  // Planner-only: when provided, a route-membership toggle renders above the
+  // status actions (green "Add to route" / red "Remove from route").
+  inRoute?: boolean;
+  onToggleRoute?: () => void;
 };
 
 // Bottom-sheet body for a tapped point: full point info (last-checked, name,
 // dog-water flag) plus the OSM status buttons and advanced tags — the mobile
 // mirror of the web PointPopup.
-export function PointSheet({ fountain, edit, onAction }: Props) {
+export function PointSheet({ fountain, edit, onAction, inRoute, onToggleRoute }: Props) {
   const tags = fountain.tags ?? {};
   // Advanced OSM params, prefilled from the node's current tags.
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -101,6 +105,20 @@ export function PointSheet({ fountain, edit, onAction }: Props) {
           </View>
         ) : null}
       </View>
+
+      {onToggleRoute ? (
+        <Pressable
+          onPress={onToggleRoute}
+          accessibilityRole="button"
+          className={`flex-row items-center justify-center gap-2 rounded-xl px-4 py-3 ${
+            inRoute ? "bg-red-600" : "bg-green-600"
+          }`}
+        >
+          <Text className="text-base font-bold text-white">
+            {inRoute ? "Remove from route" : "Add to route"}
+          </Text>
+        </Pressable>
+      ) : null}
 
       {edit ? (
         // Recorded this session: show what was saved + its sync state.

@@ -4,3 +4,8 @@ import * as Haptics from "expo-haptics";
 export function hapticSuccess(): void {
   Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
 }
+
+// Light tick when flipping a selection control (segmented option, route toggle).
+export function hapticSelect(): void {
+  Haptics.selectionAsync().catch(() => {});
+}
