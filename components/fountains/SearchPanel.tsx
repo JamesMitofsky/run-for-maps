@@ -5,12 +5,9 @@ import SearchProgress from "@/components/fountains/SearchProgress";
 import ErrorNotice from "@/components/ui/ErrorNotice";
 import type { Counts, Svc, Water } from "@/lib/fountainFilters";
 
-// Radius for anchor-based searches (GPS fix / dropped pin). Widening happens by
-// panning the map and hitting "Search this area", so this is no longer editable.
+// Radius for GPS-anchored searches. Widening happens by panning the map and
+// hitting "Search this area", so this is no longer editable.
 export const DEFAULT_RADIUS_MI = 1;
-
-// Where the search anchor came from: GPS fix or a pin dropped on the map.
-export type Anchor = "gps" | "pin";
 
 // Panel header: search control, filters, and status. Shared by the mobile
 // bottom sheet and the desktop side panel.
@@ -22,7 +19,6 @@ export default function SearchPanel({
   setSvc,
   water,
   setWater,
-  showFilters,
   onSearch,
 }: {
   busy: boolean;
@@ -32,22 +28,12 @@ export default function SearchPanel({
   setSvc: (s: Set<Svc>) => void;
   water: Set<Water>;
   setWater: (s: Set<Water>) => void;
-  // Hidden until the first search lands — nothing to filter before results.
-  showFilters: boolean;
   onSearch: () => void;
 }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        {showFilters && (
-          <FilterPills
-            svc={svc}
-            setSvc={setSvc}
-            water={water}
-            setWater={setWater}
-            counts={counts}
-          />
-        )}
+        <FilterPills svc={svc} setSvc={setSvc} water={water} setWater={setWater} counts={counts} />
 
         {/* Filtering is client-side display only — results are already loaded, so
             there's no search button. A running search still narrates itself. */}

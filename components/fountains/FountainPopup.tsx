@@ -7,7 +7,7 @@ import { fountainName, isDogWater, isOutOfService } from "@/lib/fountainFilters"
 import { checkedAgoLabel } from "@/lib/checkDate";
 import { fmtDist } from "@/lib/geo";
 
-// Read-only popup: name, last-checked date, status flags, OSM link. No edit
+// Read-only popup: name, last-checked date, status flags. No edit
 // controls — this view is purely for finding water nearby.
 export default function FountainPopup({ f, distM }: { f: Fountain; distM: number | null }) {
   // Snapshot the clock once when the popup mounts — reading Date.now() during
@@ -28,14 +28,6 @@ export default function FountainPopup({ f, distM }: { f: Fountain; distM: number
           <WrenchIcon size={14} /> Marked out of service
         </div>
       )}
-      <a
-        href={`https://www.openstreetmap.org/node/${f.id}`}
-        target="_blank"
-        rel="noreferrer"
-        className="mt-1 text-xs font-medium text-blue-600 underline underline-offset-2"
-      >
-        View on OpenStreetMap
-      </a>
     </div>
   );
 }
