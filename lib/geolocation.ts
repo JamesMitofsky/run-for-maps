@@ -95,6 +95,19 @@ export async function watchRunPosition(
   return watchPosition(onPoint, onError, { highAccuracy: true, maximumAge: 5000 });
 }
 
+// True when location access is already granted, so callers can skip re-asking.
+// On the web this resolves navigator.permissions; on native it reads CoreLocation's
+// current authorization. "prompt"/"denied" both return false — we only skip the
+// consent gate when the fix is guaranteed available without a new system prompt.
+export async function hasLocationPermission(): Promise<boolean> {
+  try {
+    const status = await Geolocation.checkPermissions();
+    return status.location === "granted" || status.coarseLocation === "granted";
+  } catch {
+    return false;
+  }
+}
+
 // One-shot current position (planner "use my location").
 export async function getCurrentPosition(opts: Opts = {}): Promise<GeoPoint> {
   const enableHighAccuracy = opts.highAccuracy ?? true;
