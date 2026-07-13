@@ -34,7 +34,7 @@ describe("editSummary", () => {
       `confirmed · check_date=${T} · fountain=bubbler · bottle=no`,
     );
     expect(editSummary("confirm", "amenity", T, { dispenser: "bottle" })).toBe(
-      `confirmed · check_date=${T} · bottle=yes`,
+      `confirmed · check_date=${T} · fountain=bottle_refill · bottle=yes`,
     );
     expect(editSummary("confirm", "amenity", T, { dispenser: "both" })).toBe(
       `confirmed · check_date=${T} · fountain=bubbler · bottle=yes`,

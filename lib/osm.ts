@@ -269,30 +269,34 @@ export function applyAction(
   }
   // Audience (humans / dogs / both) → drinking_water=* + dog=*, only meaningful
   // while the source still exists (confirm). amenity=drinking_water / =water_point
-  // self-assert human potability, so when the water is dogs-only demote that
-  // primary to a neutral physical feature (man_made=water_tap) before flagging
-  // drinking_water=no, per the OSM wiki. Other primaries (amenity=fountain,
-  // natural=spring) don't imply potability, so keep them and only set the flags.
+  // self-assert human potability, so a dogs-only source can't wear them — retag
+  // as amenity=watering_place (the OSM primary for an animal drinking place). The
+  // inverse restores amenity=drinking_water when a previously dogs-only point is
+  // re-surveyed as human-potable, so the toggle round-trips instead of one-way
+  // demoting. Other primaries (amenity=fountain, natural=spring) don't imply
+  // potability, so keep them and only set the flags.
   if (extras?.audience && action === "confirm") {
     const humanOk = extras.audience !== "dogs";
     if (!humanOk && (next.amenity === "drinking_water" || next.amenity === "water_point")) {
-      next.man_made = "water_tap";
-      delete next.amenity;
+      next.amenity = "watering_place";
+    } else if (humanOk && next.amenity === "watering_place") {
+      next.amenity = "drinking_water";
     }
     next.drinking_water = humanOk ? "yes" : "no";
     next.dog = extras.audience === "humans" ? "no" : "yes";
   }
-  // Dispenser (bubbler / bottle-filler / both) → fountain=bubbler + bottle=*,
-  // only meaningful while the source still exists (confirm). "bubbler" is a jet
-  // you drink from directly (fountain=bubbler per the OSM wiki); "bottle" is a
-  // bottle-refill spout (bottle=yes); "both" carries both tags. A bottle-only
-  // source clears a stale fountain=bubbler so re-surveys stay deterministic.
+  // Dispenser (bubbler / bottle-filler / both), only meaningful while the source
+  // still exists (confirm). Follows the OSM wiki: fountain=* is the physical
+  // archetype (bubbler jets up to drink from; bottle_refill jets down to fill a
+  // bottle) and bottle=yes/no is an orthogonal "can you refill a bottle here".
+  // "both" = a bubbler you can also fill bottles at. Only overwrite fountain=*
+  // when it's unset or already a generic drinking type, so a regional value
+  // (nasone, wallace, …) survives a re-survey.
   if (extras?.dispenser && action === "confirm") {
-    const hasBubbler = extras.dispenser !== "bottle";
-    const hasBottle = extras.dispenser !== "bubbler";
-    if (hasBubbler) next.fountain = "bubbler";
-    else if (next.fountain === "bubbler") delete next.fountain;
-    next.bottle = hasBottle ? "yes" : "no";
+    const desired = extras.dispenser === "bottle" ? "bottle_refill" : "bubbler";
+    const cur = next.fountain;
+    if (cur == null || cur === "bubbler" || cur === "bottle_refill") next.fountain = desired;
+    next.bottle = extras.dispenser === "bubbler" ? "no" : "yes";
   }
   return next;
 }

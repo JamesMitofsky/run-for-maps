@@ -37,10 +37,8 @@ export function editSummary(
     }`;
   }
   if (extras?.dispenser && action === "confirm") {
-    const hasBubbler = extras.dispenser !== "bottle";
-    const hasBottle = extras.dispenser !== "bubbler";
-    if (hasBubbler) base += " · fountain=bubbler";
-    base += ` · bottle=${hasBottle ? "yes" : "no"}`;
+    const fountain = extras.dispenser === "bottle" ? "bottle_refill" : "bubbler";
+    base += ` · fountain=${fountain} · bottle=${extras.dispenser === "bubbler" ? "no" : "yes"}`;
   }
   if (extras?.note) base += " · note added";
   return base;

@@ -97,24 +97,32 @@ describe("applyAction", () => {
       expect(next.amenity).toBe("drinking_water");
     });
 
-    it("dogs demotes amenity=drinking_water to man_made=water_tap with explicit flags", () => {
+    it("dogs retags amenity=drinking_water as amenity=watering_place with explicit flags", () => {
       const next = applyAction({ amenity: "drinking_water" }, "confirm", "amenity", T, {
         audience: "dogs",
       });
       expect(next).toEqual({
-        man_made: "water_tap",
+        amenity: "watering_place",
         drinking_water: "no",
         dog: "yes",
         check_date: T,
       });
     });
 
-    it("dogs demotes amenity=water_point the same way", () => {
+    it("dogs retags amenity=water_point the same way", () => {
       const next = applyAction({ amenity: "water_point" }, "confirm", "amenity", T, {
         audience: "dogs",
       });
-      expect(next.man_made).toBe("water_tap");
-      expect(next.amenity).toBeUndefined();
+      expect(next.amenity).toBe("watering_place");
+    });
+
+    it("round-trips: re-surveying a watering_place as human-potable restores drinking_water", () => {
+      const next = applyAction({ amenity: "watering_place" }, "confirm", "amenity", T, {
+        audience: "both",
+      });
+      expect(next.amenity).toBe("drinking_water");
+      expect(next.drinking_water).toBe("yes");
+      expect(next.dog).toBe("yes");
     });
 
     it("dogs keeps non-potability-asserting primaries (amenity=fountain)", () => {
@@ -151,7 +159,7 @@ describe("applyAction", () => {
       expect(next.bottle).toBe("yes");
     });
 
-    it("bottle sets bottle=yes and clears a stale fountain=bubbler", () => {
+    it("bottle sets fountain=bottle_refill and bottle=yes", () => {
       const next = applyAction(
         { amenity: "drinking_water", fountain: "bubbler" },
         "confirm",
@@ -161,8 +169,22 @@ describe("applyAction", () => {
           dispenser: "bottle",
         },
       );
-      expect(next.fountain).toBeUndefined();
+      expect(next.fountain).toBe("bottle_refill");
       expect(next.bottle).toBe("yes");
+    });
+
+    it("preserves a regional fountain archetype (nasone) instead of clobbering it", () => {
+      const next = applyAction(
+        { amenity: "drinking_water", fountain: "nasone" },
+        "confirm",
+        "amenity",
+        T,
+        {
+          dispenser: "bubbler",
+        },
+      );
+      expect(next.fountain).toBe("nasone");
+      expect(next.bottle).toBe("no");
     });
 
     it("is ignored for lifecycle actions", () => {
