@@ -312,6 +312,16 @@ export function useRunSession({ enabled = true }: { enabled?: boolean } = {}) {
     advance();
   }
 
+  // End the run before reaching the last stop. Jumps the index past the final
+  // stop so `done` flips true and the completion screen (close-changeset) shows.
+  // Remaining pending stops stay pending — they just tally as unsurveyed.
+  function endEarly() {
+    setLastSaved(null);
+    setManualArrived(false);
+    run.setIndex(stops.length);
+    persist(stops.length);
+  }
+
   // Step back to the previous stop and re-open it for action. Resets that stop's
   // status to pending so the arrival actions show again (lets a mis-tap be redone;
   // a re-record just enqueues a fresh OSM edit — last write wins). Does not undo
@@ -563,6 +573,7 @@ export function useRunSession({ enabled = true }: { enabled?: boolean } = {}) {
     record,
     skip,
     goBack,
+    endEarly,
     addHere,
     addAt,
     finish,
