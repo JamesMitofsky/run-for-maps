@@ -64,9 +64,9 @@ export default function SiteNav() {
             <Link href="/" className="flex items-center gap-5" onClick={() => setOpen(false)}>
               <span className="flex items-center gap-2.5">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/icons/icon.svg" alt="Fountain Mapper" className="h-8 w-auto" />
+                <img src="/icons/icon.svg" alt="Run Verified Fountains" className="h-8 w-auto" />
                 <span className={`${heroFont.className} text-ink text-3xl tracking-tight`}>
-                  Run Verified Maps
+                  Run Verified Fountains
                 </span>
               </span>
             </Link>

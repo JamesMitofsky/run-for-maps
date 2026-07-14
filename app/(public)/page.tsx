@@ -150,7 +150,7 @@ export default function LandingPage() {
               className="flex flex-col items-start gap-6 md:col-start-2 md:row-start-2 md:self-start"
             >
               <p className="text-ink-dim max-w-xl text-xl leading-relaxed">
-                Map routes to verify the status of DC&apos;s drinking fountains
+                Contribute to your community with local data
               </p>
               <Link
                 href="/mapping-portal"
@@ -177,37 +177,33 @@ export default function LandingPage() {
               <h2
                 className={`${heroFont.className} text-[clamp(2rem,5vw,3.4rem)] leading-[1.05] font-bold tracking-tight`}
               >
-                What&apos;s the deal?
+                What&apos;s the problem?
               </h2>
               <p className="text-ink-dim mt-6 text-lg leading-relaxed">
-                In the summer heat, I just wanted to know where I could get a sip of water on my
-                runs. And so I thought I&apos;d put together a little map. But then, by stopping at
-                the fountains on my map, I realized a bunch of them were out of order (some were
-                missing!). So this got me to thinking about having a system for updating the
-                fountains. And then it hit me: if I was already planning my runs to include passing
-                one or two fountains for a drink, why not just plan a run optimized for passing the
-                most fountains possible! After my first beta test of this system, I visited 23
-                fountains in 7 miles, and that&apos;s when I realized even just a few runners could
-                make light work of covering the whole city!
+                Despite DC&apos;s many public drinking fountains, there is no reliable way to know
+                where they all are. And then, many are out of order. This is bad for everyone,
+                especially folks who spend a disproportionate amount of time outdoors—think runners,
+                tourists, the homeless, etc.
               </p>
               <p className="text-ink-dim mt-4 text-lg leading-relaxed">
-                Fountain Mapper caters to two groups:
+                By building a robust, locally-sourced map of public drinking water, we can improve
+                the utility of this existing public good. This removes the guesswork of where to
+                find the nearest fountain as well as the uncertainty of whether that fountain will
+                work.
               </p>
-              <ol className="text-ink-dim mt-4 list-decimal space-y-1 pl-6 text-lg leading-relaxed">
-                <li>literally anyone looking for a working fountain</li>
-                <li>runners (or avid walkers!) who want to verify fountains</li>
-              </ol>
               <p className="text-ink-dim mt-4 text-lg leading-relaxed">
-                If you&apos;re part of this second group, awesome! I&apos;ll mention there may be
-                some rough edges, but if you discover something, shoot me a message{" "}
-                <a
-                  href="mailto:james@btv.dev"
-                  className="text-sky-deep decoration-sky-deep/50 hover:decoration-sky-deep font-medium underline underline-offset-4"
-                >
-                  james@btv.dev
-                </a>{" "}
-                and we&apos;ll get things squared away!
+                This project aims to improve DC on two levels:
               </p>
+              <ul className="text-ink-dim mt-4 list-disc space-y-1 pl-6 text-lg leading-relaxed">
+                <li>
+                  <span className="font-medium">Individual:</span> let anyone search for their
+                  nearest working fountain
+                </li>
+                <li>
+                  <span className="font-medium">Institutional:</span> automate notifying 311 when
+                  fountains are marked broken
+                </li>
+              </ul>
             </motion.div>
           </div>
         </section>
