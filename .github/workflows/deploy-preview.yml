@@ -1,11 +1,14 @@
 # On-demand preview deploys.
 #
 # Vercel Git auto-deploys are off (vercel.json). To preview a PR, comment
-# `/deploy` on it. This builds the PR head and deploys a Vercel preview, then
-# posts the URL back on the PR. Only repo owners/members/collaborators can
-# trigger it, so outside contributors can't spend build minutes or leak secrets.
+# `/deploy` on it. This builds the PR head, deploys a Vercel preview, then
+# aliases that deploy to ONE fixed URL (PREVIEW_ALIAS) so the preview link is
+# always the same no matter which PR was deployed. Whichever PR deploys last
+# owns the alias. Only repo owners/members/collaborators can trigger it, so
+# outside contributors can't spend build minutes or leak secrets.
 #
 # Requires repo secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID.
+# Optional repo variable PREVIEW_ALIAS overrides the fixed preview domain.
 name: Preview Deploy
 
 on:
@@ -27,15 +30,18 @@ jobs:
       github.event.issue.pull_request &&
       startsWith(github.event.comment.body, '/deploy') &&
       contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association)
-    # One live preview per PR; a newer /deploy cancels an in-flight one.
+    # Single shared preview URL, so serialize all /deploy runs. A newer /deploy
+    # cancels an in-flight one; last one to finish owns the alias.
     concurrency:
-      group: preview-${{ github.event.issue.number }}
+      group: preview-shared
       cancel-in-progress: true
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      # Fixed URL every preview is aliased to. Override with repo variable PREVIEW_ALIAS.
+      PREVIEW_ALIAS: ${{ vars.PREVIEW_ALIAS || 'run-for-maps-preview.vercel.app' }}
     steps:
       - name: Acknowledge request
         run: |
@@ -73,13 +79,20 @@ jobs:
         id: deploy
         run: echo "url=$(pnpm dlx vercel deploy --prebuilt --token="$VERCEL_TOKEN")" >> "$GITHUB_OUTPUT"
 
+      # Point the fixed preview URL at this deploy. The ephemeral deploy URL
+      # changes every run; the alias does not.
+      - name: Alias to fixed preview URL
+        run: pnpm dlx vercel alias set "$URL" "$PREVIEW_ALIAS" --token="$VERCEL_TOKEN"
+        env:
+          URL: ${{ steps.deploy.outputs.url }}
+
       - name: Post preview URL
         run: |
-          gh pr comment "$PR" --repo "$REPO" --body "✅ Preview ready: $URL (commit \`${SHA:0:7}\`)"
+          gh pr comment "$PR" --repo "$REPO" --body "✅ Preview ready: https://$ALIAS (commit \`${SHA:0:7}\`)"
         env:
           PR: ${{ github.event.issue.number }}
           REPO: ${{ github.repository }}
-          URL: ${{ steps.deploy.outputs.url }}
+          ALIAS: ${{ env.PREVIEW_ALIAS }}
           SHA: ${{ steps.pr.outputs.sha }}
 
       - name: Report failure
