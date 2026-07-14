@@ -9,7 +9,7 @@ import ErrorNotice from "@/components/ui/ErrorNotice";
 
 const RETURN_TO = "/mapping-portal/quick-update";
 
-// Quick Update: auto-locate, show drinking-water points within ~0.2mi, and let
+// Quick Update: auto-locate, show drinking-water points in a ~0.2mi box, and let
 // a signed-in surveyor update them straight from the map. OSM-gated — editing
 // records real data under the user's name, so logged-out visitors are bounced
 // to sign in (unlike the public /fountains browser, which stays read-only).
@@ -33,7 +33,7 @@ export default function QuickUpdatePage() {
   return (
     <FountainMap
       editable={osmEdits}
-      defaultRadiusMi={0.2}
+      defaultSpanMi={0.2}
       footer={editErr ? <ErrorNotice message={editErr} tone="light" /> : null}
     />
   );

@@ -7,6 +7,6 @@ export const contentType = ogContentType;
 export default function Image() {
   return renderOgImage({
     title: "How It Works",
-    subtitle: "Why Fountain Mapper runs on OpenStreetMap, and how your runs fix the map.",
+    subtitle: "Why Run Verified Fountains runs on OpenStreetMap, and how your runs fix the map.",
   });
 }

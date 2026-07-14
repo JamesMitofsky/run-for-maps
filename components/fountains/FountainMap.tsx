@@ -18,7 +18,7 @@ import BusyPill from "@/components/ui/BusyPill";
 import Modal from "@/components/ui/Modal";
 import PointPopup from "@/components/PointPopup";
 import FountainPopup from "@/components/fountains/FountainPopup";
-import SearchPanel, { DEFAULT_RADIUS_MI } from "@/components/fountains/SearchPanel";
+import SearchPanel, { DEFAULT_SEARCH_SPAN_MI } from "@/components/fountains/SearchPanel";
 import { EDIT_COLOR, EDIT_LABEL } from "@/lib/editStatus";
 import { ptLabel } from "@/lib/pointTypes";
 import { countBy, rankFountains, type Ranked, type Water } from "@/lib/fountainFilters";
@@ -58,17 +58,13 @@ const LOCATE_ERROR: Record<GeoErrorReason, string> = {
 };
 
 const DEFAULT_CENTER: [number, number] = [38.9072, -77.0369];
-// GPS searches query a circle of `radiusM`; the drawn box circumscribes that
-// circle (half-extent == radius) so the dimmed edge honestly marks the searched
-// area — matching "Search this area", which dims the exact queried rectangle.
-const BOX_FACTOR = 1;
 
 type Props = {
   // Present → points are editable (PointPopup + edit overlay). Absent → read-only
   // (FountainPopup only). The parent owns the hook so a read-only map never
   // instantiates the outbox-backed edit machinery.
   editable?: OsmEdits;
-  defaultRadiusMi?: number;
+  defaultSpanMi?: number;
   // Page-specific panel content (CTA, sync panel).
   footer?: ReactNode;
   // Optional site navbar rendered above the map (public browser). When present,
@@ -81,7 +77,7 @@ type Props = {
 // browser; editable for the connected Quick Update surface.
 export default function FountainMap({
   editable,
-  defaultRadiusMi = DEFAULT_RADIUS_MI,
+  defaultSpanMi = DEFAULT_SEARCH_SPAN_MI,
   footer,
   nav,
 }: Props) {
@@ -136,9 +132,9 @@ export default function FountainMap({
   // A "Search this area" request is in flight — keeps that button mounted with a
   // spinner (rather than the generic full-screen busy path hiding it).
   const [areaBusy, setAreaBusy] = useState(false);
-  // Radius for GPS-anchored searches. No longer user-editable — panning the
+  // Box half-extent for GPS/pin searches. No longer user-editable — panning the
   // map and hitting "Search this area" is the way to widen.
-  const defaultRadiusM = milesToMeters(defaultRadiusMi);
+  const defaultSpanM = milesToMeters(defaultSpanMi);
   // Filter: default to human water. Service status is no longer a filter —
   // out-of-service points always show, dimmed + gray. Verification age isn't a
   // filter either; it's shown on the map via marker color.
@@ -178,16 +174,13 @@ export default function FountainMap({
     }
   }, []);
 
-  // Fetch the drinking-water points around a center; with no anchor yet, fall
-  // back to acquiring the GPS fix first. `radiusM` defaults to the anchor radius
-  // but "Search this area" passes the current viewport radius. We ask for
-  // out-of-service variants too so the Service filter has something to reveal.
+  // Fetch the drinking-water points in a rectangle around a center; with no
+  // anchor yet, fall back to acquiring the GPS fix first. `spanM` is the box
+  // half-extent for a GPS/pin search (ignored when "Search this area" supplies
+  // its own `box`). We ask for out-of-service variants too so the Service filter
+  // has something to reveal.
   const search = useCallback(
-    async (
-      at?: Pt,
-      radiusM: number = defaultRadiusM,
-      box?: [[number, number], [number, number]],
-    ) => {
+    async (at?: Pt, spanM: number = defaultSpanM, box?: [[number, number], [number, number]]) => {
       let from = at ?? center;
       if (!from) {
         from = await locate();
@@ -195,17 +188,23 @@ export default function FountainMap({
       }
       setBusy(true);
       setErr(null);
-      // Draw the queried rectangle up front so the gray box appears the moment
-      // an area search fires, not after the request lands. GPS searches have no
-      // box yet — theirs is derived from the result center below.
-      if (box) setSearchedBox(box);
+      // Every search queries a rectangle. "Search this area" passes the viewport
+      // box; a GPS/pin search derives one around the fix, sized to `spanM` and
+      // shaped to the viewport aspect (landscape → wider, not a square). Draw it
+      // up front so the gray dimming box appears the moment the search fires, not
+      // after the request lands — results can never spill past the drawn box.
+      const aspect = mapView ? boxAspect(mapView.bounds) : 1;
+      const queryBox = box ?? boxAround(from, spanM, aspect);
+      setSearchedBox(queryBox);
       try {
-        // "Search this area" passes the viewport box → query that exact rectangle,
-        // so results can't spill past the drawn box the way a circle would. GPS
-        // searches have no box and stay circular around `from`.
-        const region = box
-          ? { bounds: [box[0][0], box[0][1], box[1][0], box[1][1]] }
-          : { ...from, radiusM };
+        const region = {
+          bounds: [queryBox[0][0], queryBox[0][1], queryBox[1][0], queryBox[1][1]] as [
+            number,
+            number,
+            number,
+            number,
+          ],
+        };
         const r = await apiFetch("/api/fountains", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -226,14 +225,6 @@ export default function FountainMap({
         setFountains(j.fountains as Fountain[]);
         setNowMs(Date.now());
         setSearchedAt(from);
-        // GPS searches (no box) fall back to a box that circumscribes the queried
-        // circle, shaped to the viewport aspect ratio — landscape screens get a
-        // wide box, not a square — centered on the point. Area searches already
-        // drew their box up front, above.
-        if (!box) {
-          const aspect = mapView ? boxAspect(mapView.bounds) : 1;
-          setSearchedBox(boxAround(from, radiusM * BOX_FACTOR, aspect));
-        }
         // Fresh results match the current view — hide the "search this area" nudge.
         setShowSearchArea(false);
         // Points landed — drop the modal so the map is visible. It reopens on demand.
@@ -244,17 +235,17 @@ export default function FountainMap({
         setBusy(false);
       }
     },
-    [center, defaultRadiusM, locate, mapView],
+    [center, defaultSpanM, locate, mapView],
   );
 
   // A map-driven search ("Search this area"). Keeps a dedicated spinner
   // mounted over the map for its duration, distinct from the modal's busy
   // path, so the user sees the request they just triggered is in flight.
   const runAreaSearch = useCallback(
-    async (at: Pt, radiusM?: number, box?: [[number, number], [number, number]]) => {
+    async (at: Pt, spanM?: number, box?: [[number, number], [number, number]]) => {
       setAreaBusy(true);
       try {
-        await search(at, radiusM, box);
+        await search(at, spanM, box);
       } finally {
         setAreaBusy(false);
       }
@@ -286,8 +277,9 @@ export default function FountainMap({
       if (pendingLocateSearch.current) {
         pendingLocateSearch.current = false;
         const anchor = { lat: view.lat, lon: view.lon };
-        // Zoomed out past the max radius → fall back to the circular default
-        // search around the fix rather than sweeping too much OSM data.
+        // Within the max span → query the exact viewport box. Zoomed out past it
+        // → fall back to a default-sized box around the fix rather than sweeping
+        // too much OSM data.
         if (view.radiusM <= MAX_SEARCH_RADIUS_M) {
           runAreaSearch(anchor, view.radiusM, view.bounds);
         } else {
@@ -517,10 +509,10 @@ export default function FountainMap({
           {/* "Search this area": appears once the user pans/zooms away from the
               last search (or immediately after declining location), and runs the
               query over the now-visible viewport.
-              When the viewport is zoomed out past the max search radius, the query
+              When the viewport is zoomed out past the max search span, the query
               would sweep too much OSM data, so the button becomes a zoom-in prompt
-              instead. The radius is a real-world distance, so this threshold reads
-              the same on every screen size. */}
+              instead. The threshold is a real-world distance (viewport center→
+              corner), so it reads the same on every screen size. */}
           {showSearchArea &&
             !modalOpen &&
             !askConsent &&

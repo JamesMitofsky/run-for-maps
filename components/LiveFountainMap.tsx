@@ -16,20 +16,19 @@ const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 
 /* ------------------------------------------------------------------ */
 /* Live counterpart to DemoRunMap: on mount it queries Overpass for    */
-/* every amenity=drinking_water node within 3 mi of central DC and     */
-/* colors each by how recently it was verified on the ground — the     */
-/* app's whole reason to exist. Read-only; no editing here.            */
+/* every amenity=drinking_water node in the on-screen viewport around  */
+/* central DC and colors each by how recently it was verified on the   */
+/* ground — the app's whole reason to exist. Read-only; no editing.    */
 /* ------------------------------------------------------------------ */
 const DC_CENTER: [number, number] = [38.8972, -77.0369];
 const CENTER_PT = { lat: DC_CENTER[0], lon: DC_CENTER[1] };
-const RADIUS_MI = 3;
 const TAG = { key: "amenity", value: "drinking_water" } as const;
 
 // Location-specific play-by-play for the hero fetch; the loader's generic
-// default copy doesn't name DC or the 3-mi radius.
+// default copy doesn't name DC.
 const LOADING_STEPS: LoadingStep[] = [
   { text: "Opening a socket to OpenStreetMap servers…", ms: 5000 },
-  { text: "Scanning nodes within 3 mi of Washington, DC…", ms: 5000 },
+  { text: "Scanning drinking-water nodes around Washington, DC…", ms: 5000 },
   { text: "Reading check_date tags to grade recency…", ms: 5000 },
 ];
 
@@ -127,7 +126,7 @@ export default function LiveFountainMap({ className }: { className?: string }) {
   );
 
   // Frame the map on the dense core, not every point. fitBounds would otherwise
-  // zoom out to include the farthest outliers across the whole 3-mi radius,
+  // zoom out to include the farthest outliers across the whole viewport,
   // which reads as "barely zoomed" — so drop the farthest ~35% before fitting.
   const fitPoints = useMemo<[number, number][] | undefined>(() => {
     if (markers.length < 2) return undefined;
@@ -146,8 +145,8 @@ export default function LiveFountainMap({ className }: { className?: string }) {
       <MapView
         className="hero-map"
         center={DC_CENTER}
-        zoom={isMobile ? 8.8 : 12.3}
-        minZoom={8}
+        zoom={isMobile ? 7.8 : 11.3}
+        minZoom={7}
         maxZoom={18}
         interactive
         onViewChange={onViewChange}

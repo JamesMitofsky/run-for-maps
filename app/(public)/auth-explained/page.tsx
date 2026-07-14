@@ -22,7 +22,7 @@ const FAQS: { q: string; a: ReactNode }[] = [
           it requires no faith, since you can see how long ago a fountain was verified. From the
           perspective of a community maintainer contributing to the map, this being a decentralized
           piece of information means there is no bottleneck for updating the map. Anyone can make a
-          contribution to the map in real time. And even if—EVEN IF—the whole Fountain Mapper
+          contribution to the map in real time. And even if—EVEN IF—the whole Run Verified Fountains
           project blew up and vanished, the data and contribution history is actually stored with
           the long-established and well-reputed OpenStreetMap.
         </p>
@@ -36,8 +36,8 @@ const FAQS: { q: string; a: ReactNode }[] = [
         <p>
           OpenStreetMap (OSM) is the Wikipedia of mapping—a crowd-sourced, openly licensed
           alternative to Big Map. Instead of one company owning the map, anyone can add and verify
-          places, and the data belongs to the public. Fountain Mapper writes every fountain update
-          straight to OSM, so the information lives somewhere durable and open.
+          places, and the data belongs to the public. Run Verified Fountains writes every fountain
+          update straight to OSM, so the information lives somewhere durable and open.
         </p>
       </>
     ),
@@ -47,12 +47,13 @@ const FAQS: { q: string; a: ReactNode }[] = [
     a: (
       <>
         <p>
-          The authentication approach taken by Fountain Mapper is different from most apps. You can
-          think of Fountain Mapper as a wrapper around the OpenStreetMap (OSM) platform. For
-          example, if you were to mark a fountain as <em>out of order</em>, Fountain Mapper formats
-          that information and immediately submits it to OSM. In this way, Fountain Mapper retains
-          no information about the people who use it—your authentication is completely local to your
-          device, and it creates a portal for you to interact with OSM.
+          The authentication approach taken by Run Verified Fountains is different from most apps.
+          You can think of Run Verified Fountains as a wrapper around the OpenStreetMap (OSM)
+          platform. For example, if you were to mark a fountain as <em>out of order</em>, Run
+          Verified Fountains formats that information and immediately submits it to OSM. In this
+          way, Run Verified Fountains retains no information about the people who use it—your
+          authentication is completely local to your device, and it creates a portal for you to
+          interact with OSM.
         </p>
         <p>
           If you wanted to see the complete history of updates you submitted to OSM, you would want
@@ -68,13 +69,13 @@ const FAQS: { q: string; a: ReactNode }[] = [
           .
         </p>
         <p>
-          All this is to say: you need to create an account through OSM instead of Fountain Mapper
-          because OSM is the place your information really lives. The only thing Fountain Mapper
-          does is facilitate a very specific type of data manipulation. Because the UI for OSM is
-          meant to support updating information about buildings and roads and businesses and
-          countries, it needs to take a pretty general approach to the design. Fountain Mapper
-          simplifies the many clicks it would take to update a fountain into just a few, and then it
-          ships that information off to OSM to be safely recorded for public use.
+          All this is to say: you need to create an account through OSM instead of Run Verified
+          Fountains because OSM is the place your information really lives. The only thing Run
+          Verified Fountains does is facilitate a very specific type of data manipulation. Because
+          the UI for OSM is meant to support updating information about buildings and roads and
+          businesses and countries, it needs to take a pretty general approach to the design. Run
+          Verified Fountains simplifies the many clicks it would take to update a fountain into just
+          a few, and then it ships that information off to OSM to be safely recorded for public use.
         </p>
       </>
     ),
@@ -84,7 +85,7 @@ const FAQS: { q: string; a: ReactNode }[] = [
     a: (
       <>
         <p>
-          If you want to share feedback on your experience using Fountain Mapper, email me at{" "}
+          If you want to share feedback on your experience using Run Verified Fountains, email me at{" "}
           <a href="mailto:james@btv.dev" className="text-sky-deep underline">
             james@btv.dev
           </a>
@@ -103,7 +104,7 @@ const FAQS: { q: string; a: ReactNode }[] = [
     ),
   },
   {
-    q: "What's next for Fountain Mapper?",
+    q: "What's next for Run Verified Fountains?",
     a: (
       <>
         <p>
