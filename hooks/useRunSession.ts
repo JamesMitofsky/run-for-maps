@@ -9,6 +9,7 @@ import {
   compass,
   haversine,
   nearestCumDistOnPath,
+  routeHeadingAt,
   MOVE_MIN_SPEED,
   type Pt,
 } from "@/lib/geo";
@@ -516,11 +517,18 @@ export function useRunSession({ enabled = true }: { enabled?: boolean } = {}) {
     center,
     userPos,
     userHeading: deviceHeading,
-    // Deterministic heading-up orientation: the course to the current target,
-    // independent of the magnetometer. Null before a fix/target so the map falls
+    // Deterministic heading-up orientation, magnetometer-free: the direction the
+    // route is taking the user (its tangent at the current position), so the road
+    // ahead reads "up". Falls back to the crow-flies course to the target when
+    // off-route or the route is unavailable, then to null — where MapView drops
     // back to the compass. The blue-dot cone still uses `userHeading` to show
-    // facing relative to this course.
-    mapBearing: pos && target ? bearingTo : null,
+    // facing relative to this orientation.
+    mapBearing:
+      pos && run.routeCoords.length > 1
+        ? (routeHeadingAt(run.routeCoords, pos) ?? (target ? bearingTo : null))
+        : pos && target
+          ? bearingTo
+          : null,
     needsCompassPermission,
     requestCompass,
     recenterKey,
