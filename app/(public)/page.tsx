@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import FreshnessLegend from "@/components/FreshnessLegend";
-import FountainLeaderboard from "@/components/FountainLeaderboard";
+// import FountainLeaderboard from "@/components/FountainLeaderboard";
 import NativeEntryRedirect from "@/components/NativeEntryRedirect";
 import SiteNav from "@/components/SiteNav";
 import { DropIcon } from "@phosphor-icons/react";
@@ -119,25 +119,26 @@ export default function LandingPage() {
 
         <div className="relative mx-auto max-w-6xl px-5 pt-14 pb-16 md:pt-20 md:pb-24">
           <div className="flex flex-col items-start gap-8 md:flex-row md:items-center md:gap-12">
-            {/* Brand mascot, anchoring the hero headline. */}
-            {}
-            <motion.img
+            {/* Interactive demo of the run + edit flow, framed like a print plate. */}
+            <motion.div
               {...fadeUp}
               transition={{ ...fadeUp.transition, delay: 0.05 }}
-              src="/icons/icon.svg"
-              alt="ROSM"
-              className="w-32 shrink-0 md:w-56 lg:w-72"
-            />
+              className="border-ink/10 bg-sky relative w-full shrink-0 overflow-hidden rounded-xl border md:w-[46%]"
+            >
+              <div className="relative isolate z-0 h-[clamp(300px,40vw,460px)] w-full">
+                <DemoRunMap />
+              </div>
+            </motion.div>
 
             <div>
               <motion.h1
                 {...fadeUp}
                 transition={{ ...fadeUp.transition, delay: 0.1 }}
-                className="font-display max-w-5xl text-[clamp(2.2rem,7vw,5.2rem)] leading-[0.9] font-bold tracking-tight uppercase"
+                className="font-display max-w-5xl text-[clamp(1.9rem,6vw,4.4rem)] leading-[1.05] font-bold tracking-tight uppercase"
               >
-                The DC Water
+                Runner verified
                 <br />
-                Fountain Map
+                data
               </motion.h1>
 
               <div className="mt-10 flex flex-col items-start gap-6">
@@ -146,32 +147,11 @@ export default function LandingPage() {
                   transition={{ ...fadeUp.transition, delay: 0.16 }}
                   className="text-ink-dim max-w-xl text-lg leading-relaxed"
                 >
-                  With data sourced by (and <em>for</em>) runners, this is the definitive map of
-                  public fountains in DC.
+                  Contribute to the accuracy of DC&apos;s drinking fountain map
                 </motion.p>
               </div>
             </div>
           </div>
-
-          {/* Sample-route label, sitting tightly above the map plate. */}
-          <motion.div
-            {...fadeUp}
-            transition={{ ...fadeUp.transition, delay: 0.24 }}
-            className="mt-14 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-1 pb-2"
-          >
-            <Label>Demo route</Label>
-          </motion.div>
-
-          {/* Interactive demo of the run + edit flow, framed like a print plate. */}
-          <motion.div
-            {...fadeUp}
-            transition={{ ...fadeUp.transition, delay: 0.28 }}
-            className="border-ink/10 bg-sky relative overflow-hidden rounded-xl border"
-          >
-            <div className="relative isolate z-0 h-[clamp(340px,48vw,560px)] w-full">
-              <DemoRunMap />
-            </div>
-          </motion.div>
         </div>
       </section>
 
@@ -196,7 +176,7 @@ export default function LandingPage() {
                 make light work of covering the whole city!
               </p>
               <p className="text-ink-dim mt-4 text-lg leading-relaxed">
-                ROSM caters to two groups:
+                Fountain Mapper caters to two groups:
               </p>
               <ol className="text-ink-dim mt-4 list-decimal space-y-1 pl-6 text-lg leading-relaxed">
                 <li>literally anyone looking for a working fountain</li>
@@ -237,14 +217,14 @@ export default function LandingPage() {
 
           {/* Contributor leaderboard — self-hides when there's no attributed
               edit data yet. */}
-          <motion.div
+          {/* <motion.div
             {...fadeUp}
             transition={{ ...fadeUp.transition, delay: 0.14 }}
             className="mt-12"
           >
             <Label>Top contributors</Label>
             <FountainLeaderboard className="mt-6" />
-          </motion.div>
+          </motion.div> */}
 
           <motion.div
             {...fadeUp}

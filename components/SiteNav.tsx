@@ -61,7 +61,7 @@ export default function SiteNav() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/icons/icon.svg" alt="" className="h-8 w-auto" />
                 <span className="font-display text-ink text-2xl font-bold tracking-tight">
-                  ROSM
+                  Fountain Mapper
                 </span>
               </span>
             </Link>
