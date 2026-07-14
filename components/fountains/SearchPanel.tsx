@@ -5,9 +5,9 @@ import SearchProgress from "@/components/fountains/SearchProgress";
 import ErrorNotice from "@/components/ui/ErrorNotice";
 import type { Counts, Water } from "@/lib/fountainFilters";
 
-// Radius for GPS-anchored searches. Widening happens by panning the map and
-// hitting "Search this area", so this is no longer editable.
-export const DEFAULT_RADIUS_MI = 1;
+// Box half-extent (miles) for GPS-anchored searches. Widening happens by panning
+// the map and hitting "Search this area", so this is no longer editable.
+export const DEFAULT_SEARCH_SPAN_MI = 1;
 
 // Panel header: search control, filters, and status. Shared by the mobile
 // bottom sheet and the desktop side panel.
