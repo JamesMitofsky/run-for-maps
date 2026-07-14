@@ -209,6 +209,7 @@ export default function PlannerPage() {
           line={phase === "run" ? session.line : line}
           userPos={phase === "run" ? session.userPos : undefined}
           userHeading={phase === "run" ? session.userHeading : undefined}
+          mapBearing={phase === "run" ? session.mapBearing : undefined}
           followHeading={phase === "run"}
           onMapClick={phase === "run" ? undefined : mapClick}
           mapClickPopup={

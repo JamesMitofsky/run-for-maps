@@ -516,6 +516,11 @@ export function useRunSession({ enabled = true }: { enabled?: boolean } = {}) {
     center,
     userPos,
     userHeading: deviceHeading,
+    // Deterministic heading-up orientation: the course to the current target,
+    // independent of the magnetometer. Null before a fix/target so the map falls
+    // back to the compass. The blue-dot cone still uses `userHeading` to show
+    // facing relative to this course.
+    mapBearing: pos && target ? bearingTo : null,
     needsCompassPermission,
     requestCompass,
     recenterKey,
