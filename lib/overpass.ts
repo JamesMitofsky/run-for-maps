@@ -58,7 +58,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // Fetch an Overpass query with a client timeout, per-endpoint retries, and
 // fallback across mirrors. Returns the parsed JSON; throws OverpassError when
 // all options are exhausted.
-async function fetchOverpass(query: string): Promise<{ elements: OverpassEl[] }> {
+export async function fetchOverpass(query: string): Promise<{ elements: OverpassEl[] }> {
   let lastError: OverpassError | null = null;
 
   for (const url of OVERPASS_ENDPOINTS) {
@@ -111,13 +111,16 @@ async function fetchOverpass(query: string): Promise<{ elements: OverpassEl[] }>
   throw lastError ?? new OverpassError("Couldn't reach OpenStreetMap's data server.", null, true);
 }
 
-type OverpassEl = {
+export type OverpassEl = {
   type: string;
   id: number;
   lat?: number;
   lon?: number;
   center?: { lat: number; lon: number };
   tags?: Record<string, string>;
+  // Present only when the query requests `out meta` (leaderboard attribution).
+  uid?: number;
+  user?: string;
 };
 
 // The area a search covers: either a circle (`around` an anchor) or the exact
