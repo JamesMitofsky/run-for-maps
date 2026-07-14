@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { heroFont } from "@/lib/heroFont";
 import FreshnessLegend from "@/components/FreshnessLegend";
-// import FountainLeaderboard from "@/components/FountainLeaderboard";
+import FountainLeaderboard from "@/components/FountainLeaderboard";
 import NativeEntryRedirect from "@/components/NativeEntryRedirect";
 import SiteNav from "@/components/SiteNav";
 import { DropIcon } from "@phosphor-icons/react";
@@ -232,14 +232,14 @@ export default function LandingPage() {
 
           {/* Contributor leaderboard — self-hides when there's no attributed
               edit data yet. */}
-          {/* <motion.div
+          <motion.div
             {...fadeUp}
             transition={{ ...fadeUp.transition, delay: 0.14 }}
             className="mt-12"
           >
             <Label>Top contributors</Label>
             <FountainLeaderboard className="mt-6" />
-          </motion.div> */}
+          </motion.div>
 
           <motion.div
             {...fadeUp}

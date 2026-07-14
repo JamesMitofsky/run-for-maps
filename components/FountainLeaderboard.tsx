@@ -71,7 +71,7 @@ export default function FountainLeaderboard({ className = "" }: { className?: st
                   href={`https://www.openstreetmap.org/user/${encodeURIComponent(l.username)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="decoration-ink/20 hover:decoration-ink truncate underline-offset-4 hover:underline"
+                  className="decoration-ink/20 hover:decoration-ink block truncate underline-offset-4 hover:underline"
                 >
                   {l.username}
                 </a>
