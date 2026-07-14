@@ -4,7 +4,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRun, type RunStop, type StopStatus } from "@/store/run";
 import { useOutbox } from "@/store/outbox";
 import { useUndo } from "@/store/undo";
-import { bearing, compass, haversine, nearestCumDistOnPath, type Pt } from "@/lib/geo";
+import {
+  bearing,
+  compass,
+  haversine,
+  nearestCumDistOnPath,
+  routeHeadingAt,
+  MOVE_MIN_SPEED,
+  type Pt,
+} from "@/lib/geo";
 import { ptLabel } from "@/lib/pointTypes";
 import type { MapMarker } from "@/components/MapView";
 import type { EditAction, EditExtras } from "@/lib/schemas";
@@ -37,9 +45,16 @@ export function useRunSession({ enabled = true }: { enabled?: boolean } = {}) {
   const { status: osm, refresh } = useOsmStatus();
 
   const [pos, setPos] = useState<Pt | null>(null);
-  // GPS travel direction (only while moving) — fallback for the compass heading.
+  // GPS travel direction (only while moving) — orients the map/cone while moving.
   const [gpsHeading, setGpsHeading] = useState<number | null>(null);
-  const { heading: deviceHeading, needsCompassPermission, requestCompass } = useHeading(gpsHeading);
+  // Whether the user is moving — picks travel direction vs. device compass as the
+  // heading source (see useHeading).
+  const [moving, setMoving] = useState(false);
+  const {
+    heading: deviceHeading,
+    needsCompassPermission,
+    requestCompass,
+  } = useHeading(gpsHeading, moving);
   const [manualArrived, setManualArrived] = useState(false);
   const [adding, setAdding] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -89,8 +104,11 @@ export function useRunSession({ enabled = true }: { enabled?: boolean } = {}) {
       (p) => {
         setPos({ lat: p.lat, lon: p.lon });
         // GPS heading is the travel direction in degrees, present only while
-        // moving. Used as fallback when the compass is denied/unsupported.
+        // moving — orients the heading-up map/cone while under way.
         if (p.heading != null) setGpsHeading(p.heading);
+        // Speed is the primary movement signal; where a device omits it, browsers
+        // null out `heading` when near-stationary, so heading-presence is the backup.
+        setMoving(p.speed != null ? p.speed >= MOVE_MIN_SPEED : p.heading != null);
       },
       (msg) => setErr(`Location: ${msg}`),
     ).then((w) => {
@@ -292,6 +310,16 @@ export function useRunSession({ enabled = true }: { enabled?: boolean } = {}) {
     setLastSaved(null);
     if (target) run.setStatus(target.id, "skipped");
     advance();
+  }
+
+  // End the run before reaching the last stop. Jumps the index past the final
+  // stop so `done` flips true and the completion screen (close-changeset) shows.
+  // Remaining pending stops stay pending — they just tally as unsurveyed.
+  function endEarly() {
+    setLastSaved(null);
+    setManualArrived(false);
+    run.setIndex(stops.length);
+    persist(stops.length);
   }
 
   // Step back to the previous stop and re-open it for action. Resets that stop's
@@ -499,6 +527,18 @@ export function useRunSession({ enabled = true }: { enabled?: boolean } = {}) {
     center,
     userPos,
     userHeading: deviceHeading,
+    // Deterministic heading-up orientation, magnetometer-free: the direction the
+    // route is taking the user (its tangent at the current position), so the road
+    // ahead reads "up". Falls back to the crow-flies course to the target when
+    // off-route or the route is unavailable, then to null — where MapView drops
+    // back to the compass. The blue-dot cone still uses `userHeading` to show
+    // facing relative to this orientation.
+    mapBearing:
+      pos && run.routeCoords.length > 1
+        ? (routeHeadingAt(run.routeCoords, pos) ?? (target ? bearingTo : null))
+        : pos && target
+          ? bearingTo
+          : null,
     needsCompassPermission,
     requestCompass,
     recenterKey,
@@ -533,6 +573,7 @@ export function useRunSession({ enabled = true }: { enabled?: boolean } = {}) {
     record,
     skip,
     goBack,
+    endEarly,
     addHere,
     addAt,
     finish,

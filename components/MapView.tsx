@@ -66,6 +66,18 @@ type Props = {
   userPos?: [number, number] | null;
   // Compass heading in degrees (0 = north, clockwise). Draws a direction cone.
   userHeading?: number | null;
+  // Deterministic map orientation (degrees, 0 = north, clockwise): the direction
+  // navigation is taking the user — e.g. the bearing to the next target. When set
+  // (and `followHeading`), the map rotates to THIS instead of the compass/GPS
+  // `userHeading`, so orientation never depends on a magnetometer. The blue-dot
+  // cone still shows `userHeading` (device facing) but relative to this rotation,
+  // so cone-up means "you're pointed where you're headed". Null falls back to
+  // `userHeading` for rotation (compass heading-up as before).
+  mapBearing?: number | null;
+  // Rotate the whole map so heading is "up" (heading-up navigation). Rotation
+  // follows `mapBearing` when provided, else `userHeading`. Default false keeps
+  // the map north-up and the cone rotated to `userHeading` as before.
+  followHeading?: boolean;
   onMapClick?: (lat: number, lon: number) => void;
   // When set, a tap on empty map opens a popup anchored at the tapped spot
   // rendering this content, instead of firing onMapClick — so an action (e.g.
@@ -285,6 +297,12 @@ function boundsOf(pts: [number, number][]): LngLatBoundsLike {
   ];
 }
 
+// Signed smallest rotation (deg, -180..180) from angle `a` to `b`. Lets the
+// heading-up bearing effect skip sub-degree jitter and rotate the short way.
+function shortestAngleDelta(a: number, b: number): number {
+  return ((((b - a) % 360) + 540) % 360) - 180;
+}
+
 // Blue location dot with an optional Apple/Google-style heading cone.
 function UserDot({ heading }: { heading?: number | null }) {
   return (
@@ -343,6 +361,8 @@ export default function MapView({
   searchedBox,
   userPos,
   userHeading,
+  mapBearing,
+  followHeading = false,
   onMapClick,
   mapClickPopup,
   onUserPan,
@@ -416,6 +436,22 @@ export default function MapView({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recenterKey]);
+
+  // Heading-up rotation: turn the map so the travel direction reads as "up".
+  // `mapBearing` (deterministic course to the next target) wins when supplied,
+  // else the compass/GPS `userHeading`. Programmatic bearing still works with
+  // touch-rotation disabled (that only blocks the gesture), and the recenter
+  // effect above never passes a bearing, so the two don't fight. A 2° deadband
+  // drops sensor jitter; rotate the short way. When follow turns off, ease back
+  // to north.
+  const rotateTo = mapBearing ?? userHeading;
+  useEffect(() => {
+    const map = mapRef.current?.getMap();
+    if (!map) return;
+    const target = followHeading && rotateTo != null ? rotateTo : 0;
+    if (Math.abs(shortestAngleDelta(map.getBearing(), target)) < 2) return;
+    map.easeTo({ bearing: target, duration: 300, essential: true });
+  }, [followHeading, rotateTo]);
 
   // Pop new dots in: grow circle-radius 0 → target whenever the marker set
   // changes. Driven by React state fed declaratively into the layer paint (no
@@ -614,7 +650,21 @@ export default function MapView({
 
         {userPos && (
           <Marker longitude={userPos[1]} latitude={userPos[0]} anchor="center">
-            <UserDot heading={userHeading} />
+            {/* Cone = device facing (`userHeading`) in the map's frame. Following
+                heading, the map is rotated to `rotateTo`, so the cone shows the
+                offset `userHeading - rotateTo` — 0 when they match (compass
+                heading-up), or "am I facing the target" when rotateTo is a
+                deterministic bearing. North-up, it's the raw heading. Null facing
+                hides the cone (orientation can still follow `mapBearing`). */}
+            <UserDot
+              heading={
+                userHeading == null
+                  ? null
+                  : followHeading
+                    ? userHeading - (rotateTo ?? userHeading)
+                    : userHeading
+              }
+            />
           </Marker>
         )}
 
