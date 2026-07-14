@@ -1,4 +1,4 @@
-# Fountain Mapper — iOS (Capacitor) build & deploy
+# Run Verified Fountains — iOS (Capacitor) build & deploy
 
 One codebase, two outputs:
 

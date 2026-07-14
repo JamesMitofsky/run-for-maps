@@ -51,7 +51,7 @@ describe("share", () => {
     const { shareRun } = await import("@/lib/share");
     await shareRun("https://rosm.test/run", "I surveyed 5 fountains");
     expect(h.share).toHaveBeenCalledWith({
-      title: "Fountain Mapper run",
+      title: "Run Verified Fountains run",
       text: "I surveyed 5 fountains",
       url: "https://rosm.test/run",
     });

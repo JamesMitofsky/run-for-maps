@@ -1,140 +1,80 @@
-// Contributor leaderboard, sourced from OSM itself (durable + real) rather than
-// the ephemeral local edit log.
+// Contributor leaderboard, sourced from OSM itself (durable + real).
 //
-// Every changeset the app opens is tagged `created_by` = APP_NAME (see lib/osm).
-// OSMCha exposes an `editor` filter over that tag, but the query is unindexed and
-// times out (>90s) — unusable at request time. OSM's own changeset API can't
-// filter by tag at all. So instead we:
-//   1. DISCOVER app contributors by scanning recent changesets in the DC bbox and
-//      keeping the ones tagged with an app editor (cheap: one page = 100).
-//   2. TALLY each discovered (and previously-known) user's lifetime app edits via
-//      the indexed per-user changeset query, summing `changes_count` = points.
-//   3. CACHE the aggregate so page loads never wait on the OSM roundtrips.
+// We rank the OSM users who are the current author of the most drinking-water
+// features inside the coverage zone. Overpass indexes the *current* version of
+// every element and, with `out meta`, returns each element's last editor
+// (uid + user). So a single bbox query enumerates every contributor in the zone
+// and their feature counts — no user list to seed, no changeset-tag scan.
+//
+// Metric note: this counts features a user is the *current* steward of, not raw
+// edit operations. A later edit by someone else reassigns a feature; repeat edits
+// by the same user on one feature count once. That's the honest limit of element
+// data (changeset history is the only true per-edit record) and reads fine as a
+// "who maintains the most fountains here" board.
 import { readJson, writeJson } from "./db";
-import { APP_NAME } from "./appConfig";
+import { fetchOverpass } from "./overpass";
 
-const OSM_BASE = process.env.OSM_API_BASE || "https://api.openstreetmap.org";
-const UA = "run-for-maps/1.0 (leaderboard)";
-
-// Editor tags that count as "edited through the app": the current brand name plus
-// the historical repo slug, so pre-rename changesets still attribute correctly.
-const APP_EDITORS = new Set([APP_NAME, "run-for-maps"]);
-
-// Bounding box the app operates in (≈ the live fountain map's DC coverage), used
-// only to discover which users have recently edited via the app.
-const DC_BBOX = "-77.20,38.70,-76.85,39.05";
+// Coverage zone, Overpass bbox order: (south, west, north, east). ≈ greater DC.
+const ZONE_BBOX = "38.70,-77.20,39.05,-76.85";
+// The feature the app surveys. Kept in sync with the map's default query.
+const TAG = { key: "amenity", value: "drinking_water" };
 
 const CACHE_FILE = "leaderboard-cache.json";
 const TTL_MS = 60 * 60 * 1000; // 1h
 const MAX_ENTRIES = 10;
-// A user with more changesets than this has older app edits we won't page back to.
-// Fine for this project's scale; logged rather than silently dropped.
-const PER_USER_PAGE = 100;
 
 export type LeaderboardEntry = {
   username: string;
   uid: number;
-  points: number; // sum of changes_count across the user's app changesets
-  changesets: number;
+  points: number; // distinct in-zone features this user is the current author of
 };
 
 type Cache = { generatedAt: string; entries: LeaderboardEntry[] };
 
-type OsmChangeset = {
-  uid?: number;
-  user?: string;
-  changes_count?: number;
-  tags?: Record<string, string>;
-};
-
-async function fetchChangesets(query: string): Promise<OsmChangeset[]> {
-  const res = await fetch(`${OSM_BASE}/api/0.6/changesets.json?${query}`, {
-    headers: { "User-Agent": UA },
-  });
-  if (!res.ok) throw new Error(`OSM changesets ${res.status}`);
-  const j = (await res.json()) as { changesets?: OsmChangeset[] };
-  return j.changesets ?? [];
+function buildQuery(): string {
+  const f = `["${TAG.key}"="${TAG.value}"](${ZONE_BBOX})`;
+  return `[out:json][timeout:25];
+(
+  node${f};
+  way${f};
+  relation${f};
+);
+out meta;`;
 }
 
-const isAppEdit = (c: OsmChangeset) => APP_EDITORS.has(c.tags?.created_by ?? "");
-
-// Recently-active app contributors, from a single bbox page. Newest-first, so
-// this surfaces whoever has edited most recently — enough to keep the board warm.
-async function discoverUsers(): Promise<Map<number, string>> {
-  const changesets = await fetchChangesets(`bbox=${DC_BBOX}`);
-  const users = new Map<number, string>();
-  for (const c of changesets) {
-    if (isAppEdit(c) && c.uid != null && c.user) users.set(c.uid, c.user);
+// Tally the current author of every in-zone feature. One Overpass call; group by
+// uid. Elements without meta (uid/user) are skipped rather than bucketed as an
+// anonymous "0" contributor.
+async function tally(): Promise<LeaderboardEntry[]> {
+  const { elements } = await fetchOverpass(buildQuery());
+  const byUid = new Map<number, LeaderboardEntry>();
+  for (const el of elements) {
+    if (el.uid == null || !el.user) continue;
+    const cur = byUid.get(el.uid);
+    if (cur) cur.points += 1;
+    else byUid.set(el.uid, { username: el.user, uid: el.uid, points: 1 });
   }
-  return users;
-}
-
-// One user's lifetime app tally. Single page (newest 100 changesets) — covers
-// every contributor at this project's scale; truncation past 100 is logged.
-async function tallyUser(username: string): Promise<LeaderboardEntry | null> {
-  const changesets = await fetchChangesets(`display_name=${encodeURIComponent(username)}`);
-  if (changesets.length === PER_USER_PAGE) {
-    console.warn(
-      `[leaderboard] ${username} has ≥${PER_USER_PAGE} changesets; older ones untallied`,
-    );
-  }
-  const app = changesets.filter(isAppEdit);
-  if (app.length === 0) return null;
-  return {
-    username,
-    uid: app[0].uid ?? 0,
-    points: app.reduce((sum, c) => sum + (c.changes_count ?? 0), 0),
-    changesets: app.length,
-  };
-}
-
-function sortTop(entries: LeaderboardEntry[]): LeaderboardEntry[] {
-  return [...entries]
+  return [...byUid.values()]
     .sort((a, b) => b.points - a.points || a.username.localeCompare(b.username))
     .slice(0, MAX_ENTRIES);
 }
 
-// Rebuild the aggregate: known users (from the last cache) ∪ freshly-discovered
-// ones, re-tallied against live OSM. Returns stale cache on total failure so a
-// transient OSM outage never blanks the board.
-async function rebuild(prev: Cache | null): Promise<LeaderboardEntry[]> {
-  try {
-    const discovered = await discoverUsers();
-    const usernames = new Set<string>([
-      ...discovered.values(),
-      ...(prev?.entries.map((e) => e.username) ?? []),
-    ]);
-    const tallied = await Promise.all([...usernames].map((u) => tallyUser(u).catch(() => null)));
-    return sortTop(tallied.filter((e): e is LeaderboardEntry => e !== null));
-  } catch (e) {
-    console.error("[leaderboard] rebuild failed:", e);
-    return prev?.entries ?? [];
-  }
-}
-
 // Cached top-N contributors. Rebuilds when the cache is missing or older than TTL;
-// otherwise returns instantly. Timestamps come from the caller (no Date in render).
+// otherwise returns instantly. The rebuild is stateless (recomputed wholly from
+// Overpass), so ephemeral serverless storage is fine — a cold /tmp just triggers a
+// fresh fetch. On Overpass failure we return the stale cache so a transient outage
+// never blanks the board. Timestamps come from the caller (no Date in render).
 export async function getLeaderboard(nowMs: number): Promise<LeaderboardEntry[]> {
   const cache = await readJson<Cache | null>(CACHE_FILE, null);
   const fresh = cache && nowMs - new Date(cache.generatedAt).getTime() < TTL_MS;
   if (fresh) return cache.entries;
 
-  const entries = await rebuild(cache);
-  await writeJson<Cache>(CACHE_FILE, { generatedAt: new Date(nowMs).toISOString(), entries });
-  return entries;
-}
-
-// Upsert a single signed-in user's tally into the cache without a full rebuild —
-// guarantees a contributor appears the moment they load the app, even if their
-// recent edits fell outside the discovery bbox page.
-export async function registerUser(username: string): Promise<void> {
-  const entry = await tallyUser(username);
-  if (!entry) return;
-  const cache = await readJson<Cache | null>(CACHE_FILE, null);
-  const others = (cache?.entries ?? []).filter((e) => e.username !== username);
-  const entries = sortTop([...others, entry]);
-  await writeJson<Cache>(CACHE_FILE, {
-    generatedAt: cache?.generatedAt ?? new Date().toISOString(),
-    entries,
-  });
+  try {
+    const entries = await tally();
+    await writeJson<Cache>(CACHE_FILE, { generatedAt: new Date(nowMs).toISOString(), entries });
+    return entries;
+  } catch (e) {
+    console.error("[leaderboard] rebuild failed:", e);
+    return cache?.entries ?? [];
+  }
 }
