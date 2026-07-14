@@ -66,7 +66,7 @@ export default function SiteNav() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/icons/icon.svg" alt="Fountain Mapper" className="h-8 w-auto" />
                 <span className={`${heroFont.className} text-ink text-3xl tracking-tight`}>
-                  Run Verified
+                  Run Verified Maps
                 </span>
               </span>
             </Link>
