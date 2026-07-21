@@ -4,7 +4,7 @@
 // read it. Capacitor is the point of truth; the manifest/native config derive here.
 
 export const APP_ID = "org.rosm.app";
-export const APP_NAME = "Run Verified Fountains";
+export const APP_NAME = "ROSM";
 export const APP_TAGLINE = "Running for Open-Sourced Maps";
 
 // OAuth deep-link scheme (also registered in ios Info.plist CFBundleURLTypes).
