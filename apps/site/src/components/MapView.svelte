@@ -334,40 +334,44 @@
 
     {#each labeled as m (m.id)}
       <Marker lnglat={[m.lon, m.lat]} style={{ pointerEvents: "none" }}>
-        <span
-          class="marker-pop-label"
-          style="color:#fff; font-size:11px; font-weight:700; line-height:1; opacity:{m.dimmed
-            ? 0.45
-            : 1}; text-shadow:0 1px 1px rgba(0,0,0,.35);"
-        >
-          {m.label}
-        </span>
+        {#snippet content()}
+          <span
+            class="marker-pop-label"
+            style="color:#fff; font-size:11px; font-weight:700; line-height:1; opacity:{m.dimmed
+              ? 0.45
+              : 1}; text-shadow:0 1px 1px rgba(0,0,0,.35);"
+          >
+            {m.label}
+          </span>
+        {/snippet}
       </Marker>
     {/each}
 
     {#if userPos}
       <Marker lnglat={[userPos[1], userPos[0]]}>
-        <div style="position:relative; width:64px; height:64px; pointer-events:none;">
-          {#if cone != null}
-            <svg
-              width="64"
-              height="64"
-              viewBox="0 0 64 64"
-              style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%) rotate({cone}deg);"
-            >
-              <defs>
-                <radialGradient id="userCone" cx="50%" cy="50%" r="55%">
-                  <stop offset="0%" stop-color="#2563eb" stop-opacity="0.55" />
-                  <stop offset="100%" stop-color="#2563eb" stop-opacity="0" />
-                </radialGradient>
-              </defs>
-              <path d="M32 32 L16 4 A30 30 0 0 1 48 4 Z" fill="url(#userCone)" />
-            </svg>
-          {/if}
-          <div
-            style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); background:#2563eb; width:16px; height:16px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 0 2px #2563eb;"
-          ></div>
-        </div>
+        {#snippet content()}
+          <div style="position:relative; width:64px; height:64px; pointer-events:none;">
+            {#if cone != null}
+              <svg
+                width="64"
+                height="64"
+                viewBox="0 0 64 64"
+                style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%) rotate({cone}deg);"
+              >
+                <defs>
+                  <radialGradient id="userCone" cx="50%" cy="50%" r="55%">
+                    <stop offset="0%" stop-color="#2563eb" stop-opacity="0.55" />
+                    <stop offset="100%" stop-color="#2563eb" stop-opacity="0" />
+                  </radialGradient>
+                </defs>
+                <path d="M32 32 L16 4 A30 30 0 0 1 48 4 Z" fill="url(#userCone)" />
+              </svg>
+            {/if}
+            <div
+              style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); background:#2563eb; width:16px; height:16px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 0 2px #2563eb;"
+            ></div>
+          </div>
+        {/snippet}
       </Marker>
     {/if}
 
