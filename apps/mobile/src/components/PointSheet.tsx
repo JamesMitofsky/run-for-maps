@@ -175,10 +175,12 @@ export function PointSheet({ fountain, edit, onAction, inRoute, onToggleRoute }:
                 key={action}
                 onPress={() => setDetailFor(action)}
                 accessibilityRole="button"
-                className={`flex-1 flex-row items-center justify-center gap-2 rounded-xl px-4 py-4 ${box}`}
+                className={`h-20 flex-1 flex-col items-center justify-center gap-1.5 rounded-xl px-2 ${box}`}
               >
-                <Icon size={18} color="#ffffff" weight="bold" />
-                <Text className="text-base font-bold text-white">{title}</Text>
+                <Icon size={24} color="#ffffff" weight="bold" />
+                <Text className="flex-shrink text-center text-sm font-bold text-white">
+                  {title}
+                </Text>
               </Pressable>
             ))}
           </View>
@@ -188,10 +190,12 @@ export function PointSheet({ fountain, edit, onAction, inRoute, onToggleRoute }:
                 key={action}
                 onPress={() => setDetailFor(action)}
                 accessibilityRole="button"
-                className={`flex-1 flex-row items-center justify-center gap-2 rounded-xl px-4 py-4 ${box}`}
+                className={`h-20 flex-1 flex-col items-center justify-center gap-1.5 rounded-xl px-2 ${box}`}
               >
-                <Icon size={18} color="#ffffff" weight="bold" />
-                <Text className="text-base font-bold text-white">{title}</Text>
+                <Icon size={24} color="#ffffff" weight="bold" />
+                <Text className="flex-shrink text-center text-sm font-bold text-white">
+                  {title}
+                </Text>
               </Pressable>
             ))}
           </View>
