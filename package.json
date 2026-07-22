@@ -11,8 +11,12 @@
     "test": "turbo run test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build",
+    "expo": "pnpm --filter @rosm/mobile start",
+    "expo:ios": "pnpm --filter @rosm/mobile ios",
+    "expo:android": "pnpm --filter @rosm/mobile android",
+    "astro": "pnpm --filter @rosm/site dev",
+    "astro:build": "pnpm --filter @rosm/site build",
+    "astro:preview": "pnpm --filter @rosm/site preview",
     "prepare": "husky"
   },
   "devDependencies": {

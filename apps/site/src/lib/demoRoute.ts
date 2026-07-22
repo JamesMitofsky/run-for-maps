@@ -1,29 +1,11 @@
-"use client";
-
-import { useState } from "react";
-import dynamic from "next/dynamic";
-import type { MapMarker } from "@/components/MapView";
-import PointPopup, { type PointEdit } from "@/components/PointPopup";
-import type { EditAction, EditExtras, Fountain } from "@rosm/core/schemas";
+// Frozen demo data for the landing hero run map (extracted verbatim from the
+// original DemoRunMap): a real 24.5 km DC foot loop + its OSM fountains.
+import type { Fountain } from "@rosm/core/schemas";
 import type { StopStatus } from "@rosm/core/stores/run";
-import { editSummary, todayLocal } from "@rosm/core/editSummary";
-import { celebratePoint } from "@/lib/confetti";
 
-const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
+export const DC_CENTER: [number, number] = [38.9068, -77.0331];
 
-/* ------------------------------------------------------------------ */
-/* Real sample route — a 24.5 km foot loop through Columbia Heights,   */
-/* Logan Circle, Capitol Hill, the National Mall, and Georgetown,      */
-/* visiting real OSM drinking fountains. Geometry generated once from  */
-/* OSM (Overpass) + BRouter (hiking-beta), then frozen here.           */
-/*                                                                     */
-/* The map is a sandboxed replica of the run screen: same markers,     */
-/* same popup, same status colors — but every "edit" lives only in     */
-/* component state. Nothing is written to OSM, the outbox, or disk.    */
-/* ------------------------------------------------------------------ */
-const DC_CENTER: [number, number] = [38.9068, -77.0331];
-
-const DC_FOUNTAINS: Fountain[] = [
+export const DC_FOUNTAINS: Fountain[] = [
   {
     id: 1,
     lat: 38.92548,
@@ -67,7 +49,7 @@ const DC_FOUNTAINS: Fountain[] = [
   },
 ];
 
-const DC_ROUTE: [number, number][] = [
+export const DC_ROUTE: [number, number][] = [
   [38.92547, -77.03219],
   [38.92645, -77.03256],
   [38.92627, -77.03548],
@@ -344,8 +326,8 @@ const DC_ROUTE: [number, number][] = [
   [38.92547, -77.03219],
 ];
 
-// Same palette as the live run screen (hooks/useRunSession).
-const STATUS_COLOR: Record<StopStatus, string> = {
+// Same palette as the live run screen.
+export const STATUS_COLOR: Record<StopStatus, string> = {
   pending: "#9ca3af",
   confirm: "#16a34a",
   broken: "#f59e0b",
@@ -357,7 +339,7 @@ const STATUS_COLOR: Record<StopStatus, string> = {
 // The demo joins the run "mid-way": the first stops are already surveyed so a
 // visitor immediately sees done vs. upcoming, and the runner dot sits on the
 // approach to the next target.
-const SEED_STATUSES: Record<number, StopStatus> = {
+export const SEED_STATUSES: Record<number, StopStatus> = {
   1: "confirm",
   2: "confirm",
   3: "out_of_order",
@@ -367,89 +349,3 @@ const SEED_STATUSES: Record<number, StopStatus> = {
   7: "removed",
   8: "confirm",
 };
-
-function seedEdits(): Record<number, PointEdit> {
-  const today = todayLocal();
-  const entries = Object.entries(SEED_STATUSES).map(([id, status]) => [
-    Number(id),
-    {
-      status,
-      summary: editSummary(status as EditAction, "amenity", today),
-      syncState: "sent" as const,
-    },
-  ]);
-  return Object.fromEntries(entries);
-}
-
-// Interactive replica of the run screen for the landing hero. Every tap flows
-// through the real PointPopup, but edits only touch local state — nothing is
-// sent to OSM, queued in the outbox, or persisted anywhere.
-export default function DemoRunMap({ className }: { className?: string }) {
-  // Leaflet's zoom is initial-only, so pick it once at mount. Same breakpoint
-  // as the hero-map zoom-control CSS (md, 768px).
-  const [zoom] = useState(() =>
-    typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches ? 11 : 12,
-  );
-  const [statuses, setStatuses] = useState<Record<number, StopStatus>>(SEED_STATUSES);
-  const [edits, setEdits] = useState<Record<number, PointEdit>>(seedEdits);
-
-  // Current target = first unsurveyed stop along the route, exactly like the
-  // real run advancing through its stop list.
-  const currentIdx = DC_FOUNTAINS.findIndex((f) => !statuses[f.id]);
-
-  function record(f: Fountain, action: EditAction, extras?: EditExtras) {
-    setStatuses((s) => ({ ...s, [f.id]: action as StopStatus }));
-    setEdits((e) => ({
-      ...e,
-      [f.id]: {
-        status: action as StopStatus,
-        summary: editSummary(action, "amenity", todayLocal(), extras),
-        syncState: "pending",
-        extras,
-      },
-    }));
-    celebratePoint();
-    // Fake the offline-first outbox: "saved · sending…" flips to "sent to OSM"
-    // a beat later, without any network involved.
-    setTimeout(() => {
-      setEdits((e) => (e[f.id] ? { ...e, [f.id]: { ...e[f.id], syncState: "sent" } } : e));
-    }, 900);
-  }
-
-  const markers: MapMarker[] = DC_FOUNTAINS.map((f, i) => ({
-    id: f.id,
-    lat: f.lat,
-    lon: f.lon,
-    color: i === currentIdx ? "#2563eb" : STATUS_COLOR[statuses[f.id] ?? "pending"],
-    label: String(i + 1),
-    popup: (
-      <PointPopup
-        fountain={f}
-        loggedIn
-        edit={edits[f.id]}
-        busy={false}
-        onAction={(action, extras) => record(f, action, extras)}
-      />
-    ),
-  }));
-
-  return (
-    <div className={`relative h-full w-full ${className ?? ""}`}>
-      <MapView
-        className="hero-map"
-        center={DC_CENTER}
-        zoom={zoom}
-        minZoom={8}
-        maxZoom={18}
-        line={DC_ROUTE}
-        markers={markers}
-        centerOnSelect
-      />
-      {/* Corner label so the hero map reads as a live, tappable demo rather than a
-          static screenshot. Non-interactive — it never intercepts map gestures. */}
-      <span className="border-sky-deep bg-sky-deep/15 text-sky-deep pointer-events-none absolute top-3 left-3 z-[1000] rounded-full border px-3 py-1 text-xs font-semibold shadow-sm backdrop-blur">
-        Interactive demo
-      </span>
-    </div>
-  );
-}

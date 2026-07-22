@@ -1,0 +1,230 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import SiteNav from "@/components/SiteNav.astro";
+import BetaCta from "@/components/BetaCta.svelte";
+import DemoRunMap from "@/components/DemoRunMap.svelte";
+import LiveFountainMap from "@/components/LiveFountainMap.svelte";
+import FountainLeaderboard from "@/components/FountainLeaderboard.svelte";
+import FreshnessLegend from "@/components/FreshnessLegend.svelte";
+
+export const prerender = true;
+
+// Torn-paper silhouette for the manifesto plate. Irregular px offsets along the
+// top and bottom edges read as a hand-torn strip; the left/right sides stay
+// straight for the full-bleed section. Offsets are hardcoded — not random.
+// clip-path and the raising drop-shadow live on separate elements: on one element
+// the clip runs after the filter and would clip the shadow away to nothing.
+const tornShadow =
+  "filter: drop-shadow(0 2px 3px rgba(60, 48, 24, 0.32)) drop-shadow(0 9px 18px rgba(60, 48, 24, 0.24));";
+const tornClip = `clip-path: polygon(
+  0% 10px, 4% 2px, 7% 18px, 13% 4px, 17% 21px, 21% 7px, 26% 14px, 31% 1px,
+  34% 19px, 40% 5px, 44% 22px, 49% 9px, 53% 3px, 58% 17px, 63% 6px, 68% 20px,
+  71% 11px, 77% 2px, 82% 16px, 86% 5px, 91% 23px, 96% 8px, 100% 13px,
+  100% calc(100% - 11px), 96% calc(100% - 3px), 91% calc(100% - 19px),
+  86% calc(100% - 6px), 82% calc(100% - 22px), 77% calc(100% - 8px),
+  71% calc(100% - 15px), 68% calc(100% - 2px), 63% calc(100% - 20px),
+  58% calc(100% - 5px), 53% calc(100% - 23px), 49% calc(100% - 9px),
+  44% calc(100% - 4px), 40% calc(100% - 17px), 34% calc(100% - 7px),
+  31% calc(100% - 21px), 26% calc(100% - 12px), 21% calc(100% - 3px),
+  17% calc(100% - 18px), 13% calc(100% - 6px), 7% calc(100% - 22px),
+  4% calc(100% - 9px), 0% calc(100% - 14px)
+);`;
+
+// Decorative topographic contour paths (two families), matching the React source.
+const topLines = Array.from({ length: 9 }, (_, i) => {
+  const o = i * 26;
+  return {
+    d: `M-50 ${120 + o} C 200 ${60 + o}, 360 ${220 + o}, 560 ${180 + o} S 920 ${60 + o}, 1260 ${160 + o}`,
+    opacity: 0.5 - i * 0.04,
+  };
+});
+const bottomLines = Array.from({ length: 7 }, (_, i) => {
+  const o = i * 30;
+  return {
+    d: `M-50 ${420 + o} C 180 ${360 + o}, 420 ${520 + o}, 640 ${440 + o} S 980 ${360 + o}, 1260 ${480 + o}`,
+    opacity: 0.42 - i * 0.05,
+  };
+});
+---
+
+<Layout>
+  <main class="paper-grain bg-paper font-body text-ink relative">
+    <SiteNav />
+
+    {/* HERO */}
+    <section class="relative overflow-hidden">
+      <svg
+        class="text-ink/[0.06] pointer-events-none absolute inset-0 h-full w-full"
+        viewBox="0 0 1200 600"
+        fill="none"
+        preserveAspectRatio="xMidYMid slice"
+        aria-hidden="true"
+      >
+        {topLines.map((l) => (
+          <path d={l.d} stroke="currentColor" stroke-width="1" opacity={l.opacity} />
+        ))}
+        {bottomLines.map((l) => (
+          <path d={l.d} stroke="currentColor" stroke-width="1" opacity={l.opacity} />
+        ))}
+      </svg>
+
+      <div class="relative mx-auto max-w-6xl px-5 pt-7 pb-16 md:pt-20 md:pb-24">
+        {/* Mobile: title -> map -> subtitle (flex column). Desktop: map spans the
+            left column, title + subtitle stack in the right column (grid). */}
+        <div
+          class="flex flex-col items-start gap-8 md:grid md:grid-cols-[46%_1fr] md:items-center md:gap-x-12 md:gap-y-4"
+        >
+          <h1
+            class="reveal font-hero max-w-5xl text-[clamp(2.6rem,12vw,4.6rem)] leading-[0.9] font-bold tracking-tight md:col-start-2 md:row-start-1 md:self-end"
+            style="transition-delay: 0.1s"
+          >
+            Plan routes.<br />Verify fountains.
+          </h1>
+
+          {/* Interactive demo of the run + edit flow, framed like a print plate. */}
+          <div
+            class="reveal border-ink/10 bg-sky relative w-full overflow-hidden rounded-xl border md:col-start-1 md:row-span-2 md:self-center"
+            style="transition-delay: 0.05s"
+          >
+            <div class="hero-map relative isolate z-0 h-[clamp(300px,40vw,460px)] w-full">
+              <DemoRunMap client:only="svelte" />
+            </div>
+          </div>
+
+          <div
+            class="reveal flex flex-col items-start gap-6 md:col-start-2 md:row-start-2 md:self-start"
+            style="transition-delay: 0.16s"
+          >
+            <p class="text-ink-dim max-w-xl text-xl leading-relaxed">
+              Contribute to your community with local&nbsp;data
+            </p>
+            <BetaCta client:load />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {/* MANIFESTO SPLIT — a raised, hand-torn paper strip over the page.
+        Wrapper casts the shadow; inner section carries the torn clip. */}
+    <div class="relative z-10 -my-6" style={tornShadow}>
+      <section class="bg-paper-deep" style={tornClip}>
+        <div class="reveal mx-auto max-w-3xl px-5 py-20 md:py-28">
+          <h2 class="font-hero text-[clamp(2rem,5vw,3.4rem)] leading-[1.05] font-bold tracking-tight">
+            The Problem
+          </h2>
+          <p class="text-ink-dim mt-6 text-lg leading-relaxed">
+            Despite DC's many public drinking fountains, there is no reliable way to know where they
+            all are. And then, many are out of order. This is bad for everyone, especially folks who
+            spend a disproportionate amount of time outdoors—think runners, tourists, and the
+            homeless.
+          </p>
+          <p class="text-ink-dim mt-4 text-lg leading-relaxed">
+            By building a robust, locally-sourced map of public drinking water, we can improve the
+            utility of this existing public good. This removes the guesswork of where to find the
+            nearest fountain as well as the uncertainty of whether that fountain will work.
+          </p>
+          <p class="text-ink-dim mt-4 text-lg leading-relaxed">
+            In practice, this produces immediate and long-term benefits:
+          </p>
+          <ul class="text-ink-dim mt-4 list-disc space-y-1 pl-6 text-lg leading-relaxed">
+            <li>
+              <span class="font-medium">Immediately,</span> anyone can reliably locate the nearest
+              working fountain
+            </li>
+            <li>
+              <span class="font-medium">Long-term,</span> 311 can have rapid visibility for when
+              fountains break
+            </li>
+          </ul>
+        </div>
+      </section>
+    </div>
+
+    {/* THE STATE OF THE FOUNTAINS — leaderboard + live coverage map */}
+    <section>
+      <div class="mx-auto max-w-6xl px-5 py-20 md:py-28">
+        <h2
+          class="reveal font-hero text-[clamp(2rem,5.5vw,3.6rem)] leading-tight font-bold tracking-tight uppercase"
+        >
+          The State of the Fountains
+        </h2>
+        <p class="reveal text-ink-dim mt-8 max-w-2xl text-lg leading-relaxed" style="transition-delay: 0.1s">
+          Here's a live coverage map of the fountains in DC.
+        </p>
+
+        {/* Contributor leaderboard — self-hides when there's no attributed edit data yet. */}
+        <div class="reveal mt-12" style="transition-delay: 0.14s">
+          <span class="text-ink-dim font-mono text-[0.65rem] font-medium tracking-[0.22em] uppercase">
+            Top contributors
+          </span>
+          <FountainLeaderboard client:visible class="mt-6" />
+        </div>
+
+        <div
+          class="reveal mt-12 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-1 pb-2"
+          style="transition-delay: 0.18s"
+        >
+          <span class="text-ink-dim font-mono text-[0.65rem] font-medium tracking-[0.22em] uppercase">
+            Live
+          </span>
+          <FreshnessLegend client:visible />
+        </div>
+        <div
+          class="reveal border-ink/10 bg-sky relative overflow-hidden rounded-xl border"
+          style="transition-delay: 0.22s"
+        >
+          <div class="relative isolate z-0 h-[clamp(340px,48vw,560px)] w-full">
+            <LiveFountainMap client:only="svelte" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {/* FOOTER */}
+    <footer class="border-paper-line border-t">
+      <div class="text-ink-dim mx-auto flex max-w-6xl items-center justify-center gap-4 px-5 py-8 text-sm">
+        <span>
+          Made with{" "}
+          <svg
+            viewBox="0 0 256 256"
+            fill="currentColor"
+            aria-hidden="true"
+            class="text-sky-deep inline-block h-4 w-4 align-middle"
+          >
+            <path
+              d="M174,47.75a254.19,254.19,0,0,0-41.45-38.3,8,8,0,0,0-9.18,0A254.19,254.19,0,0,0,82,47.75C54.51,79.32,40,112.6,40,144a88,88,0,0,0,176,0C216,112.6,201.49,79.32,174,47.75Z"
+            ></path>
+          </svg>{" "}
+          by{" "}
+          <a
+            href="https://jamesm.it/about"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-sky-deep decoration-sky-deep/50 hover:decoration-sky-deep font-medium underline underline-offset-4"
+          >
+            James Mitofsky
+          </a>
+        </span>
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    // Scroll-reveal (was framer-motion fadeUp): reveal each `.reveal` block as it
+    // crosses into view, once. Positive bottom rootMargin extends the trigger zone
+    // below the viewport so blocks start revealing while still under the fold.
+    const els = document.querySelectorAll<HTMLElement>(".reveal");
+    const io = new IntersectionObserver(
+      (entries, obs) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("in-view");
+            obs.unobserve(entry.target);
+          }
+        }
+      },
+      { rootMargin: "0px 0px 20% 0px", threshold: 0 },
+    );
+    els.forEach((el) => io.observe(el));
+  </script>
+</Layout>

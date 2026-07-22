@@ -1,0 +1,8 @@
+# build output
+dist/
+# generated types
+.astro/
+# adapter output
+.vercel/
+# deps
+node_modules/
