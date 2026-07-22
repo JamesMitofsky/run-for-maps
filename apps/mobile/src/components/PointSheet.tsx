@@ -168,18 +168,33 @@ export function PointSheet({ fountain, edit, onAction, inRoute, onToggleRoute }:
           }}
         />
       ) : (
-        <View className="gap-3 py-1">
-          {ACTIONS.map(({ action, title, Icon, box }) => (
-            <Pressable
-              key={action}
-              onPress={() => setDetailFor(action)}
-              accessibilityRole="button"
-              className={`flex-row items-center justify-center gap-2 rounded-xl px-4 py-3 ${box}`}
-            >
-              <Icon size={18} color="#ffffff" weight="bold" />
-              <Text className="text-base font-bold text-white">{title}</Text>
-            </Pressable>
-          ))}
+        <View className="gap-4 py-1">
+          <View className="flex-row gap-4">
+            {ACTIONS.slice(0, 2).map(({ action, title, Icon, box }) => (
+              <Pressable
+                key={action}
+                onPress={() => setDetailFor(action)}
+                accessibilityRole="button"
+                className={`flex-1 flex-row items-center justify-center gap-2 rounded-xl px-4 py-4 ${box}`}
+              >
+                <Icon size={18} color="#ffffff" weight="bold" />
+                <Text className="text-base font-bold text-white">{title}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <View className="flex-row gap-4">
+            {ACTIONS.slice(2, 4).map(({ action, title, Icon, box }) => (
+              <Pressable
+                key={action}
+                onPress={() => setDetailFor(action)}
+                accessibilityRole="button"
+                className={`flex-1 flex-row items-center justify-center gap-2 rounded-xl px-4 py-4 ${box}`}
+              >
+                <Icon size={18} color="#ffffff" weight="bold" />
+                <Text className="text-base font-bold text-white">{title}</Text>
+              </Pressable>
+            ))}
+          </View>
         </View>
       )}
     </View>

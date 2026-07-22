@@ -189,38 +189,36 @@ export default function PointPopup({
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.15 }}
-                    className="flex flex-col gap-2.5"
+                    className="grid grid-cols-2 gap-3"
                   >
                     <button
                       disabled={busy}
                       onClick={() => setDetailFor("confirm")}
-                      className="flex items-center justify-center gap-1.5 rounded-md bg-green-600 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-green-700 disabled:opacity-50"
+                      className="flex items-center justify-center gap-1.5 rounded-md bg-green-600 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-green-700 disabled:opacity-50"
                     >
-                      <CheckCircleIcon size={16} weight="fill" /> Working
+                      <CheckCircleIcon size={15} weight="fill" /> Working
                     </button>
                     <button
                       disabled={busy}
                       onClick={() => setDetailFor("broken")}
-                      className="flex items-center justify-center gap-1.5 rounded-md bg-amber-500 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-amber-600 disabled:opacity-50"
+                      className="flex items-center justify-center gap-1.5 rounded-md bg-amber-500 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-amber-600 disabled:opacity-50"
                     >
-                      <WrenchIcon size={14} /> Working but broken
+                      <WrenchIcon size={15} weight="bold" /> Working but broken
                     </button>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        disabled={busy}
-                        onClick={() => setDetailFor("out_of_order")}
-                        className="flex items-center justify-center gap-1 rounded-md border border-orange-300 py-1.5 text-xs font-medium text-orange-700 transition hover:bg-orange-50 disabled:opacity-50"
-                      >
-                        <WarningIcon size={14} /> Out of order
-                      </button>
-                      <button
-                        disabled={busy}
-                        onClick={() => setDetailFor("removed")}
-                        className="flex items-center justify-center gap-1 rounded-md border border-red-300 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-50 disabled:opacity-50"
-                      >
-                        <TrashIcon size={14} /> Removed
-                      </button>
-                    </div>
+                    <button
+                      disabled={busy}
+                      onClick={() => setDetailFor("out_of_order")}
+                      className="flex items-center justify-center gap-1.5 rounded-md border border-orange-300 py-2.5 text-xs font-semibold text-orange-700 transition hover:bg-orange-50 disabled:opacity-50"
+                    >
+                      <WarningIcon size={15} weight="bold" /> Out of order
+                    </button>
+                    <button
+                      disabled={busy}
+                      onClick={() => setDetailFor("removed")}
+                      className="flex items-center justify-center gap-1.5 rounded-md border border-red-300 py-2.5 text-xs font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-50"
+                    >
+                      <TrashIcon size={15} weight="bold" /> Removed
+                    </button>
                   </motion.div>
                 ) : (
                   <motion.div
