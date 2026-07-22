@@ -39,8 +39,7 @@
   let statuses = $state<Record<number, StopStatus>>({ ...SEED_STATUSES });
   let edits = $state<Record<number, PointEdit>>(seedEdits());
 
-  // Current target = first unsurveyed stop along the route, like the real run.
-  const currentIdx = $derived(DC_FOUNTAINS.findIndex((f) => !statuses[f.id]));
+
 
   function record(f: Fountain, action: EditAction, extras?: EditExtras) {
     statuses = { ...statuses, [f.id]: action as StopStatus };

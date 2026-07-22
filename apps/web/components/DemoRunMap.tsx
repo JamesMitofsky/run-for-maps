@@ -390,10 +390,6 @@ export default function DemoRunMap({ className }: { className?: string }) {
   const [statuses, setStatuses] = useState<Record<number, StopStatus>>(SEED_STATUSES);
   const [edits, setEdits] = useState<Record<number, PointEdit>>(seedEdits);
 
-  // Current target = first unsurveyed stop along the route, exactly like the
-  // real run advancing through its stop list.
-  const currentIdx = DC_FOUNTAINS.findIndex((f) => !statuses[f.id]);
-
   function record(f: Fountain, action: EditAction, extras?: EditExtras) {
     setStatuses((s) => ({ ...s, [f.id]: action as StopStatus }));
     setEdits((e) => ({
