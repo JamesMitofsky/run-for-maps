@@ -66,7 +66,7 @@
       id: f.id,
       lat: f.lat,
       lon: f.lon,
-      color: i === currentIdx ? "#2563eb" : STATUS_COLOR[statuses[f.id] ?? "pending"],
+      color: STATUS_COLOR[statuses[f.id] ?? "pending"],
       label: String(i + 1),
       data: { f },
     })),

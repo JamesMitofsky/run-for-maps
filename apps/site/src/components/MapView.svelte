@@ -180,10 +180,21 @@
     untrack(doRecenter);
   });
 
+  let isLoaded = $state(false);
+
+  $effect(() => {
+    const timer = setTimeout(() => (isLoaded = true), 2500);
+    return () => clearTimeout(timer);
+  });
+
   // Pop new dots in: grow circle-radius 0 → target whenever the marker set
   // changes. Radius is a shader uniform, so this stays smooth for many points.
   $effect(() => {
     markerIdSig; // track
+    if (!isLoaded) {
+      popScale = 0;
+      return;
+    }
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
       popScale = 1;
       return;
@@ -241,6 +252,7 @@
   }
 
   function handleLoad() {
+    isLoaded = true;
     map?.touchZoomRotate.disableRotation();
     doRecenter();
     emitView(false);
@@ -266,7 +278,10 @@
   }
 </script>
 
-<div class={className} style="position: relative; height: 100%; width: 100%;">
+<div
+  class={className}
+  style="position: relative; height: 100%; width: 100%; opacity: {isLoaded ? 1 : 0}; transition: opacity 350ms ease-out;"
+>
   <MapLibre
     bind:map
     style="/map-style.json"
