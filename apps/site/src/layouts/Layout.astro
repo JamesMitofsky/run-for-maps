@@ -1,0 +1,60 @@
+---
+import "@/styles/globals.css";
+
+const APP_NAME = "Run Verified Fountains";
+const APP_DESCRIPTION =
+  "Turn your run into open-map fieldwork. Plan a route past unverified OpenStreetMap points, run it with turn-by-turn cues, and fix the map from the ground.";
+
+// Absolute base for resolving OG/twitter image URLs. Prefer an explicit site URL,
+// fall back to the Vercel production domain, then the known deploy target.
+const SITE_URL =
+  import.meta.env.PUBLIC_SITE_URL ??
+  (import.meta.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${import.meta.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : "https://rosm.vercel.app");
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = "Run Verified Fountains — Running for Open-Sourced Maps",
+  description = APP_DESCRIPTION,
+} = Astro.props;
+
+// Editorial social card, rendered to a static PNG at build time (Satori + resvg).
+const ogImage = new URL("/opengraph-image.png", SITE_URL).href;
+---
+
+<!doctype html>
+<html lang="en" class="h-full antialiased">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+    />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="application-name" content={APP_NAME} />
+    <meta name="theme-color" content="#f1ebdd" />
+    <meta name="format-detection" content="telephone=no" />
+
+    <!-- Icons -->
+    <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/icons/icon-192.png" sizes="192x192" type="image/png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" sizes="180x180" />
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content={ogImage} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content={ogImage} />
+  </head>
+  <body class="min-h-full">
+    <slot />
+  </body>
+</html>

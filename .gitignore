@@ -1,8 +1,8 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
-/.pnp
+node_modules/
+.pnp
 .pnp.*
 .yarn/*
 !.yarn/patches
@@ -11,24 +11,24 @@
 !.yarn/versions
 
 # testing
-/coverage
+coverage/
 
 # next.js
-/.next/
-/out/
+.next/
+out/
 
-# capacitor — temp stash of app/api during the static-export build
-/.api-stash/
+# turborepo
+.turbo/
 
 # production
-/build
+build/
 
 # misc
 .DS_Store
 *.pem
 
 # local JSON pseudo-DB (caches, run state, edit log)
-/data
+data/
 
 # debug
 npm-debug.log*
@@ -46,3 +46,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# storybook
+storybook-static/

@@ -1,4 +1,4 @@
-# Fountain Run Planner
+# ROSM — Fountain Run Planner
 
 Plan a running route past OpenStreetMap points (drinking fountains by default), run it
 on your phone with turn-toward-next-point guidance, and record each point's real-world
@@ -10,10 +10,10 @@ state back to OSM (`check_date`, `disused:`, `abandoned:`) as you go.
    any `key=value` supported) within a radius via the Overpass API.
 2. **Plan route** — picks and orders a subset that fits a **target run distance** (so you can
    split the city across multiple runs), then draws a real walking/running route via the free
-   BRouter API (`foot-fast` profile). Loop or one-way, your choice.
-3. **Run** (`/run`) — mobile-first view: live distance + compass arrow to the next point.
-   On arrival, mark it **Working** / **Out of order** / **Removed**, which writes the edit to
-   OSM under one changeset for the run.
+   BRouter API. Loop or one-way, your choice.
+3. **Run** — mobile-first view: live distance + compass arrow to the next point. On arrival,
+   mark it **Working** / **Out of order** / **Removed**, which writes the edit to OSM under one
+   changeset for the run.
 
 State mapping (OSM lifecycle convention):
 
@@ -24,65 +24,83 @@ State mapping (OSM lifecycle convention):
 | Removed      | move → `abandoned:amenity=...`, stamp date                        |
 | Delete (adv) | delete the node entirely                                          |
 
-## Setup
+## Monorepo layout
+
+A pnpm + [Turborepo](https://turbo.build) monorepo with two apps and shared logic:
+
+```
+apps/
+  web/     @rosm/web    — Next.js 16 site + /api backend + PWA (deployed to Vercel)
+  mobile/  @rosm/mobile — Expo (React Native) app for iOS/Android
+packages/
+  core/              @rosm/core — shared logic (GPS math, routing, Zod schemas,
+                     Zustand stores, route archive) behind injected platform ports
+  typescript-config/ shared tsconfig bases
+```
+
+`@rosm/core` holds everything platform-agnostic and reaches for no browser / native API
+directly — each app injects its own adapters (storage, geolocation, network, …) via
+`configureCore()`. That's how the same GPS/route/OSM logic runs on both surfaces.
+
+## Prerequisites
+
+- **Node 24+** and **pnpm 11** (pinned via `packageManager`; run `corepack enable`).
+- For the mobile app: Xcode + an iOS Simulator (or an Android emulator), and an
+  [Expo](https://expo.dev) account for device / TestFlight builds.
+
+## Quick start
 
 ```bash
-pnpm install
-cp .env.example .env.local   # then fill in OSM_CLIENT_ID (see below)
-pnpm dev                     # http://localhost:3000
+pnpm install            # once, at the repo root (never inside a package)
+
+pnpm dev                # start the web app (http://localhost:3000)
+pnpm --filter @rosm/mobile start   # start the mobile dev server
 ```
 
-### OSM OAuth2 (for write-back)
+Workspace-wide tasks run through Turborepo (cached, only re-run what changed):
 
-Reading points and planning routes needs no auth. Writing status back does.
-
-1. **Use the sandbox first.** Create an account on
-   <https://master.apis.dev.openstreetmap.org> (separate from the real OSM).
-2. There, go to **Settings → OAuth 2 applications → Register new application**:
-   - Redirect URI: `http://localhost:3000/api/osm/callback`
-   - Permissions: `read_prefs`, `write_api`
-   - Leave it a public (PKCE) client.
-3. Put the client ID in `.env.local` as `OSM_CLIENT_ID`. Leave `OSM_*_BASE` at their
-   sandbox defaults.
-4. In the app, click **Sign in to OSM**, plan a route, and test edits. The badge shows
-   **SANDBOX**.
-
-### Going live
-
-Only after verifying on sandbox: register the same app at <https://www.openstreetmap.org>,
-then set in `.env.local`:
-
-```
-OSM_OAUTH_BASE=https://www.openstreetmap.org
-OSM_API_BASE=https://api.openstreetmap.org
-OSM_CLIENT_ID=<live app id>
+```bash
+pnpm lint        # eslint across all packages
+pnpm typecheck   # tsc --noEmit across all packages
+pnpm test        # vitest (core + web)
+pnpm build       # production builds
+pnpm format      # prettier --write .
 ```
 
-The badge turns **LIVE OSM** in red. Edits now change the real map — they are public and
-attributed to your account.
+Target a single package with `pnpm --filter <name> <script>`, e.g.
+`pnpm --filter @rosm/web test:watch`.
 
-## Data
+## Per-app setup
 
-Local JSON files under `data/` (gitignored): `fountains-cache.json`, `current-run.json`,
-`edit-log.json`.
+Each app has its own README with the details that matter locally:
+
+- **[apps/web/README.md](apps/web/README.md)** — running the site, `.env.local`, and the
+  OSM OAuth2 setup needed to write edits back.
+- **[apps/mobile/README.md](apps/mobile/README.md)** — Expo dev builds, env vars, and EAS.
 
 ## External services
 
 OSM Overpass, BRouter, Nominatim (geocoding), and OSM tiles — all public and rate-limited;
-be gentle. No keys required except your OSM OAuth client ID.
+be gentle. No keys required except your OSM OAuth client ID (see the web README).
 
-## Feature ideas
+## Temporary Migration Docs
 
-### Support updating more POIs
+> Remove once the monorepo migration merges to `main`.
 
-- [ ] Public restrooms
-- [ ] Bike racks
+While `main` is still the pre-migration flat layout, feature-branch previews deploy to a
+separate throwaway Vercel project (`rosm-monorepo-preview`, Root Directory `apps/web`) so the
+production project stays untouched. Check its latest deploy status with:
+
+```
+vercel ls rosm-monorepo-preview
+```
+
+Top row is the latest; the Status column reads `● Ready`, `● Building`, or `● Error`.
 
 ## Contributing
 
-Pull requests welcome! The project lives at
+Pull requests welcome — the project lives at
 [github.com/JamesMitofsky/run-for-maps](https://github.com/JamesMitofsky/run-for-maps).
-
 See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, code style, and PR conventions.
 
 ## Deploy setup (TODO)
