@@ -9,7 +9,7 @@ export function canShare(): boolean {
 export async function shareRun(url: string, text: string): Promise<void> {
   try {
     if (typeof navigator !== "undefined" && navigator.share) {
-      await navigator.share({ title: "ROSM run", text, url });
+      await navigator.share({ title: "Run Verified Fountains run", text, url });
     }
   } catch {
     /* user cancelled or share unavailable — ignore */

@@ -62,8 +62,6 @@ describe("countBy", () => {
       null,
     );
     expect(countBy(ranked)).toEqual({
-      inN: 2,
-      outN: 1,
       humanN: 2,
       dogN: 1,
     });

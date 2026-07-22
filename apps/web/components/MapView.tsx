@@ -66,6 +66,17 @@ type Props = {
   userPos?: [number, number] | null;
   // Compass heading in degrees (0 = north, clockwise). Draws a direction cone.
   userHeading?: number | null;
+  // Map orientation (degrees, 0 = north, clockwise): the GPS travel course — e.g.
+  // the route tangent or bearing to the next target. When set (and
+  // `followHeading`), the map rotates to THIS, so orientation is magnetometer-free
+  // and never uses the compass. The blue-dot cone still shows `userHeading`
+  // (device facing) relative to this rotation, so cone-up means "you're pointed
+  // where you're headed". Null leaves the map north-up (cone shows raw heading).
+  mapBearing?: number | null;
+  // Rotate the whole map so the travel course reads "up" (heading-up navigation).
+  // Rotation follows `mapBearing`; null leaves it north-up. Default false keeps
+  // the map north-up and the cone rotated to `userHeading`.
+  followHeading?: boolean;
   onMapClick?: (lat: number, lon: number) => void;
   // When set, a tap on empty map opens a popup anchored at the tapped spot
   // rendering this content, instead of firing onMapClick — so an action (e.g.
@@ -100,6 +111,9 @@ type Props = {
   fitPoints?: [number, number][];
   // Tuning for the `fitPoints` bounding-box fit. Defaults to a roomy frame.
   fitOptions?: { padding?: [number, number]; maxZoom?: number };
+  // Animate a tapped marker to the viewport center (keeping zoom). Off by default
+  // so the run/planner maps don't move under the user; the demo opts in.
+  centerOnSelect?: boolean;
   className?: string;
 };
 
@@ -282,6 +296,12 @@ function boundsOf(pts: [number, number][]): LngLatBoundsLike {
   ];
 }
 
+// Signed smallest rotation (deg, -180..180) from angle `a` to `b`. Lets the
+// heading-up bearing effect skip sub-degree jitter and rotate the short way.
+function shortestAngleDelta(a: number, b: number): number {
+  return ((((b - a) % 360) + 540) % 360) - 180;
+}
+
 // Blue location dot with an optional Apple/Google-style heading cone.
 function UserDot({ heading }: { heading?: number | null }) {
   return (
@@ -340,6 +360,8 @@ export default function MapView({
   searchedBox,
   userPos,
   userHeading,
+  mapBearing,
+  followHeading = false,
   onMapClick,
   mapClickPopup,
   onUserPan,
@@ -348,6 +370,7 @@ export default function MapView({
   animateRecenter = false,
   fitPoints,
   fitOptions,
+  centerOnSelect = false,
   className,
 }: Props) {
   const mapRef = useRef<MapRef>(null);
@@ -413,6 +436,22 @@ export default function MapView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recenterKey]);
 
+  // Heading-up rotation: turn the map so the travel direction reads as "up".
+  // Always the GPS travel course via `mapBearing` — never the compass, so the map
+  // orientation is magnetometer-free. Null (no course yet) leaves the map
+  // north-up. Programmatic bearing still works with touch-rotation disabled (that
+  // only blocks the gesture), and the recenter effect above never passes a
+  // bearing, so the two don't fight. A 2° deadband drops jitter; rotate the short
+  // way. When follow turns off, ease back to north.
+  const rotateTo = mapBearing ?? null;
+  useEffect(() => {
+    const map = mapRef.current?.getMap();
+    if (!map) return;
+    const target = followHeading && rotateTo != null ? rotateTo : 0;
+    if (Math.abs(shortestAngleDelta(map.getBearing(), target)) < 2) return;
+    map.easeTo({ bearing: target, duration: 300, essential: true });
+  }, [followHeading, rotateTo]);
+
   // Pop new dots in: grow circle-radius 0 → target whenever the marker set
   // changes. Driven by React state fed declaratively into the layer paint (no
   // imperative setPaintProperty racing react-map-gl). Radius is a shader
@@ -450,13 +489,40 @@ export default function MapView({
       // report the tap straight to the caller (drop-a-pin).
       setSelected(null);
       if (mapClickPopup) {
-        setPendingTap({ lat: e.lngLat.lat, lon: e.lngLat.lng });
+        // Toggle: a tap while the popup is open dismisses it rather than moving
+        // it to the new spot.
+        setPendingTap((prev) => (prev ? null : { lat: e.lngLat.lat, lon: e.lngLat.lng }));
         return;
       }
       onMapClick?.(e.lngLat.lat, e.lngLat.lng);
     },
     [markerById, onMapClick, mapClickPopup],
   );
+
+  // Center the open popup in the viewport (demo maps opt in via `centerOnSelect`).
+  // The popup anchors above its pin, so centering the pin would push the popup
+  // toward the top. Measure the rendered popup after paint and fly the map so the
+  // popup's own box lands at the viewport center — the pin follows just below.
+  useEffect(() => {
+    if (!centerOnSelect || !selectedMarker) return;
+    const map = mapRef.current;
+    if (!map) return;
+    const raf = requestAnimationFrame(() => {
+      const popupEl = map.getContainer().querySelector(".maplibregl-popup") as HTMLElement | null;
+      // Distance from the pin up to the popup's vertical center: the 14px anchor
+      // offset plus half the popup's height. Push the pin down by that much so the
+      // popup box straddles center. Fall back to a bare pin-center if unmeasured.
+      const offsetY = popupEl ? 14 + popupEl.offsetHeight / 2 : 0;
+      map.flyTo({
+        center: [selectedMarker.lon, selectedMarker.lat],
+        offset: [0, offsetY],
+        duration: 600,
+        essential: true,
+      });
+    });
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected, centerOnSelect]);
 
   // Report the settled view to the caller. Fired on load (so the initial
   // viewport is known before any movement) and after every pan/zoom.
@@ -583,7 +649,22 @@ export default function MapView({
 
         {userPos && (
           <Marker longitude={userPos[1]} latitude={userPos[0]} anchor="center">
-            <UserDot heading={userHeading} />
+            {/* Cone = device facing (`userHeading`, compass) in the map's frame.
+                Following heading, the map is rotated to `rotateTo` (travel
+                course), so the cone shows the offset `userHeading - rotateTo` —
+                i.e. "am I facing where I'm headed". When there's no course yet
+                (`rotateTo` null) the map is north-up, so the cone shows the raw
+                compass heading. Null facing hides the cone (the map still follows
+                `mapBearing`). */}
+            <UserDot
+              heading={
+                userHeading == null
+                  ? null
+                  : followHeading
+                    ? userHeading - (rotateTo ?? 0)
+                    : userHeading
+              }
+            />
           </Marker>
         )}
 

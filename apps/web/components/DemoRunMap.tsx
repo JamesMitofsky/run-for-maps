@@ -474,11 +474,13 @@ export default function DemoRunMap({ className }: { className?: string }) {
         markers={markers}
         userPos={userPos}
         userHeading={userHeading}
+        centerOnSelect
       />
-      {/* Chips sit above tiles/markers (z ≤ 600) but below open popups (z 700). */}
-      <div className="border-ink/10 bg-paper/90 text-ink pointer-events-none absolute top-3 right-3 z-[650] rounded-full border px-2 py-0.5 font-mono text-[0.55rem] font-medium tracking-[0.14em] uppercase backdrop-blur-sm">
-        {target ? `${surveyed}/${DC_FOUNTAINS.length} recorded` : "Route complete ✓"}
-      </div>
+      {/* Corner label so the hero map reads as a live, tappable demo rather than a
+          static screenshot. Non-interactive — it never intercepts map gestures. */}
+      <span className="border-sky-deep bg-sky-deep/15 text-sky-deep pointer-events-none absolute top-3 left-3 z-[1000] rounded-full border px-3 py-1 text-xs font-semibold shadow-sm backdrop-blur">
+        Interactive demo
+      </span>
     </div>
   );
 }

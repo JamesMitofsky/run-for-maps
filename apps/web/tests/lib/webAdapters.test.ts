@@ -36,7 +36,7 @@ describe("share", () => {
     vi.stubGlobal("navigator", { share });
     await shareRun("https://osm.test/cs/1", "Surveyed 3 points");
     expect(share).toHaveBeenCalledWith({
-      title: "ROSM run",
+      title: "Run Verified Fountains run",
       text: "Surveyed 3 points",
       url: "https://osm.test/cs/1",
     });

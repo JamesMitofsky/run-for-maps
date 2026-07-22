@@ -22,7 +22,7 @@ const body = localFont({
   display: "swap",
 });
 
-const APP_NAME = "ROSM";
+const APP_NAME = "Run Verified Fountains";
 const APP_DESCRIPTION =
   "Turn your run into open-map fieldwork. Plan a route past unverified OpenStreetMap points, run it with turn-by-turn cues, and fix the map from the ground.";
 
@@ -38,8 +38,8 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   applicationName: APP_NAME,
   title: {
-    default: "ROSM — Running for Open-Sourced Maps",
-    template: "%s · ROSM",
+    default: "Run Verified Fountains — Running for Open-Sourced Maps",
+    template: "%s · Run Verified Fountains",
   },
   description: APP_DESCRIPTION,
   manifest: "/manifest.webmanifest",
