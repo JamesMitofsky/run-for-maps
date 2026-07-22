@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Linking, Pressable, Text, View } from "react-native";
+import { Linking, Pressable, Text, View, type LayoutChangeEvent } from "react-native";
 import {
   ArrowSquareOutIcon,
   CheckCircleIcon,
@@ -70,10 +70,19 @@ export function PointSheet({ fountain, edit, onAction, inRoute, onToggleRoute }:
   >(null);
 
   const [prevId, setPrevId] = useState(fountain.id);
+  const [maxHeight, setMaxHeight] = useState<number | null>(null);
   if (prevId !== fountain.id) {
     setPrevId(fountain.id);
     setDetailFor(null);
+    setMaxHeight(null);
   }
+
+  const handleLayout = (e: LayoutChangeEvent) => {
+    const h = e.nativeEvent.layout.height;
+    if (h && (!maxHeight || h > maxHeight)) {
+      setMaxHeight(h);
+    }
+  };
 
   return (
     <View className="gap-3.5 px-1 py-1">
@@ -175,7 +184,9 @@ export function PointSheet({ fountain, edit, onAction, inRoute, onToggleRoute }:
                 key={action}
                 onPress={() => setDetailFor(action)}
                 accessibilityRole="button"
-                className={`h-22 flex-1 flex-col items-center justify-center gap-1.5 rounded-xl px-2 ${box}`}
+                onLayout={handleLayout}
+                style={{ height: maxHeight ?? undefined }}
+                className={`flex-1 flex-col items-center justify-center gap-1.5 rounded-xl px-2 py-4 ${box}`}
               >
                 <Icon size={28} color="#ffffff" weight="bold" />
                 <Text className="flex-shrink text-center text-sm font-bold text-white">
@@ -190,7 +201,9 @@ export function PointSheet({ fountain, edit, onAction, inRoute, onToggleRoute }:
                 key={action}
                 onPress={() => setDetailFor(action)}
                 accessibilityRole="button"
-                className={`h-22 flex-1 flex-col items-center justify-center gap-1.5 rounded-xl px-2 ${box}`}
+                onLayout={handleLayout}
+                style={{ height: maxHeight ?? undefined }}
+                className={`flex-1 flex-col items-center justify-center gap-1.5 rounded-xl px-2 py-4 ${box}`}
               >
                 <Icon size={28} color="#ffffff" weight="bold" />
                 <Text className="flex-shrink text-center text-sm font-bold text-white">

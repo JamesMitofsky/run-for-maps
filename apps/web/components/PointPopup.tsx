@@ -189,7 +189,7 @@ export default function PointPopup({
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.15 }}
-                    className="grid grid-cols-2 gap-3"
+                    className="grid auto-rows-fr grid-cols-2 gap-3"
                   >
                     <button
                       disabled={busy}
