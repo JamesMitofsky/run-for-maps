@@ -5,7 +5,6 @@ import { CheckCircleIcon, SkipBackIcon, SkipForwardIcon, XCircleIcon } from "pho
 import { DogIcon } from "../components/icons/DogIcon";
 import { fmtDist } from "@rosm/core/geo";
 import { useOutbox } from "@rosm/core/stores/outbox";
-import { usePlanner } from "@rosm/core/stores/planner";
 import { RosmMap } from "../map/RosmMap";
 import { useRunSession } from "../run/useRunSession";
 import { PointSheet } from "../components/PointSheet";
@@ -83,17 +82,6 @@ export default function RunScreen() {
       extras: it.extras,
     };
   }, [selectedId]);
-
-  const activeInPlanner = useMemo(() => {
-    if (selectedId == null) return false;
-    const stops = usePlanner.getState().stops;
-    return stops.some((st) => String(st.id) === String(selectedId));
-  }, [selectedId]);
-
-  const onToggleRoute = () => {
-    if (selectedId == null || !selectedPoint) return;
-    usePlanner.getState().toggleStop(Number(selectedPoint.id));
-  };
 
   const mapMarkers = useMemo(() => {
     if (!addLocation) return s.markers;
@@ -245,8 +233,6 @@ export default function RunScreen() {
               <PointSheet
                 fountain={selectedPoint}
                 edit={selectedEdit}
-                inRoute={activeInPlanner}
-                onToggleRoute={onToggleRoute}
                 onAction={(action, extras) => {
                   s.recordFor(selectedPoint, action, extras);
                   setSelectedId(null);
