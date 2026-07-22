@@ -9,7 +9,7 @@ import { fmtDist } from "@rosm/core/geo";
 import type { Fountain } from "@rosm/core/schemas";
 import { Button } from "../../components/ui/Button";
 import { RosmMap, type RosmMarker } from "../../map/RosmMap";
-import { ConfigPanel } from "../../components/planner/ConfigPanel";
+import { getLastKnownPosition } from "../../ports/geolocation";
 import { RouteBuilderPanel } from "../../components/planner/RouteBuilderPanel";
 import { PhaseNav } from "../../components/planner/PhaseNav";
 import { usePlannerMarkers } from "../../components/planner/usePlannerMarkers";
@@ -43,6 +43,7 @@ export default function Plan() {
   const excludedIds = usePlanner((s) => s.excludedIds);
   const distanceM = usePlanner((s) => s.distanceM);
   const resumable = usePlanner((s) => s.resumable);
+  const busy = usePlanner((s) => s.busy);
 
   usePlannerDraftSync();
   const { edits, updatePoint } = useOsmEdits({ tagKey: tag.key });
@@ -59,6 +60,38 @@ export default function Plan() {
     () => inRouteIdsOf({ stops, pinnedIds, excludedIds }),
     [stops, pinnedIds, excludedIds],
   );
+
+  // Auto-locate on mount: skip config phase and begin querying a 4 mile radius immediately.
+  useEffect(() => {
+    const s = usePlanner.getState();
+    s.setRadiusMi(4);
+    if (s.phase === "config") {
+      s.setPhase("map");
+    }
+
+    (async () => {
+      if (!usePlanner.getState().center) {
+        const quick = await getLastKnownPosition();
+        if (quick && !usePlanner.getState().center) {
+          usePlanner.getState().recenter({ lat: quick.lat, lon: quick.lon });
+        }
+        usePlanner.getState().geolocate();
+      }
+    })();
+  }, []);
+
+  // Whenever center becomes available in map phase with no fountains loaded yet, query points.
+  useEffect(() => {
+    if (
+      center &&
+      phase === "map" &&
+      fountains.length === 0 &&
+      busy === null &&
+      !usePlanner.getState().err
+    ) {
+      usePlanner.getState().findPoints();
+    }
+  }, [center, phase, fountains.length, busy]);
 
   // A saved route from a prior session — offer to resume it, natively.
   useEffect(() => {
@@ -139,14 +172,27 @@ export default function Plan() {
         onMarkerPress={onMarkerPress}
       />
 
+      {/* Floating spinner overlay in the middle of the map while querying points */}
+      {busy === "find" ? (
+        <View
+          pointerEvents="none"
+          className="absolute inset-0 z-10 items-center justify-center bg-black/25 pb-36"
+        >
+          <View
+            className="bg-ink flex-row items-center gap-3 rounded-full px-6 py-3 shadow-xl"
+            accessibilityRole="progressbar"
+            accessibilityLabel="Finding points nearby"
+          >
+            <ActivityIndicator size="small" color="#f7f2e8" />
+            <Text className="text-paper text-sm font-semibold">Finding points…</Text>
+          </View>
+        </View>
+      ) : null}
+
       {/* Planner controls pinned to the bottom of the screen, full-width,
           matching the active-run panel in run.tsx. */}
       <View className="bg-paper border-ink/10 absolute right-0 bottom-0 left-0 border-t px-5 pt-5 pb-28">
-        {phase === "config" ? (
-          <ConfigPanel />
-        ) : phase === "map" ? (
-          <RouteBuilderPanel onStartRun={startRun} />
-        ) : (
+        {phase === "run" ? (
           <View className="gap-3">
             <Text className="text-ink font-bold">
               Run in progress — {stops.length} stops · {fmtDist(distanceM)}
@@ -165,6 +211,8 @@ export default function Plan() {
               }}
             />
           </View>
+        ) : (
+          <RouteBuilderPanel onStartRun={startRun} />
         )}
       </View>
 

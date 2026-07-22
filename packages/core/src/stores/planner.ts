@@ -34,6 +34,7 @@ export type Draft = {
   line: [number, number][];
   distanceM: number;
   turns: Turn[];
+  autoIds?: number[];
   autoCount: number;
 };
 
@@ -83,6 +84,8 @@ type PlannerState = {
   hasRoute: boolean;
   // Coords of a point BRouter can't reach on foot ("target island").
   islandPt: Pt | null;
+  // Fountains auto-grabbed via small detour pickup.
+  autoIds: number[];
   // How many stops were auto-grabbed (tiny detour off the route).
   autoCount: number;
   busy: string | null;
@@ -154,8 +157,8 @@ export function inRouteIdsOf(s: Pick<PlannerState, "stops" | "pinnedIds" | "excl
 }
 
 export const usePlanner = create<PlannerState>((set, get) => ({
-  phase: "config",
-  step: 0,
+  phase: "map",
+  step: BUILD_STEP_INDEX,
 
   center: null,
   vias: [],
@@ -180,6 +183,7 @@ export const usePlanner = create<PlannerState>((set, get) => ({
   turns: [],
   hasRoute: true,
   islandPt: null,
+  autoIds: [],
   autoCount: 0,
   busy: null,
   err: null,
@@ -247,6 +251,7 @@ export const usePlanner = create<PlannerState>((set, get) => ({
       turns: [],
       pinnedIds: [],
       excludedIds: [],
+      autoIds: [],
       autoCount: 0,
       hasRoute: false,
       islandPt: null,
@@ -339,6 +344,7 @@ export const usePlanner = create<PlannerState>((set, get) => ({
           line: [],
           distanceM: 0,
           turns: [],
+          autoIds: [],
           autoCount: 0,
         });
         return;
@@ -357,6 +363,7 @@ export const usePlanner = create<PlannerState>((set, get) => ({
       }
       set({
         stops: chosen,
+        autoIds,
         autoCount: autoIds.length,
         line: (j.coords as [number, number][]).map(([lon, lat]) => [lat, lon]),
         distanceM: j.distanceM,
@@ -530,6 +537,7 @@ export const usePlanner = create<PlannerState>((set, get) => ({
       line: d.line,
       distanceM: d.distanceM,
       turns: d.turns ?? [],
+      autoIds: d.autoIds ?? [],
       autoCount: d.autoCount,
       hasRoute: d.stops.length > 0,
       resumable: null,
@@ -592,8 +600,9 @@ export const usePlanner = create<PlannerState>((set, get) => ({
       excludedIds: [],
       vias: [],
       distanceM: 0,
+      autoIds: [],
       autoCount: 0,
-      step: 0,
-      phase: "config",
+      step: BUILD_STEP_INDEX,
+      phase: "map",
     }),
 }));

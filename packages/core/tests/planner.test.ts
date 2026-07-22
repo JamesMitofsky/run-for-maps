@@ -272,8 +272,8 @@ describe("resetAfterRun", () => {
     usePlanner.getState().resetAfterRun();
 
     const s = usePlanner.getState();
-    expect(s.phase).toBe("config");
-    expect(s.step).toBe(0);
+    expect(s.phase).toBe("map");
+    expect(s.step).toBe(2);
     expect(s.stops).toEqual([]);
     expect(s.fountains).toEqual([]);
     expect(s.hasRoute).toBe(false);

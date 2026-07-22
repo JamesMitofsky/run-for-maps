@@ -27,7 +27,9 @@ export function RouteBuilderPanel({ onStartRun }: { onStartRun: () => void }) {
   return (
     <View className="gap-3">
       <View className="flex-row items-center gap-2">
-        <Text className="text-ink text-lg font-bold">Pick fountains to visit</Text>
+        <Text className="text-ink text-lg font-bold">
+          Tap fountains to add/remove them from your route
+        </Text>
       </View>
 
       {removed.length > 0 ? (
@@ -65,8 +67,8 @@ export function RouteBuilderPanel({ onStartRun }: { onStartRun: () => void }) {
           </View>
           {p.autoCount > 0 ? (
             <Text className="text-ink-dim text-xs">
-              {p.autoCount} {p.autoCount === 1 ? "was" : "were"} added as a small detour, but you
-              can remove any you don’t want.
+              Fountains in purple were added dynamically along your route and will update as your
+              selections change.
             </Text>
           ) : null}
           {p.stops.length > 1 ? (
@@ -79,11 +81,7 @@ export function RouteBuilderPanel({ onStartRun }: { onStartRun: () => void }) {
             />
           ) : null}
         </View>
-      ) : (
-        <Text className="text-ink-dim text-xs">
-          Tap points on the map to add them to your route.
-        </Text>
-      )}
+      ) : null}
 
       {p.err ? (
         <View className="gap-2">
@@ -105,9 +103,8 @@ export function RouteBuilderPanel({ onStartRun }: { onStartRun: () => void }) {
         </View>
       ) : null}
 
-      {/* Back to setup; forward starts the run once a route exists. */}
+      {/* Forward starts the run once a route exists. */}
       <PhaseNav
-        back={{ label: "Setup", onPress: () => p.setPhase("config") }}
         forward={{
           label: "Start run",
           onPress: onStartRun,

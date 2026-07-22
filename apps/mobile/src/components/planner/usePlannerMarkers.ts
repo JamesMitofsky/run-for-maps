@@ -13,6 +13,7 @@ export function usePlannerMarkers({ edits }: { edits: Record<number, PointEdit> 
   const stops = usePlanner((s) => s.stops);
   const pinnedIds = usePlanner((s) => s.pinnedIds);
   const excludedIds = usePlanner((s) => s.excludedIds);
+  const autoIds = usePlanner((s) => s.autoIds);
   const vias = usePlanner((s) => s.vias);
   const center = usePlanner((s) => s.center);
   const islandPt = usePlanner((s) => s.islandPt);
@@ -21,20 +22,25 @@ export function usePlannerMarkers({ edits }: { edits: Record<number, PointEdit> 
     const chosenIds = new Map(stops.map((s, i) => [s.id, i + 1]));
     const pinnedSet = new Set(pinnedIds);
     const excludedSet = new Set(excludedIds);
+    const autoSet = new Set(autoIds);
 
     const fountainMarkers: RosmMarker[] = fountains.map((f) => {
       const n = chosenIds.get(f.id);
       const edit = edits[f.id];
-      // edited (this session) wins; then: dim "–" = explicitly removed; green
-      // numbered = chosen; amber star = pinned (forced); gray = available.
+      const isAuto = autoSet.has(f.id);
+      const isPinned = pinnedSet.has(f.id);
+      const isChosen = n != null || isPinned;
+      // edited (this session) wins; then: dim "–" = explicitly removed;
+      // purple = dynamically added detour (adjusts if selected points change);
+      // green = user selected / chosen; gray = available.
       const color = edit
         ? (EDIT_COLOR[edit.status] ?? "#9ca3af")
         : excludedSet.has(f.id)
           ? "#52525b"
-          : n
-            ? "#16a34a"
-            : pinnedSet.has(f.id)
-              ? "#f59e0b"
+          : isAuto
+            ? "#a855f7"
+            : isChosen
+              ? "#16a34a"
               : "#9ca3af";
       const label = edit
         ? EDIT_LABEL[edit.status]
@@ -42,9 +48,7 @@ export function usePlannerMarkers({ edits }: { edits: Record<number, PointEdit> 
           ? "–"
           : n
             ? String(n)
-            : pinnedSet.has(f.id)
-              ? "★"
-              : undefined;
+            : undefined;
       return { id: f.id, lat: f.lat, lon: f.lon, color, label };
     });
 
@@ -66,5 +70,5 @@ export function usePlannerMarkers({ edits }: { edits: Record<number, PointEdit> 
       : [];
 
     return [...fountainMarkers, ...viaMarkers, ...startMarker, ...islandMarker];
-  }, [fountains, stops, pinnedIds, excludedIds, vias, center, islandPt, edits]);
+  }, [fountains, stops, pinnedIds, excludedIds, autoIds, vias, center, islandPt, edits]);
 }
