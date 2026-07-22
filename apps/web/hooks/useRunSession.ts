@@ -1,26 +1,26 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRun, type RunStop, type StopStatus } from "@/store/run";
-import { useOutbox } from "@/store/outbox";
+import { useRun, type RunStop, type StopStatus } from "@rosm/core/stores/run";
+import { useOutbox } from "@rosm/core/stores/outbox";
 import { useUndo } from "@/store/undo";
-import { bearing, compass, haversine, nearestCumDistOnPath, type Pt } from "@/lib/geo";
-import { ptLabel } from "@/lib/pointTypes";
+import { bearing, compass, haversine, nearestCumDistOnPath, type Pt } from "@rosm/core/geo";
+import { ptLabel } from "@rosm/core/pointTypes";
 import type { MapMarker } from "@/components/MapView";
-import type { EditAction, EditExtras } from "@/lib/schemas";
-import { editSummary, todayLocal } from "@/lib/editSummary";
+import type { EditAction, EditExtras } from "@rosm/core/schemas";
+import { editSummary, todayLocal } from "@rosm/core/editSummary";
 import { useOsmStatus } from "@/components/OsmStatus";
 import PointPopup from "@/components/PointPopup";
 import { celebratePoint } from "@/lib/confetti";
 import { useHeading } from "@/lib/useHeading";
-import { archiveRoute, getArchivedRoutes } from "@/lib/routeArchive";
+import { archiveRoute, getArchivedRoutes } from "@rosm/core/routeArchive";
 import { apiFetch, isNative } from "@/lib/api";
 import { watchRunPosition, type GeoWatch } from "@/lib/geolocation";
 import { hapticSuccess } from "@/lib/haptics";
 import { keepAwake, allowSleep } from "@/lib/keepAwake";
 import { ensureNotifyPermission, notifyProximity, notifyRunComplete } from "@/lib/notify";
 import { startRunActivity, updateRunActivity, endRunActivity } from "@/lib/liveActivity";
-import { STATUS_COLOR } from "@/lib/editStatus";
+import { STATUS_COLOR } from "@rosm/core/editStatus";
 import { createElement } from "react";
 
 // Everything the active-run UI needs, in one place: live GPS, the guidance

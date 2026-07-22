@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import type { Audience, EditExtras } from "@/lib/schemas";
+import type { Audience, EditExtras } from "@rosm/core/schemas";
 import { audienceFromTags } from "@/lib/audience";
 import AudienceToggle from "@/components/AudienceToggle";
 

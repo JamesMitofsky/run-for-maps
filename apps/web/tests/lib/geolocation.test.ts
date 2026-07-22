@@ -1,33 +1,42 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getCurrentPosition, watchPosition, watchRunPosition } from "@/lib/geolocation";
+import { Geolocation } from "@capacitor/geolocation";
+import { registerPlugin } from "@capacitor/core";
 import type { GeoPoint } from "@/lib/geolocation";
 
-type SuccessCb = (pos: { coords: Record<string, number | null> }) => void;
-type ErrorCb = (err: { message: string }) => void;
+let native = false;
 
-const geo = {
-  watchPosition: vi.fn(),
-  clearWatch: vi.fn(),
-  getCurrentPosition: vi.fn(),
-};
+vi.mock("@/lib/api", () => ({
+  isNative: () => native,
+}));
+
+vi.mock("@capacitor/geolocation", () => ({
+  Geolocation: {
+    watchPosition: vi.fn(),
+    clearWatch: vi.fn(),
+    getCurrentPosition: vi.fn(),
+  },
+}));
+
+vi.mock("@capacitor/core", () => ({
+  registerPlugin: vi.fn(),
+}));
+
+type WatchCb = (
+  pos: { coords: Record<string, number | null> } | undefined,
+  err?: { message?: string },
+) => void;
 
 beforeEach(() => {
-  geo.watchPosition.mockReset();
-  geo.clearWatch.mockReset();
-  geo.getCurrentPosition.mockReset();
-  vi.stubGlobal("navigator", { geolocation: geo });
+  native = false;
 });
 
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
-
-describe("watchPosition", () => {
+describe("watchPosition (foreground)", () => {
   it("maps coords, keeping heading only when finite", async () => {
-    let success!: SuccessCb;
-    geo.watchPosition.mockImplementation((ok: SuccessCb) => {
-      success = ok;
-      return 1;
+    let cb!: WatchCb;
+    vi.mocked(Geolocation.watchPosition).mockImplementation(async (_opts, callback) => {
+      cb = callback as WatchCb;
+      return "watch-1";
     });
 
     const points: GeoPoint[] = [];
@@ -36,22 +45,22 @@ describe("watchPosition", () => {
       () => {},
     );
 
-    success({ coords: { latitude: 48.8, longitude: 2.3, heading: 90, accuracy: 5 } });
-    success({ coords: { latitude: 48.9, longitude: 2.4, heading: NaN, accuracy: null } });
-    success({ coords: { latitude: 49.0, longitude: 2.5, heading: null, accuracy: 7 } });
+    cb({ coords: { latitude: 48.8, longitude: 2.3, heading: 90, accuracy: 5 } });
+    cb({ coords: { latitude: 48.9, longitude: 2.4, heading: NaN, accuracy: null } });
+    cb({ coords: { latitude: 49.0, longitude: 2.5, heading: null } });
 
     expect(points).toEqual([
       { lat: 48.8, lon: 2.3, heading: 90, accuracy: 5 },
       { lat: 48.9, lon: 2.4, heading: null, accuracy: undefined },
-      { lat: 49.0, lon: 2.5, heading: null, accuracy: 7 },
+      { lat: 49.0, lon: 2.5, heading: null, accuracy: undefined },
     ]);
   });
 
-  it("routes errors to onError", async () => {
-    let error!: ErrorCb;
-    geo.watchPosition.mockImplementation((_ok: SuccessCb, err: ErrorCb) => {
-      error = err;
-      return 1;
+  it("routes plugin errors to onError", async () => {
+    let cb!: WatchCb;
+    vi.mocked(Geolocation.watchPosition).mockImplementation(async (_opts, callback) => {
+      cb = callback as WatchCb;
+      return "watch-1";
     });
 
     const errors: string[] = [];
@@ -59,27 +68,27 @@ describe("watchPosition", () => {
       () => {},
       (m) => errors.push(m),
     );
-    error({ message: "denied" });
+    cb(undefined, { message: "denied" });
     expect(errors).toEqual(["denied"]);
   });
 
   it("clears the underlying watch", async () => {
-    geo.watchPosition.mockReturnValue(9);
+    vi.mocked(Geolocation.watchPosition).mockResolvedValue("watch-9");
     const watch = await watchPosition(
       () => {},
       () => {},
     );
     watch.clear();
-    expect(geo.clearWatch).toHaveBeenCalledWith(9);
+    expect(vi.mocked(Geolocation.clearWatch)).toHaveBeenCalledWith({ id: "watch-9" });
   });
 
   it("defaults to high accuracy", async () => {
-    geo.watchPosition.mockReturnValue(1);
+    vi.mocked(Geolocation.watchPosition).mockResolvedValue("w");
     await watchPosition(
       () => {},
       () => {},
     );
-    expect(geo.watchPosition.mock.calls[0][2]).toEqual({
+    expect(vi.mocked(Geolocation.watchPosition).mock.calls[0][0]).toEqual({
       enableHighAccuracy: true,
       maximumAge: 5000,
     });
@@ -87,21 +96,64 @@ describe("watchPosition", () => {
 });
 
 describe("watchRunPosition", () => {
-  it("uses the foreground browser watch", async () => {
-    geo.watchPosition.mockReturnValue(1);
+  it("uses the foreground watch on the web", async () => {
+    vi.mocked(Geolocation.watchPosition).mockResolvedValue("w");
     await watchRunPosition(
       () => {},
       () => {},
     );
-    expect(geo.watchPosition).toHaveBeenCalled();
+    expect(vi.mocked(Geolocation.watchPosition)).toHaveBeenCalled();
+    expect(vi.mocked(registerPlugin)).not.toHaveBeenCalled();
+  });
+
+  it("uses background geolocation on native, mapping bearing to heading", async () => {
+    native = true;
+    type BgCb = (
+      loc?: { latitude: number; longitude: number; bearing?: number | null; accuracy?: number },
+      err?: { message?: string },
+    ) => void;
+    let bgCb!: BgCb;
+    const addWatcher = vi.fn(async (_opts: unknown, cb: BgCb) => {
+      bgCb = cb;
+      return "bg-1";
+    });
+    const removeWatcher = vi.fn();
+    vi.mocked(registerPlugin).mockReturnValue({ addWatcher, removeWatcher } as never);
+
+    const points: GeoPoint[] = [];
+    const errors: string[] = [];
+    const watch = await watchRunPosition(
+      (p) => points.push(p),
+      (m) => errors.push(m),
+    );
+
+    // Requests permissions and keeps tracking distance-filtered in the background.
+    expect(addWatcher.mock.calls[0][0]).toMatchObject({
+      requestPermissions: true,
+      stale: false,
+      distanceFilter: 5,
+    });
+
+    bgCb({ latitude: 1, longitude: 2, bearing: 45, accuracy: 3 });
+    bgCb({ latitude: 3, longitude: 4 }); // stationary: no bearing
+    bgCb(undefined, { message: "bg denied" });
+
+    expect(points).toEqual([
+      { lat: 1, lon: 2, heading: 45, accuracy: 3 },
+      { lat: 3, lon: 4, heading: null, accuracy: undefined },
+    ]);
+    expect(errors).toEqual(["bg denied"]);
+
+    watch.clear();
+    expect(removeWatcher).toHaveBeenCalledWith({ id: "bg-1" });
   });
 });
 
 describe("getCurrentPosition", () => {
   it("maps the one-shot fix", async () => {
-    geo.getCurrentPosition.mockImplementation((ok: SuccessCb) =>
-      ok({ coords: { latitude: 48.8, longitude: 2.3, heading: null, accuracy: 10 } }),
-    );
+    vi.mocked(Geolocation.getCurrentPosition).mockResolvedValue({
+      coords: { latitude: 48.8, longitude: 2.3, heading: null, accuracy: 10 },
+    } as never);
 
     expect(await getCurrentPosition()).toEqual({
       lat: 48.8,

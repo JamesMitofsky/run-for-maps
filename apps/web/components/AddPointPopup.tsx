@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { CircleNotchIcon, MapPinPlusIcon } from "@phosphor-icons/react";
-import type { EditExtras } from "@/lib/schemas";
+import type { EditExtras } from "@rosm/core/schemas";
 import PointDetailsForm from "@/components/PointDetailsForm";
 
 // Map popup shown above a tapped empty spot, offering to create a brand-new OSM

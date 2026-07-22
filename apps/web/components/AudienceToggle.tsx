@@ -1,4 +1,4 @@
-import type { Audience } from "@/lib/schemas";
+import type { Audience } from "@rosm/core/schemas";
 
 const OPTIONS: readonly Audience[] = ["humans", "dogs", "both"];
 

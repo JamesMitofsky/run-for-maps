@@ -32,6 +32,8 @@ const h = vi.hoisted(() => ({
 
 vi.mock("@/lib/api", () => ({
   apiFetch: vi.fn(),
+  // Web target: never the native (Capacitor) path, so hydration uses the server.
+  isNative: () => false,
 }));
 vi.mock("@/lib/geolocation", () => ({
   watchRunPosition: vi.fn(async (onPoint: Watcher["onPoint"], onError: Watcher["onError"]) => {

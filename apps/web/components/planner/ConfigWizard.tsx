@@ -12,7 +12,7 @@ import {
 import Button from "@/components/ui/Button";
 import ErrorNotice from "@/components/ui/ErrorNotice";
 import StepProgress from "@/components/planner/StepProgress";
-import { usePlanner } from "@/store/planner";
+import { usePlanner } from "@rosm/core/stores/planner";
 
 // The guided config steps, answered one at a time before the map takes over.
 const STEPS = [

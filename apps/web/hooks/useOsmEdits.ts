@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import type { EditAction, EditExtras, Fountain, TagFilter } from "@/lib/schemas";
-import type { Pt } from "@/lib/geo";
-import type { StopStatus } from "@/store/run";
+import type { EditAction, EditExtras, Fountain, TagFilter } from "@rosm/core/schemas";
+import type { Pt } from "@rosm/core/geo";
+import type { StopStatus } from "@rosm/core/stores/run";
 import type { PointEdit } from "@/components/PointPopup";
-import { useOutbox, outboxCounts } from "@/store/outbox";
+import { useOutbox, outboxCounts } from "@rosm/core/stores/outbox";
 import { useUndo } from "@/store/undo";
 import { celebratePoint } from "@/lib/confetti";
 import { apiFetch } from "@/lib/api";

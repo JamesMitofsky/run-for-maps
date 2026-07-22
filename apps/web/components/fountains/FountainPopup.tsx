@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { DogIcon, WrenchIcon } from "@phosphor-icons/react";
-import type { Fountain } from "@/lib/schemas";
-import { isDogWater, isOutOfService } from "@/lib/fountainFilters";
-import { checkedAgoLabel } from "@/lib/checkDate";
-import { fmtDist } from "@/lib/geo";
+import type { Fountain } from "@rosm/core/schemas";
+import { isDogWater, isOutOfService } from "@rosm/core/fountainFilters";
+import { checkedAgoLabel } from "@rosm/core/checkDate";
+import { fmtDist } from "@rosm/core/geo";
 
 // Read-only popup: name, last-checked date, status flags. No edit
 // controls — this view is purely for finding water nearby.

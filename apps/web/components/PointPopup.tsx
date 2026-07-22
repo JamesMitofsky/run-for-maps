@@ -12,12 +12,12 @@ import {
   SnowflakeIcon,
 } from "@phosphor-icons/react";
 import { useMapPopup } from "@/components/MapView";
-import type { Fountain, EditAction, EditExtras } from "@/lib/schemas";
-import type { StopStatus } from "@/store/run";
-import { checkedAgoLabel } from "@/lib/checkDate";
+import type { Fountain, EditAction, EditExtras } from "@rosm/core/schemas";
+import type { StopStatus } from "@rosm/core/stores/run";
+import { checkedAgoLabel } from "@rosm/core/checkDate";
 import PointDetailsForm from "@/components/PointDetailsForm";
 import OsmSignInLink from "@/components/OsmSignInLink";
-import type { SyncState } from "@/store/outbox";
+import type { SyncState } from "@rosm/core/stores/outbox";
 import { SyncBadge } from "@/components/SyncStatus";
 
 // Local feedback for a point already updated in this session. The edit is saved

@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useUndo } from "@/store/undo";
-import { useOutbox, UNDO_WINDOW_MS } from "@/store/outbox";
+import { useOutbox, UNDO_WINDOW_MS } from "@rosm/core/stores/outbox";
 import { apiFetch } from "@/lib/api";
-import { idbDelete } from "@/lib/idb";
+import { configureTestPorts } from "../helpers/ports";
 
 vi.mock("@/lib/idb", () => ({
   idbGetAll: vi.fn(async () => []),
@@ -28,6 +28,9 @@ const fail = (body: unknown, status = 500) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
 beforeEach(() => {
+  // Core outbox reaches its api/storage through injected ports; route the api
+  // port to the same apiFetch spy the undo store calls directly.
+  configureTestPorts(apiFetchMock);
   useOutbox.setState({ items: [], changesetId: undefined, hydrated: false });
   useUndo.setState({ target: null, busy: false, error: null });
   apiFetchMock.mockReset();
@@ -76,8 +79,9 @@ describe("perform — edit", () => {
     await useUndo.getState().perform();
 
     expect(apiFetchMock).not.toHaveBeenCalled();
+    // Removed from the outbox (through the storage port; the empty items list is
+    // the observable effect — the in-memory port fake isn't a spy).
     expect(useOutbox.getState().items).toEqual([]);
-    expect(vi.mocked(idbDelete)).toHaveBeenCalledWith(item.id);
     expect(onUndone).toHaveBeenCalledOnce();
     expect(useUndo.getState().target).toBeNull();
   });

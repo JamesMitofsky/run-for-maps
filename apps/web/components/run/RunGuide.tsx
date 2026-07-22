@@ -16,8 +16,8 @@ import {
   DogIcon,
 } from "@phosphor-icons/react";
 import type { RunSession } from "@/hooks/useRunSession";
-import type { Audience } from "@/lib/schemas";
-import { fmtFeet, maneuver } from "@/lib/geo";
+import type { Audience } from "@rosm/core/schemas";
+import { fmtFeet, maneuver } from "@rosm/core/geo";
 import { audienceFromTags } from "@/lib/audience";
 import AudienceToggle from "@/components/AudienceToggle";
 import SyncStatus from "@/components/SyncStatus";

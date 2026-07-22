@@ -7,10 +7,10 @@ import { BUCKET_COLOR, bucketOf } from "@/components/FreshnessLegend";
 import FountainPopup from "@/components/fountains/FountainPopup";
 import SearchProgress, { type LoadingStep } from "@/components/fountains/SearchProgress";
 import ErrorNotice from "@/components/ui/ErrorNotice";
-import type { Fountain } from "@/lib/schemas";
-import { isOutOfService } from "@/lib/fountainFilters";
+import type { Fountain } from "@rosm/core/schemas";
+import { isOutOfService } from "@rosm/core/fountainFilters";
 import { apiFetch } from "@/lib/api";
-import { haversine } from "@/lib/geo";
+import { haversine } from "@rosm/core/geo";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 

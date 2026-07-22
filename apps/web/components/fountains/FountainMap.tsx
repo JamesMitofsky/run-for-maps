@@ -8,7 +8,7 @@ import {
   MapPinIcon,
   SlidersHorizontalIcon,
 } from "@phosphor-icons/react";
-import type { EditExtras, Fountain } from "@/lib/schemas";
+import type { EditExtras, Fountain } from "@rosm/core/schemas";
 import type { MapMarker } from "@/components/MapView";
 import type { OsmEdits } from "@/hooks/useOsmEdits";
 import AccountChip from "@/components/AccountChip";
@@ -19,9 +19,15 @@ import Modal from "@/components/ui/Modal";
 import PointPopup from "@/components/PointPopup";
 import FountainPopup from "@/components/fountains/FountainPopup";
 import SearchPanel, { DEFAULT_RADIUS_MI } from "@/components/fountains/SearchPanel";
-import { EDIT_COLOR, EDIT_LABEL } from "@/lib/editStatus";
-import { ptLabel } from "@/lib/pointTypes";
-import { countBy, rankFountains, type Ranked, type Svc, type Water } from "@/lib/fountainFilters";
+import { EDIT_COLOR, EDIT_LABEL } from "@rosm/core/editStatus";
+import { ptLabel } from "@rosm/core/pointTypes";
+import {
+  countBy,
+  rankFountains,
+  type Ranked,
+  type Svc,
+  type Water,
+} from "@rosm/core/fountainFilters";
 import { BUCKET_COLOR, bucketOf } from "@/components/FreshnessLegend";
 import { apiFetch } from "@/lib/api";
 import {
@@ -32,7 +38,7 @@ import {
 } from "@/lib/geolocation";
 import { useLiveLocation } from "@/lib/useLiveLocation";
 import CompassEnableModal from "@/components/run/CompassEnableModal";
-import { boxAround, boxAspect, milesToMeters, MAX_SEARCH_RADIUS_M, type Pt } from "@/lib/geo";
+import { boxAround, boxAspect, milesToMeters, MAX_SEARCH_RADIUS_M, type Pt } from "@rosm/core/geo";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 

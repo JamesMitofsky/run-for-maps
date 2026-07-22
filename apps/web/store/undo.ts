@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { useOutbox, UNDO_WINDOW_MS } from "@/store/outbox";
+import { useOutbox, UNDO_WINDOW_MS } from "@rosm/core/stores/outbox";
 import { apiFetch } from "@/lib/api";
 
 // The one submission currently offered for undo. Latest-only: a new submission

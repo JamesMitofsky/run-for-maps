@@ -1,4 +1,4 @@
-import type { Audience } from "@/lib/schemas";
+import type { Audience } from "@rosm/core/schemas";
 
 // Derive the current human/dog audience from a node's OSM tags, used to prefill
 // the survey toggle so the surveyor sees what's already recorded.

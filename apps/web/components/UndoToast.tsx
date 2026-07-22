@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowCounterClockwiseIcon, CheckCircleIcon, XIcon } from "@phosphor-icons/react";
 import { useUndo } from "@/store/undo";
-import { UNDO_WINDOW_MS } from "@/store/outbox";
+import { UNDO_WINDOW_MS } from "@rosm/core/stores/outbox";
 
 // The 5s post-submission undo window. Pure view over the undo store (which owns
 // the authoritative expiry timer — this component holds no timers, so it can

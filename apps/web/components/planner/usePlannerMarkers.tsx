@@ -3,8 +3,8 @@
 import { useMemo } from "react";
 import type { MapMarker } from "@/components/MapView";
 import { type PointEdit } from "@/components/PointPopup";
-import { usePlanner } from "@/store/planner";
-import { EDIT_COLOR, EDIT_LABEL } from "@/lib/editStatus";
+import { usePlanner } from "@rosm/core/stores/planner";
+import { EDIT_COLOR, EDIT_LABEL } from "@rosm/core/editStatus";
 
 // The planner-phase marker set: every found fountain (colored by its route /
 // pin / exclusion / edit state), plus via waypoints, the start flag, and the
