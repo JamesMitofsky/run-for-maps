@@ -641,7 +641,7 @@ export default function MapView({
         )}
         {lineData && (
           <Source id="route" type="geojson" data={lineData}>
-            <Layer {...lineLayer} beforeId={MARKERS_LAYER} />
+            <Layer {...lineLayer} />
           </Source>
         )}
 
