@@ -26,20 +26,19 @@
 }
 
 @theme {
-  --color-ink: #0c0d0a;
-  --color-ink-soft: #16180f;
-  --color-volt: #ccff2e;
-  --color-volt-deep: #a6d600;
-  --color-cream: #f4f3ea;
-  --color-cream-dim: #b9b8ac;
+  --color-base: #0c0d0a;
+  --color-muted: #4d5c6a;
+  --color-accent: #ccff2e;
+  --color-accent-deep: #a6d600;
+  --color-light: #eef2f6;
+  --color-light-muted: #8fa3b3;
 
-  /* Warm-paper editorial palette (landing). */
-  --color-paper: #f7f2e8;
-  --color-paper-deep: #e7dfcc;
-  --color-paper-line: #d6cdb6;
-  --color-sky: #abdcec;
-  --color-sky-deep: #4fafd4;
-  --color-ink-dim: #57544a;
+  /* Cool-slate palette. */
+  --color-surface: #f4f6f8;
+  --color-surface-deep: #e3e8ee;
+  --color-border: #c6cfd8;
+  --color-info: #abdcec;
+  --color-link: #4fafd4;
 
   --font-display: "Space Grotesk", system-ui, sans-serif;
   --font-body: "Inter", system-ui, sans-serif;
@@ -55,7 +54,7 @@
 /* Behind everything — including the iOS rubber-band overscroll area — so the dark
    theme never flashes white at the edges in the native app. */
 html {
-  background: var(--color-ink);
+  background: var(--color-base);
   /* Always reserve the scrollbar gutter so locking scroll when a modal opens (rule
      below) doesn't reflow the page wider and jolt content. */
   scrollbar-gutter: stable;
@@ -83,7 +82,7 @@ body {
    utility wins on specificity, so styled links (nav buttons, etc.) are unaffected. */
 @layer base {
   a {
-    color: var(--color-sky-deep);
+    color: var(--color-link);
   }
 }
 
@@ -118,6 +117,15 @@ body {
 @media (max-width: 767px) {
   .hero-map .maplibregl-ctrl-group {
     display: none;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 
@@ -181,12 +189,9 @@ body {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/*
- * Paper grain — speckled tooth over light/paper surfaces.
- * Darker noise multiplied onto the page so it reads as paper fiber.
- * Absolute so the texture scrolls with its element instead of the viewport.
- */
-.paper-grain::after {
+/* Speckled grain over light surfaces. Darker noise multiplied onto the page.
+ * Absolute so the texture scrolls with its element instead of the viewport. */
+.surface-grain::after {
   content: "";
   position: absolute;
   inset: 0;

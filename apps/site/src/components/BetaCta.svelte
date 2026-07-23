@@ -78,7 +78,7 @@
 <button
   type="button"
   onclick={() => dialogEl?.showModal()}
-  class="bg-sky-deep text-paper hover:bg-sky-deep/90 inline-flex items-center gap-2.5 self-end rounded-sm px-6 py-3 text-lg font-bold transition md:self-start"
+  class="bg-link text-surface hover:bg-link/90 inline-flex items-center gap-2.5 self-end rounded-sm px-6 py-3 text-lg font-bold transition md:self-start"
 >
   Join the Beta
   <svg viewBox="0 0 100 100" fill="currentColor" aria-hidden="true" class="h-6 w-6">
@@ -99,13 +99,13 @@
   }}
   onclose={reset}
   aria-labelledby="join-beta-title"
-  class="paper-grain bg-paper text-ink border-ink/10 m-auto w-full max-w-md rounded-xl border p-8 shadow-2xl backdrop:bg-ink/40 backdrop:backdrop-blur-sm"
+  class="surface-grain bg-surface text-base border-base/10 m-auto w-full max-w-md rounded-xl border p-8 shadow-2xl backdrop:bg-base/40 backdrop:backdrop-blur-sm"
 >
   <button
     type="button"
     onclick={close}
     aria-label="Close"
-    class="text-ink-dim hover:text-ink absolute top-4 right-4 transition"
+    class="text-muted hover:text-base absolute top-4 right-4 transition"
   >
     <X class="h-5 w-5" weight="bold" />
   </button>
@@ -113,36 +113,36 @@
   <h2 id="join-beta-title" class="font-hero text-3xl font-bold tracking-tight">Join the Beta</h2>
 
   {#if status === "success"}
-    <p class="text-ink-dim mt-4 text-lg leading-relaxed">
+    <p class="text-muted mt-4 text-lg leading-relaxed">
       You're on the list — we'll be in touch as we roll out access. Thanks for helping map and
       verify fountains in your community.
     </p>
   {:else}
-    <p class="text-ink-dim mt-4 text-lg leading-relaxed">
+    <p class="text-muted mt-4 text-lg leading-relaxed">
       We're rolling out access gradually. Leave your name and email and we'll let you know when
       it's your turn.
     </p>
 
     <form onsubmit={submit} class="mt-6 flex flex-col gap-4">
       <label class="flex flex-col gap-1.5">
-        <span class="text-ink text-sm font-medium">Name</span>
+        <span class="text-base text-sm font-medium">Name</span>
         <input
           type="text"
           bind:value={name}
           required
           autocomplete="name"
-          class="bg-paper text-ink border-ink/15 focus:border-sky-deep focus:ring-sky-deep/30 rounded-sm border px-4 py-2.5 text-base transition outline-none focus:ring-2"
+          class="bg-surface text-base border-base/15 focus:border-link focus:ring-link/30 rounded-sm border px-4 py-2.5 text-base transition outline-none focus:ring-2"
         />
       </label>
 
       <label class="flex flex-col gap-1.5">
-        <span class="text-ink text-sm font-medium">Email</span>
+        <span class="text-base text-sm font-medium">Email</span>
         <input
           type="email"
           bind:value={email}
           required
           autocomplete="email"
-          class="bg-paper text-ink border-ink/15 focus:border-sky-deep focus:ring-sky-deep/30 rounded-sm border px-4 py-2.5 text-base transition outline-none focus:ring-2"
+          class="bg-surface text-base border-base/15 focus:border-link focus:ring-link/30 rounded-sm border px-4 py-2.5 text-base transition outline-none focus:ring-2"
         />
       </label>
 
@@ -153,7 +153,7 @@
       <button
         type="submit"
         disabled={status === "submitting"}
-        class="bg-sky-deep text-paper hover:bg-sky-deep/90 mt-2 inline-flex w-full items-center justify-center gap-2.5 rounded-sm px-6 py-3 text-lg font-bold transition disabled:opacity-60"
+        class="bg-link text-surface hover:bg-link/90 mt-2 inline-flex w-full items-center justify-center gap-2.5 rounded-sm px-6 py-3 text-lg font-bold transition disabled:opacity-60"
       >
         {status === "submitting" ? "Joining…" : "Join the Beta"}
       </button>

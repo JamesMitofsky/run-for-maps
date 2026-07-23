@@ -159,7 +159,7 @@ export default function Plan() {
   );
 
   return (
-    <View className="bg-paper flex-1">
+    <View className="bg-surface flex-1">
       <RosmMap
         center={mapCenter}
         zoom={center ? 15 : 1.5}
@@ -179,22 +179,22 @@ export default function Plan() {
           className="absolute inset-0 z-10 items-center justify-center bg-black/25 pb-36"
         >
           <View
-            className="bg-ink flex-row items-center gap-3 rounded-full px-6 py-3 shadow-xl"
+            className="bg-base flex-row items-center gap-3 rounded-full px-6 py-3 shadow-xl"
             accessibilityRole="progressbar"
             accessibilityLabel="Finding points nearby"
           >
             <ActivityIndicator size="small" color="#f7f2e8" />
-            <Text className="text-paper text-sm font-semibold">Finding points…</Text>
+            <Text className="text-surface text-sm font-semibold">Finding points…</Text>
           </View>
         </View>
       ) : null}
 
       {/* Planner controls pinned to the bottom of the screen, full-width,
           matching the active-run panel in run.tsx. */}
-      <View className="bg-paper border-ink/10 absolute right-0 bottom-0 left-0 border-t px-5 pt-5 pb-28">
+      <View className="bg-surface border-base/10 absolute right-0 bottom-0 left-0 border-t px-5 pt-5 pb-28">
         {phase === "run" ? (
           <View className="gap-3">
-            <Text className="text-ink font-bold">
+            <Text className="text-base font-bold">
               Run in progress — {stops.length} stops · {fmtDist(distanceM)}
             </Text>
             <View className="flex-row gap-2">

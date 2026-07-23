@@ -27,23 +27,23 @@ export function RouteBuilderPanel({ onStartRun }: { onStartRun: () => void }) {
   return (
     <View className="gap-3">
       <View className="flex-row items-center gap-2">
-        <Text className="text-ink text-lg font-bold">
+        <Text className="text-base text-lg font-bold">
           Tap fountains to add/remove them from your route
         </Text>
       </View>
 
       {removed.length > 0 ? (
         <View className="gap-1">
-          <Text className="text-ink-dim text-xs font-semibold">
+          <Text className="text-muted text-xs font-semibold">
             Removed from route ({removed.length})
           </Text>
           <ScrollView className="max-h-24">
             {removed.map((f) => (
               <View
                 key={f.id}
-                className="bg-paper-deep mb-1 flex-row items-center justify-between rounded-lg px-2 py-1.5"
+                className="bg-surface-deep mb-1 flex-row items-center justify-between rounded-lg px-2 py-1.5"
               >
-                <Text className="text-ink-dim flex-1 text-xs line-through" numberOfLines={1}>
+                <Text className="text-muted flex-1 text-xs line-through" numberOfLines={1}>
                   {markLabel(f)}
                 </Text>
                 <Pressable
@@ -51,7 +51,7 @@ export function RouteBuilderPanel({ onStartRun }: { onStartRun: () => void }) {
                   accessibilityRole="button"
                   accessibilityLabel="add point back to route"
                 >
-                  <Text className="text-sky-deep text-xs font-semibold">Add back</Text>
+                  <Text className="text-link text-xs font-semibold">Add back</Text>
                 </Pressable>
               </View>
             ))}
@@ -60,13 +60,13 @@ export function RouteBuilderPanel({ onStartRun }: { onStartRun: () => void }) {
       ) : null}
 
       {p.stops.length > 0 ? (
-        <View className="border-sky-deep/30 bg-sky/10 gap-2 rounded-2xl border p-3">
+        <View className="border-link/30 bg-info/10 gap-2 rounded-2xl border p-3">
           <View className="flex-row items-baseline justify-between">
-            <Text className="text-ink font-semibold">{p.stops.length} stops</Text>
-            <Text className="text-sky-deep font-semibold">{fmtDist(p.distanceM)}</Text>
+            <Text className="text-base font-semibold">{p.stops.length} stops</Text>
+            <Text className="text-link font-semibold">{fmtDist(p.distanceM)}</Text>
           </View>
           {p.autoCount > 0 ? (
-            <Text className="text-ink-dim text-xs">
+            <Text className="text-muted text-xs">
               Fountains in purple were added dynamically along your route and will update as your
               selections change.
             </Text>
@@ -87,7 +87,7 @@ export function RouteBuilderPanel({ onStartRun }: { onStartRun: () => void }) {
         <View className="gap-2">
           <Text className="text-sm text-red-500">{p.err}</Text>
           {p.islandPt ? (
-            <Text className="text-ink-dim text-xs">
+            <Text className="text-muted text-xs">
               It’s marked ! in red on the map. Remove that point (or move your nearest waypoint),
               then the route re-plans on its own.
             </Text>

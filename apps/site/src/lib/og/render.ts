@@ -10,17 +10,17 @@ import { Resvg } from "@resvg/resvg-js";
  * single landing page, one card is emitted.
  *
  * Palette + type mirror globals.css (@theme) and the landing page:
- *   paper #f7f2e8 · ink #0c0d0a · ink-dim #57544a · paper-line #d6cdb6 · sky-deep #4fafd4
+ *   surface #f4f6f8 · base #0c0d0a · muted #4d5c6a · border #c6cfd8 · link #4fafd4
  *   display = Space Grotesk (uppercase, tight) · body = Inter
  */
 
 export const OG_SIZE = { width: 1200, height: 630 };
 
-const PAPER = "#f7f2e8";
-const PAPER_LINE = "#d6cdb6";
-const INK = "#0c0d0a";
-const INK_DIM = "#57544a";
-const SKY_DEEP = "#4fafd4";
+const SURFACE = "#f4f6f8";
+const BORDER = "#c6cfd8";
+const BASE = "#0c0d0a";
+const MUTED = "#4d5c6a";
+const LINK = "#4fafd4";
 
 // Assets are read once from disk at module load (build time) and reused.
 const fontDir = join(process.cwd(), "src", "lib", "og", "fonts");
@@ -110,7 +110,7 @@ export async function renderOgPng({ title, highlight, subtitle }: OgCopy): Promi
     h("div", {
       position: "absolute",
       inset: 28,
-      border: `2px solid ${PAPER_LINE}`,
+      border: `2px solid ${BORDER}`,
       borderRadius: 20,
     }),
     h(
@@ -129,13 +129,13 @@ export async function renderOgPng({ title, highlight, subtitle }: OgCopy): Promi
               lineHeight: 0.92,
               letterSpacing: -2,
               textTransform: "uppercase",
-              color: INK,
+              color: BASE,
             },
-            titleParts.map((part) => h("span", { color: part.accent ? SKY_DEEP : INK }, part.text)),
+            titleParts.map((part) => h("span", { color: part.accent ? LINK : BASE }, part.text)),
           ),
           h(
             "div",
-            { fontSize: 30, lineHeight: 1.35, color: INK_DIM, marginTop: 30, maxWidth: 620 },
+            { fontSize: 30, lineHeight: 1.35, color: MUTED, marginTop: 30, maxWidth: 620 },
             subtitle,
           ),
         ]),
@@ -161,7 +161,7 @@ export async function renderOgPng({ title, highlight, subtitle }: OgCopy): Promi
       height: "100%",
       display: "flex",
       position: "relative",
-      backgroundColor: PAPER,
+      backgroundColor: SURFACE,
       fontFamily: "Inter",
       padding: 56,
     },

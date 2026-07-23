@@ -99,20 +99,20 @@ export function PointDetailsForm({
               accessibilityState={{ checked: seasonal }}
               accessibilityLabel="Seasonal fountain"
               className={`flex-row items-center justify-between rounded-xl border p-4 ${
-                seasonal ? "border-sky-500 bg-sky-50" : "border-paper-line bg-paper-deep"
+                seasonal ? "border-info-500 bg-info-50" : "border-border bg-surface-deep"
               }`}
             >
               <View className="flex-row items-center gap-3">
                 <View
                   className={`h-6 w-6 items-center justify-center rounded-lg border ${
-                    seasonal ? "border-sky-600 bg-sky-600" : "border-paper-line bg-white"
+                    seasonal ? "border-info-600 bg-info-600" : "border-border bg-white"
                   }`}
                 >
                   {seasonal ? <Text className="text-xs font-black text-white">✓</Text> : null}
                 </View>
                 <View className="gap-0.5">
-                  <Text className="text-ink text-sm font-bold">Seasonal fountain</Text>
-                  <Text className="text-ink-dim text-xs font-semibold">
+                  <Text className="text-base text-sm font-bold">Seasonal fountain</Text>
+                  <Text className="text-muted text-xs font-semibold">
                     Runs only part of the year
                   </Text>
                 </View>
@@ -130,7 +130,7 @@ export function PointDetailsForm({
       {/* 4th Category "Working but broken" issue details + quick tag pills */}
       {isBroken ? (
         <View className="gap-2 pt-1">
-          <Text className="text-ink text-xs font-bold tracking-wider uppercase">
+          <Text className="text-base text-xs font-bold tracking-wider uppercase">
             What&apos;s wrong with the fountain?
           </Text>
           <View className="flex-row flex-wrap gap-1.5 pb-1">
@@ -141,10 +141,10 @@ export function PointDetailsForm({
                   key={tag}
                   onPress={() => toggleQuickTag(tag)}
                   className={`rounded-lg border px-2.5 py-1.5 ${
-                    active ? "border-amber-600 bg-amber-500" : "border-paper-line bg-paper-deep"
+                    active ? "border-amber-600 bg-amber-500" : "border-border bg-surface-deep"
                   }`}
                 >
-                  <Text className={`text-xs font-bold ${active ? "text-white" : "text-ink"}`}>
+                  <Text className={`text-xs font-bold ${active ? "text-white" : "text-base"}`}>
                     {tag}
                   </Text>
                 </Pressable>
@@ -155,7 +155,7 @@ export function PointDetailsForm({
       ) : null}
 
       <View className="gap-1.5">
-        <Text className="text-ink text-xs font-bold tracking-wider uppercase">
+        <Text className="text-base text-xs font-bold tracking-wider uppercase">
           {isBroken ? "Details / Note" : "Public Note"}
         </Text>
         <TextInput
@@ -165,7 +165,7 @@ export function PointDetailsForm({
           placeholderTextColor="#57544a"
           multiline
           maxLength={255}
-          className="border-paper-line text-ink min-h-20 rounded-xl border bg-white p-3.5 text-sm font-medium"
+          className="border-border min-h-20 rounded-xl border bg-white p-3.5 text-base text-sm font-medium"
         />
       </View>
 
@@ -174,9 +174,9 @@ export function PointDetailsForm({
           <Pressable
             onPress={onCancel}
             accessibilityRole="button"
-            className="border-paper-line bg-paper-deep flex-1 items-center justify-center rounded-xl border px-4 py-3"
+            className="border-border bg-surface-deep flex-1 items-center justify-center rounded-xl border px-4 py-3"
           >
-            <Text className="text-ink text-base font-bold">Back</Text>
+            <Text className="text-base font-bold">Back</Text>
           </Pressable>
         ) : null}
         <Pressable

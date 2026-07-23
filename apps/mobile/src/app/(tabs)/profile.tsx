@@ -29,22 +29,22 @@ export default function Profile() {
   const totalSurveyed = routes.reduce((n, r) => n + surveyedCount(r.plan.stops), 0);
 
   return (
-    <SafeArea className="bg-paper flex-1" edges={["top", "bottom"]}>
+    <SafeArea className="bg-surface flex-1" edges={["top", "bottom"]}>
       <ScrollView contentContainerClassName="gap-4 p-5">
-        <Text className="text-ink text-3xl font-bold">Profile</Text>
+        <Text className="text-3xl text-base font-bold">Profile</Text>
         <Panel>
           <View className="flex-row items-center gap-4">
             {user?.avatarUrl ? (
               <StyledImage
                 source={{ uri: user.avatarUrl }}
-                className="bg-paper-deep h-16 w-16 rounded-full"
+                className="bg-surface-deep h-16 w-16 rounded-full"
                 contentFit="cover"
                 cachePolicy="memory-disk"
                 transition={150}
               />
             ) : (
-              <View className="bg-paper-deep h-16 w-16 items-center justify-center rounded-full">
-                <Text className="text-ink-dim text-xl font-bold">
+              <View className="bg-surface-deep h-16 w-16 items-center justify-center rounded-full">
+                <Text className="text-muted text-xl font-bold">
                   {(user?.username ?? "?").slice(0, 1).toUpperCase()}
                 </Text>
               </View>
@@ -52,7 +52,7 @@ export default function Profile() {
             <View className="min-w-0 flex-1">
               <View className="flex-row items-center gap-2">
                 <View className="h-2 w-2 rounded-full bg-green-500" />
-                <Text className="text-ink flex-1 text-lg font-bold" numberOfLines={1}>
+                <Text className="flex-1 text-base text-lg font-bold" numberOfLines={1}>
                   {user?.username ?? (status?.loggedIn ? "Connected to OSM" : "Not connected")}
                 </Text>
               </View>
@@ -65,14 +65,14 @@ export default function Profile() {
 
         {user ? (
           <Panel>
-            <View className="border-paper-line flex-row items-center justify-between border-b py-2.5">
-              <Text className="text-ink-dim">Lifetime contributions</Text>
-              <Text className="text-ink font-bold">{user.changesetCount}</Text>
+            <View className="border-border flex-row items-center justify-between border-b py-2.5">
+              <Text className="text-muted">Lifetime contributions</Text>
+              <Text className="text-base font-bold">{user.changesetCount}</Text>
             </View>
             {user.accountCreated ? (
               <View className="flex-row items-center justify-between py-2.5">
-                <Text className="text-ink-dim">Member since</Text>
-                <Text className="text-ink font-bold">
+                <Text className="text-muted">Member since</Text>
+                <Text className="text-base font-bold">
                   {new Date(user.accountCreated).toLocaleDateString()}
                 </Text>
               </View>
@@ -81,20 +81,20 @@ export default function Profile() {
         ) : null}
 
         <Panel>
-          <Text className="text-ink mb-1 font-bold">Your runs</Text>
-          <Text className="text-ink-dim mb-3 text-sm">
+          <Text className="mb-1 text-base font-bold">Your runs</Text>
+          <Text className="text-muted mb-3 text-sm">
             {routes.length} {routes.length === 1 ? "run" : "runs"} · {totalSurveyed} points surveyed
           </Text>
           {routes.length === 0 ? (
-            <Text className="text-ink-dim text-sm">No runs yet — plan your first route.</Text>
+            <Text className="text-muted text-sm">No runs yet — plan your first route.</Text>
           ) : (
             routes.slice(0, 10).map((r) => (
               <Pressable
                 key={r.routeId}
                 onPress={() => router.push({ pathname: "/run-detail", params: { id: r.routeId } })}
-                className="border-paper-line border-t py-2.5"
+                className="border-border border-t py-2.5"
               >
-                <Text className="text-ink">
+                <Text className="text-base">
                   {new Date(r.updatedAt).toLocaleDateString()} · {fmtDist(r.plan.distanceM)} ·{" "}
                   {r.plan.stops.length} stops
                 </Text>

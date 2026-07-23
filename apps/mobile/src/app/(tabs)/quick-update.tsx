@@ -15,7 +15,7 @@ import { BottomSheet, RNHostView } from "@expo/ui";
 import { RosmMap, type RosmMarker, type RosmRegion } from "../../map/RosmMap";
 import { PointSheet, type PointEdit, type SurveyAction } from "../../components/PointSheet";
 
-const TAG = { key: "amenity", value: "drinking_water" };
+const TAG = { key: "amenity", value: "drbaseing_water" };
 const RADIUS_MI = 0.3;
 // Cap the queried area so a fully zoomed-out map can't fire a huge Overpass query.
 const MAX_RADIUS_M = milesToMeters(25);
@@ -179,7 +179,7 @@ export default function QuickUpdate() {
   );
 
   return (
-    <View className="bg-paper flex-1">
+    <View className="bg-surface flex-1">
       {center ? (
         <RosmMap
           center={[center.lat, center.lon]}
@@ -196,10 +196,10 @@ export default function QuickUpdate() {
           {err == null ? (
             <>
               <ActivityIndicator accessibilityLabel="Locating you" />
-              <Text className="text-ink-dim">Locating you…</Text>
+              <Text className="text-muted">Locating you…</Text>
             </>
           ) : (
-            <Text className="text-ink-dim">{err}</Text>
+            <Text className="text-muted">{err}</Text>
           )}
         </View>
       )}
@@ -212,20 +212,20 @@ export default function QuickUpdate() {
         <SafeArea edges={["top"]} className="absolute top-0 right-0 left-0 items-center p-3">
           {busy ? (
             <View
-              className="bg-ink flex-row items-center gap-2 rounded-full px-5 py-2.5 opacity-70 shadow-lg"
+              className="bg-base flex-row items-center gap-2 rounded-full px-5 py-2.5 opacity-70 shadow-lg"
               accessibilityRole="progressbar"
               accessibilityLabel="Finding fountains nearby"
             >
               <ActivityIndicator size="small" color="#f7f2e8" />
-              <Text className="text-paper font-semibold">Finding fountains nearby…</Text>
+              <Text className="text-surface font-semibold">Finding fountains nearby…</Text>
             </View>
           ) : (
             <Pressable
               onPress={requery}
-              className="bg-ink flex-row items-center gap-2 rounded-full px-5 py-2.5 shadow-lg"
+              className="bg-base flex-row items-center gap-2 rounded-full px-5 py-2.5 shadow-lg"
               accessibilityRole="button"
             >
-              <Text className="text-paper font-semibold">Search this area</Text>
+              <Text className="text-surface font-semibold">Search this area</Text>
             </Pressable>
           )}
         </SafeArea>
