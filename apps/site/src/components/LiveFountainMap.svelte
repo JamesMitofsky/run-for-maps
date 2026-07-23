@@ -31,6 +31,9 @@
 
   let fountains = $state<Fountain[]>([]);
   let busy = $state(true);
+  // The last fetch's error, if any. Rendering is deferred (see `showErr`) so a
+  // flash — from navigating away, an unmount, or a superseded load — never
+  // reaches the screen.
   let err = $state<string | null>(null);
   // Snapshot of "now" captured at fetch time — keeps freshness bucketing pure.
   let nowMs = $state(0);
@@ -86,6 +89,7 @@
       // Refit to the returned points' bounding box.
       recenterKey = `loaded-${found.length}`;
     } catch (e) {
+      // Record whatever went wrong; `showErr` decides if it's worth showing.
       err =
         e instanceof ApiTimeoutError
           ? "The fountain search took too long to respond. Please try again."
@@ -139,6 +143,20 @@
 
   const loading = $derived(busy && fountains.length === 0);
   const succeeded = $derived(!busy && !err && fountains.length > 0);
+
+  // Defer showing the error. A genuine failure sits still and crosses the delay;
+  // a flash — navigating away, an unmount, or a superseded load — tears down
+  // first, so its timer never fires and nothing paints. One rule, no per-cause
+  // special cases.
+  let showErr = $state(false);
+  $effect(() => {
+    if (!err || busy) {
+      showErr = false;
+      return;
+    }
+    const t = setTimeout(() => (showErr = true), 400);
+    return () => clearTimeout(t);
+  });
 </script>
 
 <div class="relative h-full w-full {className}">
@@ -164,13 +182,13 @@
   <SearchProgress
     active={loading}
     done={succeeded}
-    failed={!!err}
+    failed={showErr}
     steps={LOADING_STEPS}
     variant="overlay"
   />
 
-  <!-- Fetch failed: floating retry card. -->
-  {#if err && !busy}
+  <!-- Fetch failed (and the error outlived the flash window): floating retry card. -->
+  {#if showErr && err}
     <div class="absolute top-3 left-3 z-[700] max-w-xs">
       <ErrorNotice message={err} tone="light" onRetry={load} retrying={busy} />
     </div>

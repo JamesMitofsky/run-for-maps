@@ -206,6 +206,19 @@
     return () => clearTimeout(timer);
   });
 
+  // Defer painting the fallback: a genuine failure persists past the delay,
+  // while a flash from tearing the map down during navigation never does — so
+  // no error UI blinks on the outgoing page. Same rule the callers use.
+  let showError = $state(false);
+  $effect(() => {
+    if (!hasError) {
+      showError = false;
+      return;
+    }
+    const t = setTimeout(() => (showError = true), 400);
+    return () => clearTimeout(t);
+  });
+
   // Map/style/tile failures surface here. Flag once so the fallback replaces
   // the loader instead of leaving a stuck spinner or a blank canvas. Only
   // fatal (pre-load) failures trip it — a lone tile 404 on a working map
@@ -312,7 +325,7 @@
 </script>
 
 <div class={className} style="position: relative; height: 100%; width: 100%;">
-  {#if hasError}
+  {#if showError}
     <div
       style="position: absolute; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; padding: 1.5rem; text-align: center; background: #0E85C6; color: #fff;"
     >
