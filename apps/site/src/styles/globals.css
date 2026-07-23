@@ -40,6 +40,9 @@
   --color-info: #0e85c6;
   --color-link: #0e85c6;
   --color-blue: #0e85c6;
+  /* Hero headline blue (Run & Verify). Shared by all display-face headings
+     except the ROSM wordmark and "The Problem" plate. */
+  --color-hero: #0b6fa7;
   --color-pink: #f4447a;
   --color-orange: #f38300;
   --color-red: #ea4126;
@@ -194,17 +197,4 @@ body {
   pointer-events: none;
   opacity: 0.04;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-
-/* Speckled grain over light surfaces. Darker noise multiplied onto the page.
- * Absolute so the texture scrolls with its element instead of the viewport. */
-.surface-grain::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 60;
-  pointer-events: none;
-  opacity: 0.12;
-  mix-blend-mode: multiply;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.62' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)'/%3E%3C/svg%3E");
 }

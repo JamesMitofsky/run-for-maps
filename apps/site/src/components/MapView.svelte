@@ -256,6 +256,8 @@
     map?.touchZoomRotate.disableRotation();
     doRecenter();
     emitView(false);
+    const attrEl = map?.getContainer().querySelector('.maplibregl-ctrl-attrib');
+    attrEl?.classList.remove('maplibregl-compact-show');
   }
 
   function handleClick(ev: maplibregl.MapMouseEvent) {

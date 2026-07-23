@@ -8,26 +8,42 @@ import FreshnessLegend from "@/components/FreshnessLegend.svelte";
 
 export const prerender = true;
 
-// Torn-surface silhouette for the manifesto plate. Irregular px offsets along the
-// top and bottom edges read as a hand-torn strip; the left/right sides stay
-// straight for the full-bleed section. Offsets are hardcoded — not random.
+// Wave-cut silhouette for the manifesto plate. The top and bottom edges roll as
+// smooth waves at uneven intervals; the left/right sides stay straight for the
+// full-bleed section. Coordinates are objectBoundingBox units (0–1) so the clip
+// scales with the element and stays responsive; cubic beziers give true curves,
+// which polygon() cannot. Offsets are hardcoded — not random.
 // clip-path and the raising drop-shadow live on separate elements: on one element
 // the clip runs after the filter and would clip the shadow away to nothing.
 const tornShadow =
   "filter: drop-shadow(0 2px 3px rgba(60, 48, 24, 0.32)) drop-shadow(0 9px 18px rgba(60, 48, 24, 0.24));";
-const tornClip = `clip-path: polygon(
-  0% 10px, 4% 2px, 7% 18px, 13% 4px, 17% 21px, 21% 7px, 26% 14px, 31% 1px,
-  34% 19px, 40% 5px, 44% 22px, 49% 9px, 53% 3px, 58% 17px, 63% 6px, 68% 20px,
-  71% 11px, 77% 2px, 82% 16px, 86% 5px, 91% 23px, 96% 8px, 100% 13px,
-  100% calc(100% - 11px), 96% calc(100% - 3px), 91% calc(100% - 19px),
-  86% calc(100% - 6px), 82% calc(100% - 22px), 77% calc(100% - 8px),
-  71% calc(100% - 15px), 68% calc(100% - 2px), 63% calc(100% - 20px),
-  58% calc(100% - 5px), 53% calc(100% - 23px), 49% calc(100% - 9px),
-  44% calc(100% - 4px), 40% calc(100% - 17px), 34% calc(100% - 7px),
-  31% calc(100% - 21px), 26% calc(100% - 12px), 21% calc(100% - 3px),
-  17% calc(100% - 18px), 13% calc(100% - 6px), 7% calc(100% - 22px),
-  4% calc(100% - 9px), 0% calc(100% - 14px)
-);`;
+
+// Smooth wave through a list of points. Each segment is a cubic whose control
+// points sit at the horizontal midpoint, so consecutive crests/troughs blend
+// into a continuous curve rather than kinking at each point.
+const r = (n: number) => Math.round(n * 10000) / 10000;
+const waveThrough = (pts: { x: number; y: number }[]) =>
+  pts
+    .slice(1)
+    .reduce((d, p, i) => {
+      const prev = pts[i];
+      const mx = r(prev.x + (p.x - prev.x) / 2);
+      return `${d} C ${mx} ${r(prev.y)}, ${mx} ${r(p.y)}, ${r(p.x)} ${r(p.y)}`;
+    }, `M ${r(pts[0].x)} ${r(pts[0].y)}`);
+
+// Uneven wave-crest positions along the width; y alternates crest (0) / trough.
+const topWave = [
+  { x: 0, y: 0.02 }, { x: 0.09, y: 0 }, { x: 0.15, y: 0.03 }, { x: 0.27, y: 0.005 },
+  { x: 0.34, y: 0.028 }, { x: 0.48, y: 0 }, { x: 0.55, y: 0.025 }, { x: 0.68, y: 0.004 },
+  { x: 0.76, y: 0.03 }, { x: 0.88, y: 0.008 }, { x: 1, y: 0.02 },
+];
+const bottomWave = [
+  { x: 1, y: 0.98 }, { x: 0.88, y: 1 }, { x: 0.76, y: 0.972 }, { x: 0.68, y: 0.996 },
+  { x: 0.55, y: 0.975 }, { x: 0.48, y: 1 }, { x: 0.34, y: 0.978 }, { x: 0.27, y: 0.996 },
+  { x: 0.15, y: 0.97 }, { x: 0.09, y: 0.995 }, { x: 0, y: 0.98 },
+];
+const tornPath = `${waveThrough(topWave)} L ${r(bottomWave[0].x)} ${r(bottomWave[0].y)} ${waveThrough(bottomWave).slice(1)} Z`;
+const tornClip = "clip-path: url(#manifesto-wave);";
 
 // Decorative topographic contour paths: a single family that fades to nothing
 // as it descends. Retains the total row count of the previous two families.
@@ -36,20 +52,13 @@ const contourLines = Array.from({ length: contourRows }, (_, i) => {
   const o = i * 30;
   return {
     d: `M-50 ${100 + o} C 200 ${40 + o}, 360 ${200 + o}, 560 ${160 + o} S 920 ${40 + o}, 1260 ${140 + o}`,
-    opacity: 0.28 * (1 - i / (contourRows - 1)),
+    opacity: 0.16 * (i / (contourRows - 1)),
   };
 });
 ---
 
 <Layout>
-  <main class="surface-grain bg-surface font-body text-base relative">
-    <div class="absolute top-0 left-0 z-10 flex items-center gap-2.5 px-5 pt-5">
-      <a href="/" class="flex items-center gap-2.5">
-        <img src="/icons/icon.svg" alt="ROSM" class="h-12 w-auto" />
-        <span class="font-hero text-3xl leading-none tracking-tight md:text-4xl translate-y-1" style="color: #2A5F2B">ROSM</span>
-      </a>
-    </div>
-
+  <main class="bg-surface font-body text-base relative">
     {/* HERO */}
     <section class="relative overflow-hidden">
       <svg
@@ -64,14 +73,14 @@ const contourLines = Array.from({ length: contourRows }, (_, i) => {
         ))}
       </svg>
 
-      <div class="relative mx-auto max-w-6xl px-5 pt-24 pb-16 md:pt-32 md:pb-24">
+      <div class="relative mx-auto max-w-6xl px-5 pt-8 pb-16 md:pt-12 md:pb-24">
         {/* Mobile: title -> map -> subtitle (flex column). Desktop: map spans the
             left column, title + subtitle stack in the right column (grid). */}
         <div
           class="flex flex-col items-start gap-8 md:grid md:grid-cols-[46%_1fr] md:items-center md:gap-x-12 md:gap-y-4"
         >
           <h1
-            class="reveal font-hero max-w-5xl text-[clamp(3.2rem,14vw,5.8rem)] leading-[0.9] font-bold tracking-tight md:col-start-2 md:row-start-1 md:self-end"
+            class="reveal font-hero text-hero max-w-5xl text-[clamp(3.2rem,14vw,5.8rem)] leading-[0.9] font-bold tracking-tight md:col-start-2 md:row-start-1 md:self-end"
             style="transition-delay: 0.1s"
           >
             Run & Verify
@@ -79,7 +88,7 @@ const contourLines = Array.from({ length: contourRows }, (_, i) => {
 
           {/* Interactive demo of the run + edit flow, framed like a print plate. */}
           <div
-            class="reveal border-base/10 bg-info relative w-full overflow-hidden rounded-xl border md:col-start-1 md:row-span-2 md:self-center"
+            class="reveal bg-info relative w-full overflow-hidden rounded-xl shadow-lg md:col-start-1 md:row-span-2 md:self-center"
             style="transition-delay: 0.05s"
           >
             <div class="hero-map relative isolate z-0 h-[clamp(300px,40vw,460px)] w-full">
@@ -113,12 +122,12 @@ const contourLines = Array.from({ length: contourRows }, (_, i) => {
             style="transition-delay: 0.16s"
           >
             <p class="text-muted max-w-xl text-xl leading-relaxed">
-              A runner-sourced map of public fountains in D.C.
+              A runner-sourced map of DC's drinking fountains.
             </p>
             <div class="flex flex-wrap items-center gap-3">
               <a
                 href="/dc-drinking-fountains"
-                class="inline-flex items-center gap-2.5 self-end rounded-sm border border-base/20 bg-transparent px-6 py-3 text-lg font-bold text-base transition hover:bg-base/5 md:self-start"
+                class="inline-flex items-center gap-2.5 rounded-xl border border-blue bg-transparent px-6 py-3 text-lg font-bold text-blue transition hover:bg-blue/5"
               >
                 <svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" class="h-6 w-6">
                   <path
@@ -137,26 +146,31 @@ const contourLines = Array.from({ length: contourRows }, (_, i) => {
     {/* MANIFESTO SPLIT — a raised, hand-torn surface strip over the page.
         Wrapper casts the shadow; inner section carries the torn clip. */}
     <div class="relative z-10 -my-6" style={tornShadow}>
+      <svg width="0" height="0" class="absolute" aria-hidden="true">
+        <clipPath id="manifesto-wave" clipPathUnits="objectBoundingBox">
+          <path d={tornPath} />
+        </clipPath>
+      </svg>
       <section class="bg-blue" style={tornClip}>
         <div class="reveal mx-auto max-w-3xl px-5 py-20 md:py-28">
           <h2 class="font-hero text-[clamp(2rem,5vw,3.4rem)] leading-[1.05] font-bold tracking-tight text-light">
             The Problem
           </h2>
-          <p class="mt-6 text-lg leading-relaxed text-white/65">
+          <p class="mt-6 text-lg leading-relaxed text-white/85">
             Despite DC's many public drbaseing fountains, there is no reliable way to know where they
             all are. And then, many are out of order. This is bad for everyone, especially folks who
             spend a disproportionate amount of time outdoors—thbase runners, tourists, and the
             homeless.
           </p>
-          <p class="mt-4 text-lg leading-relaxed text-white/65">
+          <p class="mt-4 text-lg leading-relaxed text-white/85">
             By building a robust, locally-sourced map of public drbaseing water, we can improve the
             utility of this existing public good. This removes the guesswork of where to find the
             nearest fountain as well as the uncertainty of whether that fountain will work.
           </p>
-          <p class="mt-4 text-lg leading-relaxed text-white/65">
+          <p class="mt-4 text-lg leading-relaxed text-white/85">
             In practice, this produces immediate and long-term benefits:
           </p>
-          <ul class="mt-4 list-disc space-y-1 pl-6 text-lg leading-relaxed text-white/65">
+          <ul class="mt-4 list-disc space-y-1 pl-6 text-lg leading-relaxed text-white/85">
             <li>
               <span class="font-medium">Immediately,</span> anyone can reliably locate the nearest
               working fountain
@@ -172,9 +186,9 @@ const contourLines = Array.from({ length: contourRows }, (_, i) => {
 
     {/* THE STATE OF THE FOUNTAINS — leaderboard + live coverage map */}
     <section>
-      <div class="mx-auto max-w-6xl px-5 py-20 md:py-28">
+      <div class="mx-auto max-w-6xl px-5 pt-20 pb-10 md:pt-28 md:pb-12">
         <h2
-          class="reveal font-hero text-[clamp(2rem,5.5vw,3.6rem)] leading-tight font-bold tracking-tight uppercase"
+          class="reveal font-hero text-hero text-[clamp(2rem,5.5vw,3.6rem)] leading-tight font-bold tracking-tight uppercase"
         >
           The State of the Fountains
         </h2>
@@ -211,17 +225,17 @@ const contourLines = Array.from({ length: contourRows }, (_, i) => {
     </section>
 
     {/* BOTTOM CTA */}
-    <section class="border-border border-t">
-      <div class="reveal mx-auto flex max-w-6xl flex-col items-center gap-6 px-5 py-16 md:py-24">
+    <section>
+      <div class="reveal mx-auto flex max-w-6xl flex-col items-center gap-6 px-5 py-12 md:py-16">
         <h2
-          class="font-hero text-center text-[clamp(1.75rem,4vw,2.75rem)] leading-tight font-bold tracking-tight"
+          class="font-hero text-hero text-center text-[clamp(2rem,5vw,3.4rem)] leading-tight font-bold tracking-tight"
         >
-          Help map the fountains.
+          Help map the fountains!
         </h2>
         <div class="flex flex-wrap items-center justify-center gap-3">
           <a
             href="/dc-drinking-fountains"
-            class="inline-flex items-center gap-2.5 rounded-sm border border-base/20 bg-transparent px-6 py-3 text-lg font-bold text-base transition hover:bg-base/5"
+            class="inline-flex items-center gap-2.5 rounded-xl border border-blue bg-transparent px-6 py-3 text-lg font-bold text-blue transition hover:bg-blue/5"
           >
             <svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" class="h-6 w-6">
               <path
@@ -236,7 +250,7 @@ const contourLines = Array.from({ length: contourRows }, (_, i) => {
     </section>
 
     {/* FOOTER */}
-    <footer class="border-border border-t">
+    <footer>
       <div class="text-muted mx-auto flex max-w-6xl items-center justify-center gap-4 px-5 py-8 text-sm">
         <span>
           Made with{" "}
