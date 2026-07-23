@@ -182,10 +182,17 @@
 
   let isLoaded = $state(false);
 
+
   $effect(() => {
     const timer = setTimeout(() => (isLoaded = true), 2500);
     return () => clearTimeout(timer);
   });
+
+  // Map/style/tile failures surface here. Flag once so the fallback replaces
+  // the loader instead of leaving a stuck spinner or a blank canvas.
+  function handleError(ev: maplibregl.ErrorEvent) {
+    console.error("MapLibre error", ev.error);
+  }
 
   // Pop new dots in: grow circle-radius 0 → target whenever the marker set
   // changes. Radius is a shader uniform, so this stays smooth for many points.
@@ -281,7 +288,24 @@
 </script>
 
 <div class={className} style="position: relative; height: 100%; width: 100%;">
-  {#if !isLoaded}
+  {#if hasError}
+    <div
+      style="position: absolute; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; padding: 1.5rem; text-align: center; background: #0E85C6; color: #fff;"
+    >
+      <svg
+        style="width: 2.25rem; height: 2.25rem;"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        stroke-width="1.75"
+      >
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008M10.34 3.94l-8.4 14.55A1.5 1.5 0 003.24 21h17.52a1.5 1.5 0 001.3-2.51L13.66 3.94a1.5 1.5 0 00-2.6 0z" />
+      </svg>
+      <p style="margin: 0; font-weight: 700; font-size: 0.95rem;">Map couldn't load</p>
+      <p style="margin: 0; font-size: 0.8rem; opacity: 0.85;">Check your connection and try again.</p>
+    </div>
+  {:else if !isLoaded}
     <div
       style="position: absolute; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; background: #0E85C6;"
     >
@@ -321,6 +345,7 @@
     boxZoom={interactive}
     keyboard={interactive}
     onload={handleLoad}
+    onerror={handleError}
     onclick={handleClick}
     onmoveend={(ev) => emitView(!!(ev as { originalEvent?: unknown }).originalEvent)}
   >
