@@ -6,19 +6,18 @@
   "apiBase": "https://rosm.app",
   "appStoreUrl": "",
   "nativeBackground": "#0c0d0a",
-  "pwaThemeColor": "#f1ebdd",
+  "pwaThemeColor": "#f4f6f8",
   "colors": {
-    "ink": "#0c0d0a",
-    "ink-soft": "#16180f",
-    "ink-dim": "#57544a",
-    "volt": "#ccff2e",
-    "volt-deep": "#a6d600",
-    "cream": "#f4f3ea",
-    "cream-dim": "#b9b8ac",
-    "paper": "#f7f2e8",
-    "paper-deep": "#e7dfcc",
-    "paper-line": "#d6cdb6",
-    "sky": "#abdcec",
-    "sky-deep": "#4fafd4"
+    "base": "#0c0d0a",
+    "muted": "#4d5c6a",
+    "accent": "#ccff2e",
+    "accent-deep": "#a6d600",
+    "light": "#eef2f6",
+    "light-muted": "#8fa3b3",
+    "surface": "#f4f6f8",
+    "surface-deep": "#e3e8ee",
+    "border": "#c6cfd8",
+    "info": "#abdcec",
+    "link": "#4fafd4"
   }
 }

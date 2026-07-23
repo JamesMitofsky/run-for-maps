@@ -10,21 +10,21 @@ type Props = Omit<PressableProps, "children"> & {
 };
 
 const BOX: Record<Variant, string> = {
-  primary: "bg-ink",
-  secondary: "bg-paper-deep",
-  ghost: "bg-transparent border border-paper-line",
+  primary: "bg-base",
+  secondary: "bg-surface-deep",
+  ghost: "bg-transparent border border-border",
   danger: "bg-transparent border border-red-400",
-  blue: "bg-sky-deep",
-  "ghost-dark": "bg-transparent border border-cream/25",
+  blue: "bg-link",
+  "ghost-dark": "bg-transparent border border-light/25",
 };
 
 const LABEL: Record<Variant, string> = {
-  primary: "text-paper",
-  secondary: "text-ink",
-  ghost: "text-ink",
+  primary: "text-surface",
+  secondary: "text-base",
+  ghost: "text-base",
   danger: "text-red-500",
   blue: "text-white",
-  "ghost-dark": "text-cream",
+  "ghost-dark": "text-light",
 };
 
 export function Button({ title, variant = "primary", loading, disabled, icon, ...rest }: Props) {

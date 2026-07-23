@@ -6,13 +6,17 @@
   import ErrorNotice from "@/components/ErrorNotice.svelte";
   import type { Fountain } from "@rosm/core/schemas";
   import { isOutOfService } from "@rosm/core/fountainFilters";
-  import { apiFetch } from "@/lib/api";
+  import { apiFetch, ApiTimeoutError } from "@/lib/api";
   import { haversine } from "@rosm/core/geo";
 
   // Live counterpart to DemoRunMap: on mount it queries Overpass for every
   // amenity=drinking_water node in the on-screen viewport around central DC and
   // colors each by how recently it was verified. Read-only; no editing.
   let { class: className = "" }: { class?: string } = $props();
+
+  // Hard client-side ceiling for the fountain fetch. The backend keeps trying
+  // Overpass mirrors well past this; the user shouldn't wait longer than 20s.
+  const FETCH_TIMEOUT_MS = 20_000;
 
   const DC_CENTER: [number, number] = [38.8972, -77.0369];
   const CENTER_PT = { lat: DC_CENTER[0], lon: DC_CENTER[1] };
@@ -27,6 +31,9 @@
 
   let fountains = $state<Fountain[]>([]);
   let busy = $state(true);
+  // The last fetch's error, if any. Rendering is deferred (see `showErr`) so a
+  // flash — from navigating away, an unmount, or a superseded load — never
+  // reaches the screen.
   let err = $state<string | null>(null);
   // Snapshot of "now" captured at fetch time — keeps freshness bucketing pure.
   let nowMs = $state(0);
@@ -52,17 +59,23 @@
     busy = true;
     err = null;
     try {
-      const r = await apiFetch("/api/fountains", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          // [south, west, north, east] — the on-screen bounding box.
-          bounds: [box[0][0], box[0][1], box[1][0], box[1][1]],
-          tag: TAG,
-          recencyMode: "any",
-          includeDisused: true,
-        }),
-      });
+      const r = await apiFetch(
+        "/api/fountains",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            // [south, west, north, east] — the on-screen bounding box.
+            bounds: [box[0][0], box[0][1], box[1][0], box[1][1]],
+            tag: TAG,
+            recencyMode: "any",
+            includeDisused: true,
+          }),
+        },
+        // The server may retry Overpass across mirrors for far longer than a
+        // user should stare at a spinner — cap the wait and surface an error.
+        { timeoutMs: FETCH_TIMEOUT_MS },
+      );
       const j = await r.json();
       if (!r.ok) {
         const e = j.error;
@@ -76,7 +89,11 @@
       // Refit to the returned points' bounding box.
       recenterKey = `loaded-${found.length}`;
     } catch (e) {
-      err = (e as Error).message;
+      // Record whatever went wrong; `showErr` decides if it's worth showing.
+      err =
+        e instanceof ApiTimeoutError
+          ? "The fountain search took too long to respond. Please try again."
+          : (e as Error).message;
     } finally {
       busy = false;
     }
@@ -90,6 +107,14 @@
     if (didQuery) return;
     didQuery = true;
     load();
+  }
+
+  // The map failed before it could report a viewport, so the fountain query
+  // never fires. Stop the loader (MapView shows its own error card) instead of
+  // spinning forever behind it.
+  function onMapError() {
+    didQuery = true;
+    busy = false;
   }
 
   const buckets = $derived(fountains.map((f) => ({ f, bucket: bucketOf(f.tags, nowMs) })));
@@ -118,6 +143,20 @@
 
   const loading = $derived(busy && fountains.length === 0);
   const succeeded = $derived(!busy && !err && fountains.length > 0);
+
+  // Defer showing the error. A genuine failure sits still and crosses the delay;
+  // a flash — navigating away, an unmount, or a superseded load — tears down
+  // first, so its timer never fires and nothing paints. One rule, no per-cause
+  // special cases.
+  let showErr = $state(false);
+  $effect(() => {
+    if (!err || busy) {
+      showErr = false;
+      return;
+    }
+    const t = setTimeout(() => (showErr = true), 400);
+    return () => clearTimeout(t);
+  });
 </script>
 
 <div class="relative h-full w-full {className}">
@@ -129,6 +168,7 @@
     maxZoom={18}
     interactive
     {onViewChange}
+    onError={onMapError}
     {markers}
     markerRadius={6}
     {fitPoints}
@@ -142,14 +182,14 @@
   <SearchProgress
     active={loading}
     done={succeeded}
-    failed={!!err}
+    failed={showErr}
     steps={LOADING_STEPS}
     variant="overlay"
   />
 
-  <!-- Fetch failed: floating retry card. -->
-  {#if err && !busy}
-    <div class="absolute top-3 left-3 z-[650] max-w-xs">
+  <!-- Fetch failed (and the error outlived the flash window): floating retry card. -->
+  {#if showErr && err}
+    <div class="absolute top-3 left-3 z-[700] max-w-xs">
       <ErrorNotice message={err} tone="light" onRetry={load} retrying={busy} />
     </div>
   {/if}

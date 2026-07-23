@@ -99,14 +99,14 @@ export default function RunScreen() {
 
   if (s.hydrating) {
     return (
-      <View className="bg-ink flex-1 items-center justify-center">
-        <Text className="text-cream font-medium">Loading session…</Text>
+      <View className="bg-base flex-1 items-center justify-center">
+        <Text className="text-light font-medium">Loading session…</Text>
       </View>
     );
   }
 
   return (
-    <View className="bg-ink flex-1">
+    <View className="bg-base flex-1">
       <RosmMap
         center={s.center}
         bearing={s.mapBearing ?? undefined}
@@ -118,21 +118,21 @@ export default function RunScreen() {
         onMarkerPress={onMarkerPress}
         onMapPress={onMapPress}
       />
-      <View className="bg-ink-soft border-cream/10 absolute right-0 bottom-0 left-0 border-t px-5 pt-5 pb-8">
+      <View className="bg-base border-light/10 absolute right-0 bottom-0 left-0 border-t px-5 pt-5 pb-8">
         {s.done ? (
           <>
-            <Text className="text-cream text-lg font-bold">All points surveyed</Text>
+            <Text className="text-light text-lg font-bold">All points surveyed</Text>
             <Button title="Finish run" onPress={s.finish} loading={s.finishing} />
           </>
         ) : s.target ? (
           <>
-            <Text className="text-cream text-lg font-bold">
+            <Text className="text-light text-lg font-bold">
               {s.target.tags?.name ??
                 (s.nextTurn
                   ? `${maneuver(s.nextTurn.angle)} in ${fmtDist(s.distToTurn ?? 0)}`
                   : "Next stop")}
             </Text>
-            <Text className="text-cream-dim">{checkedAgoLabel(s.target.tags, now)}</Text>
+            <Text className="text-light-muted">{checkedAgoLabel(s.target.tags, now)}</Text>
 
             {s.target.tags?.drinking_water === "no" ? (
               <View className="flex-row items-center gap-1.5">
@@ -144,14 +144,14 @@ export default function RunScreen() {
             ) : null}
 
             {s.osm && !s.osm.loggedIn ? (
-              <Text className="text-cream-dim text-xs">
+              <Text className="text-light-muted text-xs">
                 Sign in (Profile tab) to record updates.
               </Text>
             ) : null}
 
             {pending === "end" ? (
               <View className="gap-2">
-                <Text className="text-cream text-sm font-medium">
+                <Text className="text-light text-sm font-medium">
                   End this route early? Remaining stops will be left for next time.
                 </Text>
                 <View className="flex-row gap-2">
@@ -194,27 +194,27 @@ export default function RunScreen() {
                       onPress={() => s.goBack()}
                       accessibilityRole="button"
                       accessibilityLabel="Back to previous stop"
-                      className="border-cream/25 flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5"
+                      className="border-light/25 flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5"
                     >
                       <SkipBackIcon size={18} color="#f7f2e8" />
-                      <Text className="text-cream text-sm font-semibold">Back</Text>
+                      <Text className="text-light text-sm font-semibold">Back</Text>
                     </Pressable>
                   ) : null}
                   <Pressable
                     onPress={() => s.skip()}
                     accessibilityRole="button"
                     accessibilityLabel="Skip this stop"
-                    className="border-cream/25 flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5"
+                    className="border-light/25 flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5"
                   >
                     <SkipForwardIcon size={18} color="#f7f2e8" />
-                    <Text className="text-cream text-sm font-semibold">Skip</Text>
+                    <Text className="text-light text-sm font-semibold">Skip</Text>
                   </Pressable>
                 </View>
               </View>
             )}
           </>
         ) : (
-          <Text className="text-cream-dim">Waiting for GPS…</Text>
+          <Text className="text-light-muted">Waiting for GPS…</Text>
         )}
 
         {s.lastSaved ? (

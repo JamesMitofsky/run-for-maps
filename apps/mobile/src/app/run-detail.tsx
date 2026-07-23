@@ -15,8 +15,8 @@ export default function RunDetail() {
 
   if (!route) {
     return (
-      <SafeArea className="bg-paper flex-1 items-center justify-center gap-4 px-6">
-        <Text className="text-ink">Run not found.</Text>
+      <SafeArea className="bg-surface flex-1 items-center justify-center gap-4 px-6">
+        <Text className="text-base">Run not found.</Text>
         <Button title="Back" onPress={() => router.back()} />
       </SafeArea>
     );
@@ -34,7 +34,7 @@ export default function RunDetail() {
   const fit = plan.stops.map((s): [number, number] => [s.lat, s.lon]);
 
   return (
-    <SafeArea className="bg-paper flex-1" edges={["bottom"]}>
+    <SafeArea className="bg-surface flex-1" edges={["bottom"]}>
       <View className="h-1/2">
         <RosmMap
           center={[plan.start.lat, plan.start.lon]}
@@ -45,14 +45,14 @@ export default function RunDetail() {
         />
       </View>
       <ScrollView contentContainerClassName="gap-2 p-5">
-        <Text className="text-ink text-xl font-bold">
+        <Text className="text-base text-xl font-bold">
           {new Date(route.updatedAt).toLocaleString()}
         </Text>
-        <Text className="text-ink-dim">
+        <Text className="text-muted">
           {fmtDist(plan.distanceM)} · {plan.stops.length} stops
         </Text>
         {plan.stops.map((s, i) => (
-          <Text key={s.id} className="text-ink">
+          <Text key={s.id} className="text-base">
             {i + 1}. {s.tags?.name ?? `node ${s.id}`} — {s.status}
           </Text>
         ))}

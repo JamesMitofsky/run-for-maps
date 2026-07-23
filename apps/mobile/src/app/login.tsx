@@ -19,10 +19,10 @@ export default function Login() {
   }
 
   return (
-    <SafeArea className="bg-ink flex-1">
+    <SafeArea className="bg-base flex-1">
       <View className="flex-1 justify-center gap-6 px-6">
-        <Text className="text-cream text-4xl font-bold">ROSM</Text>
-        <Text className="text-cream-dim text-base leading-6">
+        <Text className="text-light text-4xl font-bold">ROSM</Text>
+        <Text className="text-light-muted text-base leading-6">
           Running for Open-Sourced Maps. Connect your OpenStreetMap account to record fountain
           updates from your run.
         </Text>

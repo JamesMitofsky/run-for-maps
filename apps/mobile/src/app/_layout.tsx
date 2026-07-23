@@ -32,7 +32,7 @@ export default function RootLayout() {
         <Stack
           screenOptions={{
             headerShown: false,
-            contentStyle: { backgroundColor: cfg.colors.paper },
+            contentStyle: { backgroundColor: cfg.colors.surface },
           }}
         >
           <Stack.Protected guard={!signedIn}>

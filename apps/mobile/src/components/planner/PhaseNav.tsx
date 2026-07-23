@@ -25,7 +25,7 @@ export function PhaseNav({ back, forward }: { back?: NavAction; forward?: NavAct
           }`}
         >
           <CaretLeftIcon size={16} color="#57544a" />
-          <Text className="text-ink-dim text-sm font-semibold">{back.label}</Text>
+          <Text className="text-muted text-sm font-semibold">{back.label}</Text>
         </Pressable>
       ) : (
         <View />
@@ -40,7 +40,7 @@ export function PhaseNav({ back, forward }: { back?: NavAction; forward?: NavAct
           }`}
         >
           {forward.loading ? <ActivityIndicator size="small" color="#4fafd4" /> : null}
-          <Text className="text-sky-deep text-sm font-bold">{forward.label}</Text>
+          <Text className="text-link text-sm font-bold">{forward.label}</Text>
           <CaretRightIcon size={16} color="#4fafd4" />
         </Pressable>
       ) : (

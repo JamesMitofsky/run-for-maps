@@ -86,9 +86,9 @@
   />
   <!-- Corner label so the hero map reads as a live, tappable demo. -->
   <span
-    class="border-sky-deep bg-sky-deep/15 text-sky-deep pointer-events-none absolute top-3 left-3 z-[1000] rounded-full border px-3 py-1 text-xs font-semibold shadow-sm backdrop-blur"
+    class="border-link bg-link/15 text-link pointer-events-none absolute top-3 left-3 z-[1000] rounded-full border px-3 py-1 text-xs font-semibold shadow-sm backdrop-blur"
   >
-    Interactive demo
+    Interactive
   </span>
 </div>
 

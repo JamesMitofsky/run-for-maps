@@ -35,7 +35,7 @@
 
 {#snippet headerRow(extraClass: string)}
   <div
-    class="text-ink-dim border-ink/15 grid grid-cols-[1.5rem_1fr_auto] items-baseline gap-3 border-b pb-2 font-mono text-[0.65rem] font-medium tracking-[0.14em] uppercase {extraClass}"
+    class="text-muted border-base/15 grid grid-cols-[1.5rem_1fr_auto] items-baseline gap-3 border-b pb-2 font-mono text-[0.65rem] font-medium tracking-[0.14em] uppercase {extraClass}"
   >
     <span>#</span>
     <span>Contributor</span>
@@ -45,11 +45,11 @@
 
 {#snippet skeletonRow()}
   <div
-    class="border-paper-line grid grid-cols-[1.5rem_1fr_auto] items-center gap-3 border-b py-2.5"
+    class="border-border grid grid-cols-[1.5rem_1fr_auto] items-center gap-3 border-b py-2.5"
   >
-    <span class="bg-ink/10 h-3 w-3 animate-pulse rounded"></span>
-    <span class="bg-ink/10 h-3 w-28 animate-pulse rounded"></span>
-    <span class="bg-ink/10 h-3 w-6 animate-pulse justify-self-end rounded"></span>
+    <span class="bg-base/10 h-3 w-3 animate-pulse rounded"></span>
+    <span class="bg-base/10 h-3 w-28 animate-pulse rounded"></span>
+    <span class="bg-base/10 h-3 w-6 animate-pulse justify-self-end rounded"></span>
   </div>
 {/snippet}
 
@@ -69,7 +69,7 @@
     {/each}
   </div>
 {:else if leaders.length === 0}
-  <p class="text-ink-dim text-sm {className}">
+  <p class="text-muted text-sm {className}">
     No contributors yet — be the first to update a fountain.
   </p>
 {:else}
@@ -83,20 +83,20 @@
         {@render headerRow(ci > 0 ? "hidden sm:grid" : "")}
         {#each col as l, i (l.username)}
           <div
-            class="border-paper-line grid grid-cols-[1.5rem_1fr_auto] items-baseline gap-3 border-b py-2.5"
+            class="border-border grid grid-cols-[1.5rem_1fr_auto] items-baseline gap-3 border-b py-2.5"
           >
-            <span class="text-ink-dim font-mono text-sm tabular-nums">{ci * 5 + i + 1}</span>
+            <span class="text-muted font-mono text-sm tabular-nums">{ci * 5 + i + 1}</span>
             <span class="min-w-0 font-medium">
               <a
                 href={`https://www.openstreetmap.org/user/${encodeURIComponent(l.username)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                class="decoration-ink/20 hover:decoration-ink block truncate underline-offset-4 hover:underline"
+                class="decoration-base/20 hover:decoration-base block truncate underline-offset-4 hover:underline"
               >
                 {l.username}
               </a>
             </span>
-            <span class="text-ink-dim text-right text-sm tabular-nums">{l.points}</span>
+            <span class="text-muted text-right text-sm tabular-nums">{l.points}</span>
           </div>
         {/each}
       </div>

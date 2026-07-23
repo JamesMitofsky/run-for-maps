@@ -23,8 +23,8 @@ export function DispenserToggle({
 }) {
   return (
     <View className="gap-1.5">
-      <Text className="text-ink text-xs font-bold tracking-wider uppercase">{label}</Text>
-      <View className="border-paper-line bg-paper-deep flex-row rounded-xl border p-1">
+      <Text className="text-base text-xs font-bold tracking-wider uppercase">{label}</Text>
+      <View className="border-border bg-surface-deep flex-row rounded-xl border p-1">
         {OPTIONS.map(({ key, label: optLabel, Icon }) => {
           const selected = value === key;
           const color = selected ? "#ffffff" : "#0c0d0a";
@@ -35,11 +35,11 @@ export function DispenserToggle({
               accessibilityRole="button"
               accessibilityState={{ selected }}
               className={`flex-1 flex-row items-center justify-center gap-1.5 rounded-lg py-2.5 ${
-                selected ? "bg-ink shadow-sm" : ""
+                selected ? "bg-base shadow-sm" : ""
               }`}
             >
               <Icon size={16} color={color} />
-              <Text className={`text-xs font-bold ${selected ? "text-paper" : "text-ink"}`}>
+              <Text className={`text-xs font-bold ${selected ? "text-surface" : "text-base"}`}>
                 {optLabel}
               </Text>
             </Pressable>

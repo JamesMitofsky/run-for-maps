@@ -104,6 +104,9 @@
     fitOptions?: { padding?: [number, number]; maxZoom?: number };
     centerOnSelect?: boolean;
     class?: string;
+    // Fired on a fatal (pre-load) map failure so callers can stop their own
+    // loaders and let the error surface.
+    onError?: (err: unknown) => void;
     // Rendered inside the map popup when a marker is tapped, given that marker.
     markerPopup?: Snippet<[MapMarker]>;
   };
@@ -126,6 +129,7 @@
     fitOptions,
     centerOnSelect = false,
     class: className,
+    onError,
     markerPopup,
   }: Props = $props();
 
@@ -180,12 +184,52 @@
     untrack(doRecenter);
   });
 
+  // `isLoaded` tracks the real map `load` event only. It is never forced true
+  // on a timer — a blank/hung map must not masquerade as loaded, or the loader
+  // hides over nothing and later errors get swallowed by the post-load gate.
   let isLoaded = $state(false);
+  let hasError = $state(false);
 
+  // Hard ceiling: MapLibre can sit forever if the tile source (via /api/tiles →
+  // OpenFreeMap) stalls without ever firing `load` or `error`. Give up at 20s so
+  // the loader can't spin indefinitely — surface the fallback instead.
+  const LOAD_TIMEOUT_MS = 20_000;
   $effect(() => {
-    const timer = setTimeout(() => (isLoaded = true), 2500);
+    if (isLoaded || hasError) return;
+    const timer = setTimeout(() => {
+      if (!isLoaded) {
+        console.error("MapLibre load timeout after", LOAD_TIMEOUT_MS, "ms");
+        hasError = true;
+        onError?.(new Error("Map load timed out"));
+      }
+    }, LOAD_TIMEOUT_MS);
     return () => clearTimeout(timer);
   });
+
+  // Defer painting the fallback: a genuine failure persists past the delay,
+  // while a flash from tearing the map down during navigation never does — so
+  // no error UI blinks on the outgoing page. Same rule the callers use.
+  let showError = $state(false);
+  $effect(() => {
+    if (!hasError) {
+      showError = false;
+      return;
+    }
+    const t = setTimeout(() => (showError = true), 400);
+    return () => clearTimeout(t);
+  });
+
+  // Map/style/tile failures surface here. Flag once so the fallback replaces
+  // the loader instead of leaving a stuck spinner or a blank canvas. Only
+  // fatal (pre-load) failures trip it — a lone tile 404 on a working map
+  // shouldn't wipe the whole view.
+  function handleError(ev: maplibregl.ErrorEvent) {
+    console.error("MapLibre error", ev.error);
+    if (!isLoaded) {
+      hasError = true;
+      onError?.(ev.error);
+    }
+  }
 
   // Pop new dots in: grow circle-radius 0 → target whenever the marker set
   // changes. Radius is a shader uniform, so this stays smooth for many points.
@@ -256,6 +300,8 @@
     map?.touchZoomRotate.disableRotation();
     doRecenter();
     emitView(false);
+    const attrEl = map?.getContainer().querySelector('.maplibregl-ctrl-attrib');
+    attrEl?.classList.remove('maplibregl-compact-show');
   }
 
   function handleClick(ev: maplibregl.MapMouseEvent) {
@@ -278,10 +324,44 @@
   }
 </script>
 
-<div
-  class={className}
-  style="position: relative; height: 100%; width: 100%; opacity: {isLoaded ? 1 : 0}; transition: opacity 350ms ease-out;"
->
+<div class={className} style="position: relative; height: 100%; width: 100%;">
+  {#if showError}
+    <div
+      style="position: absolute; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; padding: 1.5rem; text-align: center; background: #0E85C6; color: #fff;"
+    >
+      <svg
+        style="width: 2.25rem; height: 2.25rem;"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        stroke-width="1.75"
+      >
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008M10.34 3.94l-8.4 14.55A1.5 1.5 0 003.24 21h17.52a1.5 1.5 0 001.3-2.51L13.66 3.94a1.5 1.5 0 00-2.6 0z" />
+      </svg>
+      <p style="margin: 0; font-weight: 700; font-size: 0.95rem;">Map couldn't load</p>
+      <p style="margin: 0; font-size: 0.8rem; opacity: 0.85;">Check your connection and try again.</p>
+    </div>
+  {:else if !isLoaded}
+    <div
+      style="position: absolute; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; background: #0E85C6;"
+    >
+      <svg
+        style="width: 2rem; height: 2rem; color: #fff; animation: spin 1s linear infinite;"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <circle style="opacity: 0.25;" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path
+          style="opacity: 0.75;"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+        ></path>
+      </svg>
+    </div>
+  {/if}
+  <div style="height: 100%; width: 100%; opacity: {isLoaded ? 1 : 0}; transition: opacity 350ms ease-out;">
   <MapLibre
     bind:map
     style="/map-style.json"
@@ -302,6 +382,7 @@
     boxZoom={interactive}
     keyboard={interactive}
     onload={handleLoad}
+    onerror={handleError}
     onclick={handleClick}
     onmoveend={(ev) => emitView(!!(ev as { originalEvent?: unknown }).originalEvent)}
   >
@@ -389,4 +470,5 @@
       </Popup>
     {/if}
   </MapLibre>
+  </div>
 </div>

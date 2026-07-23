@@ -13,7 +13,7 @@ export function SegmentedControl<K extends string>({
   onChange: (key: K) => void;
 }) {
   return (
-    <View className="border-paper-line flex-row overflow-hidden rounded-lg border">
+    <View className="border-border flex-row overflow-hidden rounded-lg border">
       {options.map((o) => (
         <Pressable
           key={o.key}
@@ -25,11 +25,11 @@ export function SegmentedControl<K extends string>({
             onChange(o.key);
           }}
           className={`flex-1 items-center justify-center px-1 py-2 ${
-            value === o.key ? "bg-sky-deep" : "bg-paper/40"
+            value === o.key ? "bg-link" : "bg-surface/40"
           }`}
         >
           <Text
-            className={`text-xs ${value === o.key ? "text-ink font-semibold" : "text-ink-dim"}`}
+            className={`text-xs ${value === o.key ? "text-base font-semibold" : "text-muted"}`}
             numberOfLines={1}
           >
             {o.label}

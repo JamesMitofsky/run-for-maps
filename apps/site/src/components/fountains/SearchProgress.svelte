@@ -150,10 +150,10 @@
 {#snippet body()}
   <div class="w-full max-w-md">
     <div class="mb-2 flex justify-end">
-      <span bind:this={pctEl} class="text-ink-dim font-mono text-xs tabular-nums">0%</span>
+      <span bind:this={pctEl} class="text-muted font-mono text-xs tabular-nums">0%</span>
     </div>
-    <div class="bg-ink/10 h-1.5 w-full overflow-hidden rounded-full">
-      <div bind:this={fillEl} class="bg-sky-deep h-full rounded-full" style="width:0"></div>
+    <div class="bg-base/10 h-1.5 w-full overflow-hidden rounded-full">
+      <div bind:this={fillEl} class="bg-link h-full rounded-full" style="width:0"></div>
     </div>
   </div>
   <div class="flex min-h-[4rem] max-w-md items-start justify-center">
@@ -161,7 +161,7 @@
       <p
         in:fly={{ y: 8, duration: 250 }}
         out:fly={{ y: -8, duration: 250 }}
-        class="text-ink-dim font-mono text-sm leading-relaxed tracking-tight"
+        class="text-muted font-mono text-sm leading-relaxed tracking-tight"
       >
         {step.text}
       </p>
@@ -169,11 +169,11 @@
   </div>
 {/snippet}
 
-{#if show}
+{#if show && !failed}
   {#if variant === "overlay"}
     <div
       transition:fade={{ duration: 550 }}
-      class="bg-paper/30 absolute inset-0 z-[650] flex flex-col items-center justify-center gap-8 px-8 text-center backdrop-blur-md"
+      class="bg-surface/30 absolute inset-0 z-[650] flex flex-col items-center justify-center gap-8 px-8 text-center backdrop-blur-md"
     >
       {@render body()}
     </div>

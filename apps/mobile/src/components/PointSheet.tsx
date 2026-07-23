@@ -88,7 +88,7 @@ export function PointSheet({ fountain, edit, onAction, inRoute, onToggleRoute }:
     <View className="gap-3.5 px-1 py-1">
       {tags.name || isDogWater(tags) ? (
         <View className="pb-1">
-          {tags.name ? <Text className="text-ink text-lg font-bold">{tags.name}</Text> : null}
+          {tags.name ? <Text className="text-base text-lg font-bold">{tags.name}</Text> : null}
           {isDogWater(tags) ? (
             <View className="mt-1.5 flex-row items-center gap-1.5 self-start rounded-lg border border-violet-300 bg-violet-100 px-2.5 py-1">
               <DogIcon size={14} color="#5b21b6" />
@@ -113,28 +113,26 @@ export function PointSheet({ fountain, edit, onAction, inRoute, onToggleRoute }:
       ) : null}
 
       {edit ? (
-        <View className="border-paper-line bg-paper-deep gap-1.5 rounded-xl border p-4">
-          <Text className="text-ink text-base font-bold">{STATUS_LABEL[edit.status]}</Text>
-          <Text className="text-ink text-sm font-semibold">{edit.summary}</Text>
+        <View className="border-border bg-surface-deep gap-1.5 rounded-xl border p-4">
+          <Text className="text-base font-bold">{STATUS_LABEL[edit.status]}</Text>
+          <Text className="text-base text-sm font-semibold">{edit.summary}</Text>
           {edit.extras?.seasonal ? (
             <View className="flex-row items-center gap-1">
               <SnowflakeIcon size={14} color="#0369a1" />
-              <Text className="text-xs font-bold text-sky-800">Seasonal</Text>
+              <Text className="text-info-800 text-xs font-bold">Seasonal</Text>
             </View>
           ) : null}
           {edit.extras?.note ? (
-            <Text className="text-ink text-xs font-medium italic">“{edit.extras.note}”</Text>
+            <Text className="text-base text-xs font-medium italic">“{edit.extras.note}”</Text>
           ) : null}
-          <Text className="text-ink-dim mt-0.5 text-xs font-bold">
-            {SYNC_LABEL[edit.syncState]}
-          </Text>
+          <Text className="text-muted mt-0.5 text-xs font-bold">{SYNC_LABEL[edit.syncState]}</Text>
           {edit.changesetUrl ? (
             <Pressable
               onPress={() => Linking.openURL(edit.changesetUrl!)}
               className="mt-0.5 flex-row items-center gap-1"
             >
               <ArrowSquareOutIcon size={14} color="#0c0d0a" />
-              <Text className="text-ink text-xs font-bold underline">View online</Text>
+              <Text className="text-base text-xs font-bold underline">View online</Text>
             </Pressable>
           ) : null}
         </View>

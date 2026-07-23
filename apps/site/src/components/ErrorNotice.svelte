@@ -2,7 +2,7 @@
   import type { Snippet } from "svelte";
 
   // Inline error box with an optional retry action. `tone` matches the surface:
-  // "dark" for panels over the dark paper background (planner), "light" for
+  // "dark" for panels over the dark surface background (planner), "light" for
   // light panels (fountain browser).
   let {
     message,

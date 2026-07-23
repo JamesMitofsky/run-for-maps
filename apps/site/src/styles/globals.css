@@ -26,20 +26,28 @@
 }
 
 @theme {
-  --color-ink: #0c0d0a;
-  --color-ink-soft: #16180f;
-  --color-volt: #ccff2e;
-  --color-volt-deep: #a6d600;
-  --color-cream: #f4f3ea;
-  --color-cream-dim: #b9b8ac;
+  --color-base: #0f0e0c;
+  --color-muted: #5a5a5a;
+  --color-accent: #f38300;
+  --color-accent-deep: #ea4126;
+  --color-light: #f8f8f8;
+  --color-light-muted: #9a9a9a;
 
-  /* Warm-paper editorial palette (landing). */
-  --color-paper: #f7f2e8;
-  --color-paper-deep: #e7dfcc;
-  --color-paper-line: #d6cdb6;
-  --color-sky: #abdcec;
-  --color-sky-deep: #4fafd4;
-  --color-ink-dim: #57544a;
+  /* Vibrant palette — bold accents on clean white. */
+  --color-surface: #ffffff;
+  --color-surface-deep: #f2f2f2;
+  --color-border: #e0e0e0;
+  --color-info: #0e85c6;
+  --color-link: #0e85c6;
+  --color-blue: #0e85c6;
+  /* Hero headline blue (Run & Verify). Shared by all display-face headings
+     except the ROSM wordmark and "The Problem" plate. */
+  --color-hero: #0b6fa7;
+  --color-pink: #f4447a;
+  --color-orange: #f38300;
+  --color-red: #ea4126;
+  --color-green: #00925d;
+  --color-yellow: #fbc900;
 
   --font-display: "Space Grotesk", system-ui, sans-serif;
   --font-body: "Inter", system-ui, sans-serif;
@@ -49,13 +57,13 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #0f0e0c;
 }
 
 /* Behind everything — including the iOS rubber-band overscroll area — so the dark
    theme never flashes white at the edges in the native app. */
 html {
-  background: var(--color-ink);
+  background: var(--color-base);
   /* Always reserve the scrollbar gutter so locking scroll when a modal opens (rule
      below) doesn't reflow the page wider and jolt content. */
   scrollbar-gutter: stable;
@@ -83,7 +91,7 @@ body {
    utility wins on specificity, so styled links (nav buttons, etc.) are unaffected. */
 @layer base {
   a {
-    color: var(--color-sky-deep);
+    color: var(--color-link);
   }
 }
 
@@ -121,6 +129,15 @@ body {
   }
 }
 
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @keyframes marquee {
   from {
     transform: translateX(0);
@@ -155,6 +172,7 @@ body {
 .reveal {
   opacity: 0;
   transform: translateY(24px);
+  will-change: transform, opacity;
   transition:
     opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
     transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
@@ -179,20 +197,4 @@ body {
   pointer-events: none;
   opacity: 0.04;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-
-/*
- * Paper grain — speckled tooth over light/paper surfaces.
- * Darker noise multiplied onto the page so it reads as paper fiber.
- * Absolute so the texture scrolls with its element instead of the viewport.
- */
-.paper-grain::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 60;
-  pointer-events: none;
-  opacity: 0.12;
-  mix-blend-mode: multiply;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.62' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)'/%3E%3C/svg%3E");
 }

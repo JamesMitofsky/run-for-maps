@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
 
-  // Shared "Sign in to OSM" affordance: a link to the cookie-based OAuth route
+  // Shared "Sign in to OSM" affordance: a lbase to the cookie-based OAuth route
   // (/api/osm/auth). Caller controls class/children so it matches each context.
   // Preserves the current page so the OAuth callback can return here.
   let {
