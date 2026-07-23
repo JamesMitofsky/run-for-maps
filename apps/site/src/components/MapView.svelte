@@ -281,10 +281,10 @@
 <div class={className} style="position: relative; height: 100%; width: 100%;">
   {#if !isLoaded}
     <div
-      style="position: absolute; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; pointer-events: none;"
+      style="position: absolute; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; background: #0E85C6;"
     >
       <svg
-        style="width: 2rem; height: 2rem; color: var(--color-link); animation: spin 1s linear infinite;"
+        style="width: 2rem; height: 2rem; color: #fff; animation: spin 1s linear infinite;"
         xmlns="http://www.w3.org/2000/svg"
         fill="none"
         viewBox="0 0 24 24"

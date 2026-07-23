@@ -88,7 +88,7 @@
   <span
     class="border-link bg-link/15 text-link pointer-events-none absolute top-3 left-3 z-[1000] rounded-full border px-3 py-1 text-xs font-semibold shadow-sm backdrop-blur"
   >
-    Interactive demo
+    Interactive
   </span>
 </div>
 

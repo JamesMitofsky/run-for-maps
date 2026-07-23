@@ -1,6 +1,5 @@
 ---
 import Layout from "@/layouts/Layout.astro";
-import SiteNav from "@/components/SiteNav.astro";
 import BetaCta from "@/components/BetaCta.svelte";
 import DemoRunMap from "@/components/DemoRunMap.svelte";
 import LiveFountainMap from "@/components/LiveFountainMap.svelte";
@@ -30,55 +29,52 @@ const tornClip = `clip-path: polygon(
   4% calc(100% - 9px), 0% calc(100% - 14px)
 );`;
 
-// Decorative topographic contour paths (two families), matching the React source.
-const topLines = Array.from({ length: 9 }, (_, i) => {
-  const o = i * 26;
-  return {
-    d: `M-50 ${120 + o} C 200 ${60 + o}, 360 ${220 + o}, 560 ${180 + o} S 920 ${60 + o}, 1260 ${160 + o}`,
-    opacity: 0.5 - i * 0.04,
-  };
-});
-const bottomLines = Array.from({ length: 7 }, (_, i) => {
+// Decorative topographic contour paths: a single family that fades to nothing
+// as it descends. Retains the total row count of the previous two families.
+const contourRows = 16;
+const contourLines = Array.from({ length: contourRows }, (_, i) => {
   const o = i * 30;
   return {
-    d: `M-50 ${420 + o} C 180 ${360 + o}, 420 ${520 + o}, 640 ${440 + o} S 980 ${360 + o}, 1260 ${480 + o}`,
-    opacity: 0.42 - i * 0.05,
+    d: `M-50 ${100 + o} C 200 ${40 + o}, 360 ${200 + o}, 560 ${160 + o} S 920 ${40 + o}, 1260 ${140 + o}`,
+    opacity: 0.28 * (1 - i / (contourRows - 1)),
   };
 });
 ---
 
 <Layout>
   <main class="surface-grain bg-surface font-body text-base relative">
-    <SiteNav />
+    <div class="absolute top-0 left-0 z-10 flex items-center gap-2.5 px-5 pt-5">
+      <a href="/" class="flex items-center gap-2.5">
+        <img src="/icons/icon.svg" alt="ROSM" class="h-12 w-auto" />
+        <span class="font-hero text-3xl leading-none tracking-tight md:text-4xl translate-y-1" style="color: #2A5F2B">ROSM</span>
+      </a>
+    </div>
 
     {/* HERO */}
     <section class="relative overflow-hidden">
       <svg
-        class="text-base/[0.06] pointer-events-none absolute inset-0 h-full w-full"
+        class="pointer-events-none absolute inset-0 h-full w-full" style="color: #0E85C6"
         viewBox="0 0 1200 600"
         fill="none"
         preserveAspectRatio="xMidYMid slice"
         aria-hidden="true"
       >
-        {topLines.map((l) => (
-          <path d={l.d} stroke="currentColor" stroke-width="1" opacity={l.opacity} />
-        ))}
-        {bottomLines.map((l) => (
+        {contourLines.map((l) => (
           <path d={l.d} stroke="currentColor" stroke-width="1" opacity={l.opacity} />
         ))}
       </svg>
 
-      <div class="relative mx-auto max-w-6xl px-5 pt-7 pb-16 md:pt-20 md:pb-24">
+      <div class="relative mx-auto max-w-6xl px-5 pt-24 pb-16 md:pt-32 md:pb-24">
         {/* Mobile: title -> map -> subtitle (flex column). Desktop: map spans the
             left column, title + subtitle stack in the right column (grid). */}
         <div
           class="flex flex-col items-start gap-8 md:grid md:grid-cols-[46%_1fr] md:items-center md:gap-x-12 md:gap-y-4"
         >
           <h1
-            class="reveal font-hero max-w-5xl text-[clamp(2.6rem,12vw,4.6rem)] leading-[0.9] font-bold tracking-tight md:col-start-2 md:row-start-1 md:self-end"
+            class="reveal font-hero max-w-5xl text-[clamp(3.2rem,14vw,5.8rem)] leading-[0.9] font-bold tracking-tight md:col-start-2 md:row-start-1 md:self-end"
             style="transition-delay: 0.1s"
           >
-            Plan routes.<br />Verify fountains.
+            Run & Verify
           </h1>
 
           {/* Interactive demo of the run + edit flow, framed like a print plate. */}
@@ -87,7 +83,28 @@ const bottomLines = Array.from({ length: 7 }, (_, i) => {
             style="transition-delay: 0.05s"
           >
             <div class="hero-map relative isolate z-0 h-[clamp(300px,40vw,460px)] w-full">
-              <DemoRunMap client:only="svelte" />
+              <DemoRunMap client:only="svelte">
+                {/* Server-rendered spinner: visible instantly, before the Svelte
+                    island's JS downloads and hydrates. Replaced on hydration. */}
+                <div
+                  slot="fallback"
+                  style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: #0E85C6;"
+                >
+                  <svg
+                    style="width: 2rem; height: 2rem; color: #fff; animation: spin 1s linear infinite;"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle style="opacity: 0.25;" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path
+                      style="opacity: 0.75;"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                </div>
+              </DemoRunMap>
             </div>
           </div>
 
@@ -96,9 +113,22 @@ const bottomLines = Array.from({ length: 7 }, (_, i) => {
             style="transition-delay: 0.16s"
           >
             <p class="text-muted max-w-xl text-xl leading-relaxed">
-              Contribute to your community with local&nbsp;data
+              A runner-sourced map of public fountains in D.C.
             </p>
-            <BetaCta client:load />
+            <div class="flex flex-wrap items-center gap-3">
+              <a
+                href="/dc-drinking-fountains"
+                class="inline-flex items-center gap-2.5 self-end rounded-sm border border-base/20 bg-transparent px-6 py-3 text-lg font-bold text-base transition hover:bg-base/5 md:self-start"
+              >
+                <svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" class="h-6 w-6">
+                  <path
+                    d="M174,47.75a254.19,254.19,0,0,0-41.45-38.3,8,8,0,0,0-9.18,0A254.19,254.19,0,0,0,82,47.75C54.51,79.32,40,112.6,40,144a88,88,0,0,0,176,0C216,112.6,201.49,79.32,174,47.75ZM128,216a72.08,72.08,0,0,1-72-72c0-57.23,55.47-105,72-118,16.53,13,72,60.75,72,118A72.08,72.08,0,0,1,128,216Zm55.89-62.66a57.6,57.6,0,0,1-46.56,46.55A8.75,8.75,0,0,1,136,200a8,8,0,0,1-1.3-15.89c16.94-2.79,31.2-17,34-34A8,8,0,0,1,184.4,148,8.11,8.11,0,0,1,183.89,153.34Z"
+                  ></path>
+                </svg>
+                Find Water Now
+              </a>
+              <BetaCta client:load />
+            </div>
           </div>
         </div>
       </div>
@@ -107,26 +137,26 @@ const bottomLines = Array.from({ length: 7 }, (_, i) => {
     {/* MANIFESTO SPLIT — a raised, hand-torn surface strip over the page.
         Wrapper casts the shadow; inner section carries the torn clip. */}
     <div class="relative z-10 -my-6" style={tornShadow}>
-      <section class="bg-surface-deep" style={tornClip}>
+      <section class="bg-blue" style={tornClip}>
         <div class="reveal mx-auto max-w-3xl px-5 py-20 md:py-28">
-          <h2 class="font-hero text-[clamp(2rem,5vw,3.4rem)] leading-[1.05] font-bold tracking-tight">
+          <h2 class="font-hero text-[clamp(2rem,5vw,3.4rem)] leading-[1.05] font-bold tracking-tight text-light">
             The Problem
           </h2>
-          <p class="text-muted mt-6 text-lg leading-relaxed">
+          <p class="mt-6 text-lg leading-relaxed text-white/65">
             Despite DC's many public drbaseing fountains, there is no reliable way to know where they
             all are. And then, many are out of order. This is bad for everyone, especially folks who
             spend a disproportionate amount of time outdoors—thbase runners, tourists, and the
             homeless.
           </p>
-          <p class="text-muted mt-4 text-lg leading-relaxed">
+          <p class="mt-4 text-lg leading-relaxed text-white/65">
             By building a robust, locally-sourced map of public drbaseing water, we can improve the
             utility of this existing public good. This removes the guesswork of where to find the
             nearest fountain as well as the uncertainty of whether that fountain will work.
           </p>
-          <p class="text-muted mt-4 text-lg leading-relaxed">
+          <p class="mt-4 text-lg leading-relaxed text-white/65">
             In practice, this produces immediate and long-term benefits:
           </p>
-          <ul class="text-muted mt-4 list-disc space-y-1 pl-6 text-lg leading-relaxed">
+          <ul class="mt-4 list-disc space-y-1 pl-6 text-lg leading-relaxed text-white/65">
             <li>
               <span class="font-medium">Immediately,</span> anyone can reliably locate the nearest
               working fountain
@@ -154,7 +184,7 @@ const bottomLines = Array.from({ length: 7 }, (_, i) => {
 
         {/* Contributor leaderboard — self-hides when there's no attributed edit data yet. */}
         <div class="reveal mt-12" style="transition-delay: 0.14s">
-          <span class="text-muted font-mono text-[0.65rem] font-medium tracking-[0.22em] uppercase">
+          <span class="font-mono text-[0.65rem] font-medium tracking-[0.22em] uppercase" style="color: #F38300">
             Top contributors
           </span>
           <FountainLeaderboard client:visible class="mt-6" />
@@ -164,7 +194,7 @@ const bottomLines = Array.from({ length: 7 }, (_, i) => {
           class="reveal mt-12 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-1 pb-2"
           style="transition-delay: 0.18s"
         >
-          <span class="text-muted font-mono text-[0.65rem] font-medium tracking-[0.22em] uppercase">
+          <span class="font-mono text-[0.65rem] font-medium tracking-[0.22em] uppercase" style="color: #F38300">
             Live
           </span>
           <FreshnessLegend client:visible />
@@ -180,6 +210,31 @@ const bottomLines = Array.from({ length: 7 }, (_, i) => {
       </div>
     </section>
 
+    {/* BOTTOM CTA */}
+    <section class="border-border border-t">
+      <div class="reveal mx-auto flex max-w-6xl flex-col items-center gap-6 px-5 py-16 md:py-24">
+        <h2
+          class="font-hero text-center text-[clamp(1.75rem,4vw,2.75rem)] leading-tight font-bold tracking-tight"
+        >
+          Help map the fountains.
+        </h2>
+        <div class="flex flex-wrap items-center justify-center gap-3">
+          <a
+            href="/dc-drinking-fountains"
+            class="inline-flex items-center gap-2.5 rounded-sm border border-base/20 bg-transparent px-6 py-3 text-lg font-bold text-base transition hover:bg-base/5"
+          >
+            <svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" class="h-6 w-6">
+              <path
+                d="M174,47.75a254.19,254.19,0,0,0-41.45-38.3,8,8,0,0,0-9.18,0A254.19,254.19,0,0,0,82,47.75C54.51,79.32,40,112.6,40,144a88,88,0,0,0,176,0C216,112.6,201.49,79.32,174,47.75ZM128,216a72.08,72.08,0,0,1-72-72c0-57.23,55.47-105,72-118,16.53,13,72,60.75,72,118A72.08,72.08,0,0,1,128,216Zm55.89-62.66a57.6,57.6,0,0,1-46.56,46.55A8.75,8.75,0,0,1,136,200a8,8,0,0,1-1.3-15.89c16.94-2.79,31.2-17,34-34A8,8,0,0,1,184.4,148,8.11,8.11,0,0,1,183.89,153.34Z"
+              ></path>
+            </svg>
+            Find Water Now
+          </a>
+          <BetaCta client:load />
+        </div>
+      </div>
+    </section>
+
     {/* FOOTER */}
     <footer class="border-border border-t">
       <div class="text-muted mx-auto flex max-w-6xl items-center justify-center gap-4 px-5 py-8 text-sm">
@@ -189,7 +244,7 @@ const bottomLines = Array.from({ length: 7 }, (_, i) => {
             viewBox="0 0 256 256"
             fill="currentColor"
             aria-hidden="true"
-            class="text-link inline-block h-4 w-4 align-middle"
+            class="inline-block h-4 w-4 align-middle" style="color: #0E85C6"
           >
             <path
               d="M174,47.75a254.19,254.19,0,0,0-41.45-38.3,8,8,0,0,0-9.18,0A254.19,254.19,0,0,0,82,47.75C54.51,79.32,40,112.6,40,144a88,88,0,0,0,176,0C216,112.6,201.49,79.32,174,47.75Z"
@@ -220,6 +275,12 @@ const bottomLines = Array.from({ length: 7 }, (_, i) => {
           if (entry.isIntersecting) {
             entry.target.classList.add("in-view");
             obs.unobserve(entry.target);
+            // Free GPU layer once animation is done — will-change is expensive to hold
+            (entry.target as HTMLElement).addEventListener(
+              "transitionend",
+              () => { (entry.target as HTMLElement).style.willChange = "auto"; },
+              { once: true },
+            );
           }
         }
       },

@@ -26,19 +26,25 @@
 }
 
 @theme {
-  --color-base: #0c0d0a;
-  --color-muted: #4d5c6a;
-  --color-accent: #ccff2e;
-  --color-accent-deep: #a6d600;
-  --color-light: #eef2f6;
-  --color-light-muted: #8fa3b3;
+  --color-base: #0f0e0c;
+  --color-muted: #5a5a5a;
+  --color-accent: #f38300;
+  --color-accent-deep: #ea4126;
+  --color-light: #f8f8f8;
+  --color-light-muted: #9a9a9a;
 
-  /* Cool-slate palette. */
-  --color-surface: #f4f6f8;
-  --color-surface-deep: #e3e8ee;
-  --color-border: #c6cfd8;
-  --color-info: #abdcec;
-  --color-link: #4fafd4;
+  /* Vibrant palette — bold accents on clean white. */
+  --color-surface: #ffffff;
+  --color-surface-deep: #f2f2f2;
+  --color-border: #e0e0e0;
+  --color-info: #0e85c6;
+  --color-link: #0e85c6;
+  --color-blue: #0e85c6;
+  --color-pink: #f4447a;
+  --color-orange: #f38300;
+  --color-red: #ea4126;
+  --color-green: #00925d;
+  --color-yellow: #fbc900;
 
   --font-display: "Space Grotesk", system-ui, sans-serif;
   --font-body: "Inter", system-ui, sans-serif;
@@ -48,7 +54,7 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #0f0e0c;
 }
 
 /* Behind everything — including the iOS rubber-band overscroll area — so the dark
@@ -163,6 +169,7 @@ body {
 .reveal {
   opacity: 0;
   transform: translateY(24px);
+  will-change: transform, opacity;
   transition:
     opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
     transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
