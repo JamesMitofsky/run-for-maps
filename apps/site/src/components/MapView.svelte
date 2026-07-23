@@ -184,11 +184,25 @@
     untrack(doRecenter);
   });
 
+  // `isLoaded` tracks the real map `load` event only. It is never forced true
+  // on a timer — a blank/hung map must not masquerade as loaded, or the loader
+  // hides over nothing and later errors get swallowed by the post-load gate.
   let isLoaded = $state(false);
   let hasError = $state(false);
 
+  // Hard ceiling: MapLibre can sit forever if the tile source (via /api/tiles →
+  // OpenFreeMap) stalls without ever firing `load` or `error`. Give up at 20s so
+  // the loader can't spin indefinitely — surface the fallback instead.
+  const LOAD_TIMEOUT_MS = 20_000;
   $effect(() => {
-    const timer = setTimeout(() => (isLoaded = true), 2500);
+    if (isLoaded || hasError) return;
+    const timer = setTimeout(() => {
+      if (!isLoaded) {
+        console.error("MapLibre load timeout after", LOAD_TIMEOUT_MS, "ms");
+        hasError = true;
+        onError?.(new Error("Map load timed out"));
+      }
+    }, LOAD_TIMEOUT_MS);
     return () => clearTimeout(timer);
   });
 

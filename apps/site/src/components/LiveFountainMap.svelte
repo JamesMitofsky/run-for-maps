@@ -6,13 +6,17 @@
   import ErrorNotice from "@/components/ErrorNotice.svelte";
   import type { Fountain } from "@rosm/core/schemas";
   import { isOutOfService } from "@rosm/core/fountainFilters";
-  import { apiFetch } from "@/lib/api";
+  import { apiFetch, ApiTimeoutError } from "@/lib/api";
   import { haversine } from "@rosm/core/geo";
 
   // Live counterpart to DemoRunMap: on mount it queries Overpass for every
   // amenity=drinking_water node in the on-screen viewport around central DC and
   // colors each by how recently it was verified. Read-only; no editing.
   let { class: className = "" }: { class?: string } = $props();
+
+  // Hard client-side ceiling for the fountain fetch. The backend keeps trying
+  // Overpass mirrors well past this; the user shouldn't wait longer than 20s.
+  const FETCH_TIMEOUT_MS = 20_000;
 
   const DC_CENTER: [number, number] = [38.8972, -77.0369];
   const CENTER_PT = { lat: DC_CENTER[0], lon: DC_CENTER[1] };
@@ -52,17 +56,23 @@
     busy = true;
     err = null;
     try {
-      const r = await apiFetch("/api/fountains", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          // [south, west, north, east] — the on-screen bounding box.
-          bounds: [box[0][0], box[0][1], box[1][0], box[1][1]],
-          tag: TAG,
-          recencyMode: "any",
-          includeDisused: true,
-        }),
-      });
+      const r = await apiFetch(
+        "/api/fountains",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            // [south, west, north, east] — the on-screen bounding box.
+            bounds: [box[0][0], box[0][1], box[1][0], box[1][1]],
+            tag: TAG,
+            recencyMode: "any",
+            includeDisused: true,
+          }),
+        },
+        // The server may retry Overpass across mirrors for far longer than a
+        // user should stare at a spinner — cap the wait and surface an error.
+        { timeoutMs: FETCH_TIMEOUT_MS },
+      );
       const j = await r.json();
       if (!r.ok) {
         const e = j.error;
@@ -76,7 +86,10 @@
       // Refit to the returned points' bounding box.
       recenterKey = `loaded-${found.length}`;
     } catch (e) {
-      err = (e as Error).message;
+      err =
+        e instanceof ApiTimeoutError
+          ? "The fountain search took too long to respond. Please try again."
+          : (e as Error).message;
     } finally {
       busy = false;
     }
