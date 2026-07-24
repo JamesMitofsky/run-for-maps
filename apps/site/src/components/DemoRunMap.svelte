@@ -84,12 +84,6 @@
     centerOnSelect
     {markerPopup}
   />
-  <!-- Corner label so the hero map reads as a live, tappable demo. -->
-  <span
-    class="border-link bg-link/15 text-link pointer-events-none absolute top-3 left-3 z-[1000] rounded-full border px-3 py-1 text-xs font-semibold shadow-sm backdrop-blur"
-  >
-    Interactive
-  </span>
 </div>
 
 {#snippet markerPopup(m: MapMarker)}

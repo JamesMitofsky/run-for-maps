@@ -43,7 +43,16 @@ const bottomWave = [
   { x: 0.15, y: 0.97 }, { x: 0.09, y: 0.995 }, { x: 0, y: 0.98 },
 ];
 const tornPath = `${waveThrough(topWave)} L ${r(bottomWave[0].x)} ${r(bottomWave[0].y)} ${waveThrough(bottomWave).slice(1)} Z`;
-const tornClip = "clip-path: url(#manifesto-wave);";
+
+// Simpler wave for mobile — fewer crests so narrow screens don't look too busy.
+const mobileTopWave = [
+  { x: 0, y: 0.022 }, { x: 0.25, y: 0 }, { x: 0.5, y: 0.03 }, { x: 0.78, y: 0.005 }, { x: 1, y: 0.02 },
+];
+const mobileBottomWave = [
+  { x: 1, y: 0.978 }, { x: 0.72, y: 1 }, { x: 0.48, y: 0.972 }, { x: 0.22, y: 0.997 }, { x: 0, y: 0.98 },
+];
+const mobileTornPath = `${waveThrough(mobileTopWave)} L ${r(mobileBottomWave[0].x)} ${r(mobileBottomWave[0].y)} ${waveThrough(mobileBottomWave).slice(1)} Z`;
+
 
 // Decorative topographic contour paths: a single family that fades to nothing
 // as it descends. Retains the total row count of the previous two families.
@@ -150,8 +159,11 @@ const contourLines = Array.from({ length: contourRows }, (_, i) => {
         <clipPath id="manifesto-wave" clipPathUnits="objectBoundingBox">
           <path d={tornPath} />
         </clipPath>
+        <clipPath id="manifesto-wave-mobile" clipPathUnits="objectBoundingBox">
+          <path d={mobileTornPath} />
+        </clipPath>
       </svg>
-      <section class="bg-blue" style={tornClip}>
+      <section class="bg-blue manifesto-torn">
         <div class="reveal mx-auto max-w-3xl px-5 py-20 md:py-28">
           <h2 class="font-hero text-[clamp(2rem,5vw,3.4rem)] leading-[1.05] font-bold tracking-tight text-light">
             The Problem
@@ -299,4 +311,14 @@ const contourLines = Array.from({ length: contourRows }, (_, i) => {
     );
     els.forEach((el) => io.observe(el));
   </script>
+<style>
+  .manifesto-torn {
+    clip-path: url(#manifesto-wave);
+  }
+  @media (max-width: 767px) {
+    .manifesto-torn {
+      clip-path: url(#manifesto-wave-mobile);
+    }
+  }
+</style>
 </Layout>
