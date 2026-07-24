@@ -63,7 +63,7 @@
 /* Behind everything — including the iOS rubber-band overscroll area — so the dark
    theme never flashes white at the edges in the native app. */
 html {
-  background: var(--color-base);
+  background: #0e85c6;
   /* Always reserve the scrollbar gutter so locking scroll when a modal opens (rule
      below) doesn't reflow the page wider and jolt content. */
   scrollbar-gutter: stable;

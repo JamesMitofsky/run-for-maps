@@ -167,6 +167,8 @@
     minZoom={7}
     maxZoom={18}
     interactive
+    showLocate
+    showFullscreen
     {onViewChange}
     onError={onMapError}
     {markers}

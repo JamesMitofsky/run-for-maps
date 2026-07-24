@@ -75,6 +75,8 @@
     Marker,
     Popup,
     AttributionControl,
+    GeolocateControl,
+    FullScreenControl,
   } from "svelte-maplibre-gl";
   import { setMapPopup } from "@/lib/mapPopup";
 
@@ -85,6 +87,13 @@
     maxZoom?: number;
     interactive?: boolean;
     scrollWheelZoom?: boolean;
+    // Add MapLibre's GeolocateControl: a "locate me" button that drops a blue
+    // dot at the visitor's position, an accuracy halo, and — where the device
+    // exposes orientation — a heading cone. MapLibre handles the geolocation
+    // and (on iOS) the device-orientation permission prompt on tap.
+    showLocate?: boolean;
+    // Add MapLibre's FullScreenControl (a fullscreen toggle for the map).
+    showFullscreen?: boolean;
     markers?: MapMarker[];
     markerRadius?: number;
     line?: [number, number][];
@@ -118,6 +127,8 @@
     maxZoom,
     interactive = true,
     scrollWheelZoom = interactive,
+    showLocate = false,
+    showFullscreen = false,
     markers = [],
     markerRadius = 9,
     line,
@@ -387,6 +398,21 @@
     onmoveend={(ev) => emitView(!!(ev as { originalEvent?: unknown }).originalEvent)}
   >
     <AttributionControl customAttribution={ATTRIBUTION} compact />
+
+    {#if showFullscreen}
+      <FullScreenControl position="top-right" />
+    {/if}
+
+    {#if showLocate}
+      <GeolocateControl
+        position="top-right"
+        positionOptions={{ enableHighAccuracy: true }}
+        trackUserLocation
+        showAccuracyCircle
+        showUserLocation
+        showUserHeading
+      />
+    {/if}
 
     {#if lineData}
       <GeoJSONSource data={lineData}>
