@@ -43,15 +43,37 @@ const bottomWave = [
   { x: 0.15, y: 0.97 }, { x: 0.09, y: 0.995 }, { x: 0, y: 0.98 },
 ];
 const tornPath = `${waveThrough(topWave)} L ${r(bottomWave[0].x)} ${r(bottomWave[0].y)} ${waveThrough(bottomWave).slice(1)} Z`;
-const tornClip = "clip-path: url(#manifesto-wave);";
 
-// Decorative topographic contour paths: a single family that fades to nothing
-// as it descends. Retains the total row count of the previous two families.
+// Simpler wave for mobile — fewer crests so narrow screens don't look too busy.
+const mobileTopWave = [
+  { x: 0, y: 0.022 }, { x: 0.25, y: 0 }, { x: 0.5, y: 0.03 }, { x: 0.78, y: 0.005 }, { x: 1, y: 0.02 },
+];
+const mobileBottomWave = [
+  { x: 1, y: 0.978 }, { x: 0.72, y: 1 }, { x: 0.48, y: 0.972 }, { x: 0.22, y: 0.997 }, { x: 0, y: 0.98 },
+];
+const mobileTornPath = `${waveThrough(mobileTopWave)} L ${r(mobileBottomWave[0].x)} ${r(mobileBottomWave[0].y)} ${waveThrough(mobileBottomWave).slice(1)} Z`;
+
+
+// Faint topographic contour lines in the hero foreshadow The Problem below:
+// every line traces the same crest/trough silhouette as the manifesto plate's
+// torn top edge (`topWave`), stacked and fading in as they descend toward it.
 const contourRows = 16;
+const waveTopY = 90; // y of the highest contour line, in the 0..600 viewBox
+const waveGap = 30; // vertical spacing between stacked lines
+const waveAmp = 24; // px crest height (topWave dips reach 0.03 of its box)
+const topWaveMax = Math.max(...topWave.map((p) => p.y));
 const contourLines = Array.from({ length: contourRows }, (_, i) => {
-  const o = i * 30;
+  const baseY = waveTopY + i * waveGap;
+  // Reuse topWave's exact shape: x maps straight to width fractions (viewBox is
+  // 1200 wide, drawn with preserveAspectRatio="none" so 0..1200 = 0..width),
+  // so each crest sits at the same x as the manifesto torn edge below; y offset
+  // by the normalized crest depth so the line echoes that edge in proportion.
+  const pts = topWave.map((p) => ({
+    x: r(p.x * 1200),
+    y: r(baseY + (p.y / topWaveMax) * waveAmp),
+  }));
   return {
-    d: `M-50 ${100 + o} C 200 ${40 + o}, 360 ${200 + o}, 560 ${160 + o} S 920 ${40 + o}, 1260 ${140 + o}`,
+    d: waveThrough(pts),
     opacity: 0.16 * (i / (contourRows - 1)),
   };
 });
@@ -65,7 +87,7 @@ const contourLines = Array.from({ length: contourRows }, (_, i) => {
         class="pointer-events-none absolute inset-0 h-full w-full" style="color: #0E85C6"
         viewBox="0 0 1200 600"
         fill="none"
-        preserveAspectRatio="xMidYMid slice"
+        preserveAspectRatio="none"
         aria-hidden="true"
       >
         {contourLines.map((l) => (
@@ -77,7 +99,7 @@ const contourLines = Array.from({ length: contourRows }, (_, i) => {
         {/* Mobile: title -> map -> subtitle (flex column). Desktop: map spans the
             left column, title + subtitle stack in the right column (grid). */}
         <div
-          class="flex flex-col items-start gap-8 md:grid md:grid-cols-[46%_1fr] md:items-center md:gap-x-12 md:gap-y-4"
+          class="flex flex-col items-start gap-8 md:grid md:grid-cols-[46%_1fr] md:items-center md:gap-x-12 md:gap-y-2"
         >
           <h1
             class="reveal font-hero text-hero max-w-5xl text-[clamp(3.2rem,14vw,5.8rem)] leading-[0.9] font-bold tracking-tight md:col-start-2 md:row-start-1 md:self-end"
@@ -118,23 +140,23 @@ const contourLines = Array.from({ length: contourRows }, (_, i) => {
           </div>
 
           <div
-            class="reveal flex flex-col items-start gap-6 md:col-start-2 md:row-start-2 md:self-start"
+            class="reveal flex flex-col items-start gap-16 md:col-start-2 md:row-start-2 md:self-start"
             style="transition-delay: 0.16s"
           >
             <p class="text-muted max-w-xl text-xl leading-relaxed">
-              A runner-sourced map of DC's drinking fountains.
+              A runner-sourced map of DC's drinking fountains
             </p>
-            <div class="flex flex-wrap items-center gap-3">
+            <div class="flex items-center gap-3">
               <a
                 href="/dc-drinking-fountains"
-                class="inline-flex items-center gap-2.5 rounded-xl border border-blue bg-transparent px-6 py-3 text-lg font-bold text-blue transition hover:bg-blue/5"
+                class="inline-flex items-center gap-2.5 rounded-xl border border-blue bg-transparent px-4 py-3 text-lg font-bold text-blue transition hover:bg-blue/5"
               >
                 <svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" class="h-6 w-6">
                   <path
                     d="M174,47.75a254.19,254.19,0,0,0-41.45-38.3,8,8,0,0,0-9.18,0A254.19,254.19,0,0,0,82,47.75C54.51,79.32,40,112.6,40,144a88,88,0,0,0,176,0C216,112.6,201.49,79.32,174,47.75ZM128,216a72.08,72.08,0,0,1-72-72c0-57.23,55.47-105,72-118,16.53,13,72,60.75,72,118A72.08,72.08,0,0,1,128,216Zm55.89-62.66a57.6,57.6,0,0,1-46.56,46.55A8.75,8.75,0,0,1,136,200a8,8,0,0,1-1.3-15.89c16.94-2.79,31.2-17,34-34A8,8,0,0,1,184.4,148,8.11,8.11,0,0,1,183.89,153.34Z"
                   ></path>
                 </svg>
-                Find Water Now
+                Find Water
               </a>
               <BetaCta client:load />
             </div>
@@ -150,8 +172,11 @@ const contourLines = Array.from({ length: contourRows }, (_, i) => {
         <clipPath id="manifesto-wave" clipPathUnits="objectBoundingBox">
           <path d={tornPath} />
         </clipPath>
+        <clipPath id="manifesto-wave-mobile" clipPathUnits="objectBoundingBox">
+          <path d={mobileTornPath} />
+        </clipPath>
       </svg>
-      <section class="bg-blue" style={tornClip}>
+      <section class="bg-blue manifesto-torn">
         <div class="reveal mx-auto max-w-3xl px-5 py-20 md:py-28">
           <h2 class="font-hero text-[clamp(2rem,5vw,3.4rem)] leading-[1.05] font-bold tracking-tight text-light">
             The Problem
@@ -159,7 +184,7 @@ const contourLines = Array.from({ length: contourRows }, (_, i) => {
           <p class="mt-6 text-lg leading-relaxed text-white/85">
             If you're anywhere other than the National Mall, it's hard to know where the public drinking fountains are. Or maybe you've found a map some folks made together, but when you arrive at the fountain, it's either out of order or <em>even removed</em>!
             This unreliable access to free water—no less in a place with some crazy summer heat—is bad for everyone, especially people who
-            spend more time outdoors—think runners, tourists, and the homeless.
+            spend more time outdoors—think runners and tourists.
           </p>
           <p class="mt-4 text-lg leading-relaxed text-white/85">
             ROSM tackles this problem by making information about each fountain detailed. Things like: is the fountain still here? is it out of order? when was it last checked? who checked it?
@@ -181,7 +206,24 @@ const contourLines = Array.from({ length: contourRows }, (_, i) => {
       </section>
     </div>
 
-    {/* THE STATE OF THE FOUNTAINS — leaderboard + live coverage map */}
+    {/* TOP CONTRIBUTORS */}
+    <section>
+      <div class="mx-auto max-w-6xl px-5 pt-20 pb-10 md:pt-28 md:pb-12">
+        <h2
+          class="reveal font-hero text-hero text-[clamp(2rem,5.5vw,3.6rem)] leading-tight font-bold tracking-tight uppercase"
+        >
+          Top Contributors
+        </h2>
+        <p class="reveal text-muted mt-4 max-w-2xl text-lg leading-relaxed" style="transition-delay: 0.1s">
+          The people keeping this map accurate.
+        </p>
+        <div class="reveal mt-6" style="transition-delay: 0.14s">
+          <FountainLeaderboard client:visible />
+        </div>
+      </div>
+    </section>
+
+    {/* THE STATE OF THE FOUNTAINS — live coverage map */}
     <section>
       <div class="mx-auto max-w-6xl px-5 pt-20 pb-10 md:pt-28 md:pb-12">
         <h2
@@ -189,20 +231,12 @@ const contourLines = Array.from({ length: contourRows }, (_, i) => {
         >
           The State of the Fountains
         </h2>
-        <p class="reveal text-muted mt-8 max-w-2xl text-lg leading-relaxed" style="transition-delay: 0.1s">
+        <p class="reveal text-muted mt-4 max-w-2xl text-lg leading-relaxed" style="transition-delay: 0.1s">
           Here's a live coverage map of the fountains in DC.
         </p>
 
-        {/* Contributor leaderboard — self-hides when there's no attributed edit data yet. */}
-        <div class="reveal mt-12" style="transition-delay: 0.14s">
-          <span class="font-mono text-[0.65rem] font-medium tracking-[0.22em] uppercase" style="color: #F38300">
-            Top contributors
-          </span>
-          <FountainLeaderboard client:visible class="mt-6" />
-        </div>
-
         <div
-          class="reveal mt-12 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-1 pb-2"
+          class="reveal mt-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-1 pb-2"
           style="transition-delay: 0.18s"
         >
           <span class="font-mono text-[0.65rem] font-medium tracking-[0.22em] uppercase" style="color: #F38300">
@@ -227,19 +261,19 @@ const contourLines = Array.from({ length: contourRows }, (_, i) => {
         <h2
           class="font-hero text-hero text-center text-[clamp(2rem,5vw,3.4rem)] leading-tight font-bold tracking-tight"
         >
-          Help map the fountains!
+          Help map the map!
         </h2>
         <div class="flex flex-wrap items-center justify-center gap-3">
           <a
             href="/dc-drinking-fountains"
-            class="inline-flex items-center gap-2.5 rounded-xl border border-blue bg-transparent px-6 py-3 text-lg font-bold text-blue transition hover:bg-blue/5"
+            class="inline-flex items-center gap-2.5 rounded-xl border border-blue bg-transparent px-4 py-3 text-lg font-bold text-blue transition hover:bg-blue/5"
           >
             <svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" class="h-6 w-6">
               <path
                 d="M174,47.75a254.19,254.19,0,0,0-41.45-38.3,8,8,0,0,0-9.18,0A254.19,254.19,0,0,0,82,47.75C54.51,79.32,40,112.6,40,144a88,88,0,0,0,176,0C216,112.6,201.49,79.32,174,47.75ZM128,216a72.08,72.08,0,0,1-72-72c0-57.23,55.47-105,72-118,16.53,13,72,60.75,72,118A72.08,72.08,0,0,1,128,216Zm55.89-62.66a57.6,57.6,0,0,1-46.56,46.55A8.75,8.75,0,0,1,136,200a8,8,0,0,1-1.3-15.89c16.94-2.79,31.2-17,34-34A8,8,0,0,1,184.4,148,8.11,8.11,0,0,1,183.89,153.34Z"
               ></path>
             </svg>
-            Find Water Now
+            Find Water
           </a>
           <BetaCta client:load />
         </div>
@@ -268,7 +302,7 @@ const contourLines = Array.from({ length: contourRows }, (_, i) => {
             rel="noopener noreferrer"
             class="text-link decoration-link/50 hover:decoration-link font-medium underline underline-offset-4"
           >
-            James Mitofinfo
+            James Mitofsky
           </a>
         </span>
       </div>
@@ -299,4 +333,14 @@ const contourLines = Array.from({ length: contourRows }, (_, i) => {
     );
     els.forEach((el) => io.observe(el));
   </script>
+<style>
+  .manifesto-torn {
+    clip-path: url(#manifesto-wave);
+  }
+  @media (max-width: 767px) {
+    .manifesto-torn {
+      clip-path: url(#manifesto-wave-mobile);
+    }
+  }
+</style>
 </Layout>

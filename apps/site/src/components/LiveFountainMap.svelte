@@ -167,6 +167,8 @@
     minZoom={7}
     maxZoom={18}
     interactive
+    showLocate
+    showFullscreen
     {onViewChange}
     onError={onMapError}
     {markers}
@@ -197,5 +199,5 @@
 
 {#snippet markerPopup(m: MapMarker)}
   {@const f = (m.data as { f: Fountain }).f}
-  <FountainPopup {f} distM={haversine(CENTER_PT, f)} />
+  <FountainPopup {f} />
 {/snippet}

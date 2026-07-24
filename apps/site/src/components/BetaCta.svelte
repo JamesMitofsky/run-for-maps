@@ -19,7 +19,7 @@
   // Endpoint comes from a PUBLIC_ env var so it's swappable per environment.
   const FORMSPREE = import.meta.env.PUBLIC_FORMSPREE_ENDPOINT as string | undefined;
 
-  let { size = "default" }: { size?: "sm" | "default" } = $props();
+  let { size = "default", inverted = false }: { size?: "sm" | "default"; inverted?: boolean } = $props();
 
   let dialogEl = $state<HTMLDialogElement>();
 
@@ -81,10 +81,11 @@
   type="button"
   onclick={() => dialogEl?.showModal()}
   class={[
-    "inline-flex items-center rounded-xl bg-blue font-bold text-white transition hover:bg-[#0a6fa3]",
+    "inline-flex items-center rounded-xl font-bold transition",
+    inverted ? "bg-white text-blue hover:bg-white/90 border border-transparent" : "bg-blue text-white hover:bg-[#0a6fa3] border border-transparent",
     size === "sm"
       ? "gap-2 px-4 py-2 text-sm self-start"
-      : "gap-2.5 px-6 py-3 text-lg self-end md:self-start",
+      : "gap-2.5 px-4 py-3 text-lg self-start",
   ].join(" ")}
 >
   <svg viewBox="0 0 100 100" fill="currentColor" aria-hidden="true" class={size === "sm" ? "h-4 w-4" : "h-6 w-6"}>
